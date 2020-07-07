@@ -36,10 +36,6 @@ class dynamite:
        
         pers = []
         rads = []
-        self.n_tot_log = []
-        self.PRs = []
-        self.PD = []
-        self.DD = 1
         self.tdm = []
         self.tdue = []
         self.tdle = []
@@ -47,6 +43,18 @@ class dynamite:
         self.tpue = []
         self.tple = []
         self.targets = []
+        Pk = []
+        P = []
+        PP = []
+        Rk = []
+        R = []
+        PR = []
+        per = []
+        ik = []
+        il = []
+        Pin = []
+        deltas = []
+        ratios = []
 
         def set_up(target):
             """Sets up target"""
@@ -64,30 +72,46 @@ class dynamite:
 
 
         if self.config_parameters["saved"] == "False":
-            if self.config_parameters["mode"] == "all":
-                for tn in targets_dict.keys():
-                    R_star, Rse, M_star, Mse, target, target_name = set_up(self.config_parameters["system"])
-                    target = target[target[:, 2].argsort()]
-                    self.run_monte_carlo(R_star, Rse, M_star, Mse, target, target_name)
-
-            elif self.config_parameters["mode"] == "TESS":
-                for tn in targets_dict.keys():
-                    if tn.find("TOI") != -1:
-                        R_star, Rse, M_star, Mse, target, target_name = set_up(tn)
-                        target = target[target[:, 2].argsort()]
-                        self.run_monte_carlo(R_star, Rse, M_star, Mse, target, target_name)
-
-            elif self.config_parameters["mode"] == "Kepler":
-                for tn in targets_dict.keys():
-                    if tn.find("Kepler") != -1 or tn.find("K2") != -1 or tn.find("KOI") != -1:
-                        R_star, Rse, M_star, Mse, target, target_name = set_up(tn)
-                        target = target[target[:, 2].argsort()]
-                        self.run_monte_carlo(R_star, Rse, M_star, Mse, target, target_name)
-
-            elif self.config_parameters["mode"] == "single":
+            if self.config_parameters["mode"] == "single":
                 R_star, Rse, M_star, Mse, target, target_name = set_up(self.config_parameters["system"])
                 target = target[target[:, 2].argsort()]
-                self.run_monte_carlo(R_star, Rse, M_star, Mse, target, target_name)
+                pers.append([target[i][2] for i in range(len(target))])
+                rads.append([target[i][1] for i in range(len(target))])
+                Pk, P, PP, per, Rk, R, PR, ik, il, Pin, deltas, ratios = self.run_monte_carlo(R_star, Rse, M_star, Mse, target, target_name)
+
+            else:
+                for tn in targets_dict.keys():
+                    if self.config_parameters["mode"] == "all":
+                        R_star, Rse, M_star, Mse, target, target_name = set_up(tn)
+
+                    elif self.config_parameters["mode"] == "TESS" and tn.find("TOI") != -1:
+                        R_star, Rse, M_star, Mse, target, target_name = set_up(tn)
+
+                    elif self.config_parameters["mode"] == "Kepler" and (tn.find("Kepler") != -1 or tn.find("K2") != -1 or tn.find("KOI") != -1):
+                        R_star, Rse, M_star, Mse, target, target_name = set_up(tn)
+
+                    target = target[target[:, 2].argsort()]
+                    pers.append([target[i][2] for i in range(len(target))])
+                    rads.append([target[i][1] for i in range(len(target))])
+                    Pk1, P1, PP1, per1, Rk1, R1, PR1, ik1, il1, Pin1, deltas1, ratios1 = self.run_monte_carlo(R_star, Rse, M_star, Mse, target, target_name)
+                    Pk.append(Pk1)
+                    P.append(P1)
+                    PP.append(PP1)
+                    per.append(per1)
+                    Rk.append(Rk1)
+                    R.append(R1)
+                    PR.append(PR1)
+                    ik.append(ik1)
+                    il.append(il1)
+                    Pin.append(Pin1)
+                    deltas.append(deltas1)
+                    ratios.append(ratios1)
+
+                np.savetxt("saved_full_data.txt", np.transpose([Pk, P, PP, per, Rk, R, PR, ik, il, Pin, deltas, ratios]), delimiter="\t")
+                np.savetxt("targets.txt", self.targets, fmt='%s', delimiter='\t')
+
+        if self.config_parameters["plot"] == "True":
+            plots = dynamite_plots(Pk, P, PP, per, Rk, R, PR, ik, il, Pin, self.PD, self.PRs, self.targets, pers, rads)
 
 
 
@@ -120,8 +144,8 @@ class dynamite:
         elif self.config_parameters["radius"] == "syssim":
             R, PR, cdfR = self.syssim_rads(self.config_parameters["radtype"], rad)
 
-        i = np.linspace(0, 180.1, 1802)
-        fi = np.zeros(len(i))
+        il = np.linspace(0, 180.1, 1802)
+        fi = np.zeros(len(il))
         rylgh = 2
         ibs = []
         fib = []
@@ -130,14 +154,14 @@ class dynamite:
         for case in [[False] + list(t) for t in list(itertools.product([False,True], repeat=len(inc)-1))]:
             incn.append([180-inc[i] if case[i] else inc[i] for i in range(0, len(inc))])
 
-        for j in range(len(i)):
+        for j in range(len(il)):
             for k in range(len(incn)):
                 test = 0
 
                 for m in range(len(incn[k])):
-                    test += spst.rayleigh.pdf(abs(incn[k][m]-i[j]), rylgh)
+                    test += spst.rayleigh.pdf(abs(incn[k][m]-il[j]), rylgh)
 
-                ibs.append(i[j])
+                ibs.append(il[j])
                 fib.append(test)
 
         ib = ibs[np.where(fib == max(fib))[0][0]]
@@ -151,38 +175,34 @@ class dynamite:
         if len(inc) == 2:
             finew = finew*0.62
 
-            for j in range(len(i)):
-                fi[j] = np.sin(i[j]*math.pi/180)*76/300
+            for j in range(len(il)):
+                fi[j] = np.sin(il[j]*math.pi/180)*76/300
 
-            fi = fi*76/(300*np.trapz(fi, i))
+            fi = fi*76/(300*np.trapz(fi, il))
 
 
         elif len(inc) == 3:
             finew = finew*0.81
 
-            for j in range(len(i)):
-                fi[j] = np.sin(i[j]*math.pi/180)*38/300
+            for j in range(len(il)):
+                fi[j] = np.sin(il[j]*math.pi/180)*38/300
 
-            fi = fi*38/(300*np.trapz(fi, i))
+            fi = fi*38/(300*np.trapz(fi, il))
 
-        i_ib = np.where(np.isclose(i,ib))[0][0]
+        i_ib = np.where(np.isclose(il,ib))[0][0]
 
         for j in range(len(inew)):
             fi[i_ib + j] += finew[j]
 
         cdfi = np.array([1 - math.exp(-(inew[j])**2/(2*(rylgh)**2)) for j in range(len(inew))])
-        Pi = fi/2
+        Pin = fi/2
         Pk = []
         Rk = []
         ik = []
-        Nk = []
 
         for k in range(10000):
-            N = 0
-
             for j in range(len(PP)):
                 if np.random.rand() < PP[j]:
-                    N += 1
                     Pk.append(P[j])
                     RR = np.random.rand()
                     Rk.append(R[np.where(RR - cdfR < 0)[0][0]])
@@ -199,12 +219,10 @@ class dynamite:
                     else:
                         ik.append(np.arccos(np.random.rand()*2 - 1)*180/math.pi)
 
-            Nk.append(N)
-
-        Pi = np.arange(0.5, 146.001, 0.001)
+        Pis = np.arange(0.5, 146.001, 0.001)
 
         if self.config_parameters["period"] == "epos":
-            PPi, _ = self.epos_pers(p0, per, rad, Pi, M_star)
+            PPi, _ = self.epos_pers(p0, per, rad, Pis, M_star)
 
             if self.config_parameters["mode"] == "TESS":
                 low_gap_P = ["TOI 561", "TOI 431", "TOI 1238", "TOI 732", "TOI 696", "TOI 175", "TOI 663", "TOI 1469", "TOI 1260", "TOI 270", "TOI 396", "TOI 836", "TOI 411", "TOI 1269", "TOI 1453", "TOI 714", "TOI 1749", "TOI 125", "TOI 1438", "TOI 119", "TOI 763", "TOI 1136", "TOI 1064", "TOI 266", "TOI 178", "TOI 776", "TOI 1339", "TOI 214", "TOI 700", "TOI 1266", "TOI 553", "TOI 699", "TOI 1277"]
@@ -220,16 +238,16 @@ class dynamite:
             else:
                 PPz = PPi
 
-            Pm = Pi[np.where(PPi == np.amax(PPz))[0][0]]
+            Pm = Pis[np.where(PPi == np.amax(PPz))[0][0]]
             PPm = np.amax(PPz)
 
         elif self.config_parameters["period"] == "syssim":
-            PPi, _ = self.syssim_pers(per, rad, Pi, M_star)
-            Pm = Pi[np.where(PPi == np.amax(PPi))[0][0]]
+            PPi, _ = self.syssim_pers(per, rad, Pis, M_star)
+            Pm = Pis[np.where(PPi == np.amax(PPi))[0][0]]
             PPm = np.amax(PPi)
 
-        Ple = Pm - Pi[np.where((Pi < Pm) & (PPi < 0.606*PPm))][-1]
-        Pue = Pi[np.where((Pi > Pm) & (PPi < 0.606*PPm))][0] - Pm
+        Ple = Pm - Pis[np.where((Pis < Pm) & (PPi < 0.606*PPm))][-1]
+        Pue = Pis[np.where((Pis > Pm) & (PPi < 0.606*PPm))][0] - Pm
         Rm = np.percentile(Rk, 50)
         Rle = Rm - np.percentile(Rk, 16)
         Rue = np.percentile(Rk, 84) - Rm
@@ -276,8 +294,7 @@ class dynamite:
         self.tple.append(tple)
         self.targets.append([target_name, Pm, Ple, Pue, Rm, Rle, Rue])
 
-        if self.config_parameters["plot"] == "True":
-            plots = dynamite_plots(Pk, P, PP, per, Rk, R, PR, ik, i, Pi)
+        return PK, P, PP, per, Rk, R, PR, ik, il, Pin, self.PD, self.PRs
 
 
 
@@ -336,11 +353,11 @@ class dynamite:
                 if fD[i] < dc:
                     fP[i] = 0
 
-        Du = np.arange(0, max(fD) + self.DD, self.DD)
+        Du = np.arange(0, max(fD) + 1)
         fDu = np.zeros(len(Du))
 
         for i in range(len(fD)):
-            j = int(fD[i] // self.DD)
+            j = int(fD[i])
             fDu[j] += fP[i]/np.trapz(fP, P)
 
         return fP/np.trapz(fP, P), fDu
@@ -462,11 +479,11 @@ class dynamite:
                 if fD[i] < dc:
                     fP[i] = 0
 
-        Du = np.arange(0, max(fD) + self.DD, self.DD)
+        Du = np.arange(0, max(fD) + 1)
         fDu = np.zeros(len(Du))
 
         for i in range(len(fD)):
-            j = int(fD[i] // self.DD)
+            j = int(fD[i])
             fDu[j] += fP[i]/np.trapz(fP, P)
 
         return fP/np.trapz(fP, P), fDu
