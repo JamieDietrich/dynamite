@@ -1,9 +1,11 @@
 ### DYNAMITE Configuration File
+### Version 1.0
 ### Jeremy Dietrich
-### 2020 July 6
+### 2020 July 11
 
 ## PREDICTION PARAMETERS
 
+# MC_chain: length of Monte Carlo chain - currently 10000; has to be integer
 # mode: Run mode for DYNAMITE - currently accepts single/Tess/Kepler/all
 # system: Single system to run on - only used if mode is single
 # period: Probability distribution for planet periods - currently accepts epos/syssim
@@ -12,6 +14,7 @@
 # radmin: planet radius minimum - 0.5 for full Kepler popluation stats, 0.1 for reaching the smallest planets in TOI multi systems
 # radmax: planet radius maximum - 5 for Neptunes and below, 10 for full Kepler population stats, 15 for largest super-Jupiter planets in TOI multi systems
 
+MC_chain::10000
 mode::single
 system::tau Ceti
 period::epos
@@ -33,7 +36,7 @@ radmax::5
 # plt_indpars: plot the histograms of the individual parameters of a system - True/False; mode must be single
 # ind_P: scale of the x-axis for the individual system period plot - linear_zoom/linear/log; mode must be single
 # ind_R: scale of the x-axis for the individual system planet radius plot - linear_zoom/linear; mode must be single
-# ind_P: scale of the x-axis for the individual system inclination plot - full/truncated; mode must be single
+# ind_i: scale of the x-axis for the individual system inclination plot - full/truncated; mode must be single
 
 plot::True
 show_plots::False
@@ -46,4 +49,4 @@ plt_ratios::False
 plt_indpars::True
 ind_P::log
 ind_R::linear
-ind_P::full
+ind_i::full

@@ -7,7 +7,7 @@ from mrexo import predict_from_measurement as pfm
 
 class dynamite_plots:
 
-    def __init__(self, Pk=None, P=None, PP=None, per=None, Rk=None, R=None, PR=None, ik=None, inc=None, Pi=None, deltas=None, ratios=None, targets=None, pers=None, rads=None):
+    def __init__(self, Pk=None, P=None, PP=None, per=None, Rk=None, R=None, PR=None, ik=None, inc=None, Pi=None, deltas=None, ratios=None, tdm=None, tdle=None, tdue=None, tpm=None, tple=None, tpue=None, pers=None, rads=None, targets=None):
         """Sets up plotting routines"""
 
         self.config_parameters = {}
@@ -25,8 +25,8 @@ class dynamite_plots:
         n_tot = []
         r_tot = []
 
-        if Pk == None or self.config_parameters["saved"] == "True":
-            Pk, P, PP, per, Rk, R, PR, ik, inc, Pi, deltas, ratios = self.read_saved_data()
+        if Pk == None:
+            Pk, P, PP, per, Rk, R, PR, ik, inc, Pi, deltas, ratios, tdm, tdle, tdue, tpm, tple, tpue, pers, rads = self.read_saved_data()
 
         Pb = list(P)
         Pb.append(730.1)
@@ -43,7 +43,7 @@ class dynamite_plots:
             self.set_up_P_R(targets, pers, rads, n_tot, r_tot)
 
         if self.config_parameters["plt_tdtp"] == "True":
-            self.plot_td_tp()
+            self.plot_td_tp(tdm, tdle, tdue, tpm, tple, tpue)
 
         if self.config_parameters["plt_deltas"] == "True":
             self.plot_deltas(deltas)
@@ -56,12 +56,13 @@ class dynamite_plots:
 
 
 
-    def read_saved_data(self, pers, rads):
+    def read_saved_data(self):
         """Reads in the saved data"""
 
-        Pk, P, PP, per, Rk, R, PR, ik, inc, Pi, deltas, ratios = np.loadtxt("saved_full_data.txt", delimiter='\t', unpack=True)
+        with np.load("saved_data.npz", allow_pickle=True) as fd:
+            Pk, P, PP, per, Rk, R, PR, ik, inc, Pi, deltas, ratios, tdm, tdle, tdue, tpm, tple, tpue, pers, rads = fd["data"]
         
-        return Pk, P, PP, per, Rk, R, PR, ik, inc, Pi, deltas, ratios
+        return Pk, P, PP, per, Rk, R, PR, ik, inc, Pi, deltas, ratios, tdm, tdle, tdue, tpm, tple, tpue, pers, rads
 
 
     def set_up_P_R(self, targets, pers, rads, n_tot, r_tot):
@@ -374,17 +375,11 @@ class dynamite_plots:
 
 
 
-    def plot_td_tp(self):
+    def plot_td_tp(self, tdm, tdle, tdue, tpm, tple, tpue):
         """Plots the transit probability vs the transit depth for each system in the current data subset"""
 
-        x = []
-
-        for i in range(len(self.tdm)):
-            x.append([self.tdm[i], self.tdle[i], self.tdue[i], self.tpm[i], self.tple[i], self.tpue[i]])
-
-        np.savetxt("td_tp.txt", x)
         fig, ax = plt.subplots(figsize=(12,8))
-        plt.plot(self.tdm, self.tpm, "o")
+        plt.plot(tdm, tpm, "o")
         
         names = [set_up(tn)[5] for tn in targets_dict.keys() if tn.find("TOI") != -1]
         #bunch = ["TOI 261", "TOI 266", "TOI 396", "TOI 411", "TOI 487", "TOI 561", "TOI 703", "TOI 797", "TOI 1238", "TOI 1346", "TOI 1453", "TOI 1469", "TOI 1726"]
@@ -395,41 +390,41 @@ class dynamite_plots:
         right = []
 
         for i in range(len(names)):
-            tdle = self.tdm[i] - self.tdle[i]
-            tdue = self.tdm[i] + self.tdue[i]
-            tple = self.tpm[i] - self.tple[i]
-            tpue = self.tpm[i] + self.tpue[i]
+            tdle = tdm[i] - tdle[i]
+            tdue = tdm[i] + tdue[i]
+            tple = tpm[i] - tple[i]
+            tpue = tpm[i] + tpue[i]
             ellipse = mpatch.Ellipse((np.mean([tdle, tdue]), np.mean([tple, tpue])), tdue-tdle, tpue-tple, alpha=0.1)
             ax.add_patch(ellipse)
 
             if names[i] not in bunch:
                 if names[i] in bottom:
-                    plt.annotate(names[i][names[i].find(" "):], (self.tdm[i], self.tpm[i]), textcoords="offset points", xytext=(0,-20), ha='center', fontsize=16)
+                    plt.annotate(names[i][names[i].find(" "):], (tdm[i], tpm[i]), textcoords="offset points", xytext=(0,-20), ha='center', fontsize=16)
 
                 elif names[i] in left:
-                    plt.annotate(names[i][names[i].find(" "):], (self.tdm[i], self.tpm[i]), textcoords="offset points", xytext=(-30,-5), ha='center', fontsize=16)
+                    plt.annotate(names[i][names[i].find(" "):], (tdm[i], tpm[i]), textcoords="offset points", xytext=(-30,-5), ha='center', fontsize=16)
 
                 elif names[i] in right:
-                    plt.annotate(names[i][names[i].find(" "):], (self.tdm[i], self.tpm[i]), textcoords="offset points", xytext=(25,-5), ha='center', fontsize=16)
+                    plt.annotate(names[i][names[i].find(" "):], (tdm[i], tpm[i]), textcoords="offset points", xytext=(25,-5), ha='center', fontsize=16)
 
                 else:
-                    plt.annotate(names[i][names[i].find(" "):], (self.tdm[i], self.tpm[i]), textcoords="offset points", xytext=(0,10), ha='center', fontsize=16)
+                    plt.annotate(names[i][names[i].find(" "):], (tdm[i], tpm[i]), textcoords="offset points", xytext=(0,10), ha='center', fontsize=16)
 
             else:
                 if names[i] in bottom:
-                    plt.annotate(names[i][names[i].find(" "):], (self.tdm[i], self.tpm[i]), textcoords="offset points", xytext=(0,-20), ha='center', fontsize=16)
+                    plt.annotate(names[i][names[i].find(" "):], (tdm[i], tpm[i]), textcoords="offset points", xytext=(0,-20), ha='center', fontsize=16)
 
                 elif names[i] in left:
-                    plt.annotate(names[i][names[i].find(" "):], (self.tdm[i], self.tpm[i]), textcoords="offset points", xytext=(-30,-5), ha='center', fontsize=16)
+                    plt.annotate(names[i][names[i].find(" "):], (tdm[i], tpm[i]), textcoords="offset points", xytext=(-30,-5), ha='center', fontsize=16)
 
                 elif names[i] in right:
-                    plt.annotate(names[i][names[i].find(" "):], (self.tdm[i], self.tpm[i]), textcoords="offset points", xytext=(30,-5), ha='center', fontsize=16)
+                    plt.annotate(names[i][names[i].find(" "):], (tdm[i], tpm[i]), textcoords="offset points", xytext=(30,-5), ha='center', fontsize=16)
 
                 else:
-                    plt.annotate(names[i][names[i].find(" "):], (self.tdm[i], self.tpm[i]), textcoords="offset points", xytext=(0,10), ha='center', fontsize=16)
+                    plt.annotate(names[i][names[i].find(" "):], (tdm[i], tpm[i]), textcoords="offset points", xytext=(0,10), ha='center', fontsize=16)
 
         ax.xaxis.set_major_formatter(mticker.ScalarFormatter())
-        plt.xlim(150, max(self.tdm) + max(self.tdue))
+        plt.xlim(150, max(tdm) + max(tdue))
         #plt.xlim(150, 3500)
         #plt.xlim(150, 800)
         #plt.ylim(0.75, 0.85)
@@ -460,7 +455,6 @@ class dynamite_plots:
         i12 = [35, 35, 35, 35]
         i2 = []
         i3 = [35, 35, 35]
-        ul = 0.01       # upper limit of plot
 
         if self.config_parameters["ind_P"] == "linear_zoom":
             n, b, _ = plt.hist(Pk, bins=np.arange(0.5, round(5*max(per)) + 1, 0.5), weights=np.ones(len(Pk))*2 / (len(Pk)), label="DYNAMITE Predictions")
@@ -469,8 +463,13 @@ class dynamite_plots:
             plt.ylabel("Relative Likelihood")
             plt.xlim(0, 5*max(per))
             plt.legend()
-            fig.suptitle(system + " Period Relative Likelihood", fontsize=30)
-            plt.savefig(system + "_P_linear_zoom.png")
+            fig.suptitle((r"$\tau$ Ceti" if system == "tau Ceti" else system) + " Period Relative Likelihood", fontsize=30)
+
+            if self.config_parameters["period"] == "epos":
+                plt.savefig(system + "_P_linear_zoom_epos.png")
+
+            elif self.config_parameters["period"] == "syssim":
+                plt.savefig(system + "_P_linear_zoom_syssim.png")
 
             if self.config_parameters["show_plots"] == "True":
                 plt.show()
@@ -487,8 +486,13 @@ class dynamite_plots:
             plt.ylabel("Relative Likelihood")
             plt.xlim(0, 5*max(per))
             plt.legend()
-            fig.suptitle(system + " Period Relative Likelihood", fontsize=30)
-            plt.savefig(system + "_P_linear.png")
+            fig.suptitle((r"$\tau$ Ceti" if system == "tau Ceti" else system) + " Period Relative Likelihood", fontsize=30)
+
+            if self.config_parameters["period"] == "epos":
+                plt.savefig(system + "_P_linear_epos.png")
+
+            elif self.config_parameters["period"] == "syssim":
+                plt.savefig(system + "_P_linear_syssim.png")
 
             if self.config_parameters["show_plots"] == "True":
                 plt.show()
@@ -502,38 +506,43 @@ class dynamite_plots:
             Plb.append(10**2.895)
             bins = np.array(Plb)
             widths = (bins[1:] - bins[:-1])
-            hist = np.histogram(Pk, bins=bins)
-            hist_norm = hist[0]/widths
+            hist, _ = np.histogram(Pk, bins=bins)
+            hist_norm = hist/widths
             fig, ax = plt.subplots(figsize=(12,8))
-            plt.bar(bins[:-1], hist_norm/100000, widths, label="DYNAMITE Predictions")
+            plt.bar(bins[:-1], hist_norm/1e5, widths, label="DYNAMITE Predictions")
             PPl = np.interp(Pl, P, PP)
             plt.plot(Pl, PPl, color='#ff7f0e', label="PDF", linewidth=4)
             
             if len(p1) > 0:
-                plt.scatter(p1, np.ones(len(p1))*ul/20, c="g", s=r1*100, label=("Known planets in system" if len(p1) > 1 else "Known planet in system"), zorder=2)
+                plt.scatter(p1, np.ones(len(p1))*np.amax(hist_norm)/1e6, c="g", s=[r1[i]*100 for i in range(len(r1))], label=("Known planets in system" if len(p1) > 1 else "Known planet in system"), zorder=2)
 
             if len(p11) > 0:
-                plt.scatter(p11, np.ones(len(p11))*ul/20, c="purple", marker="s", s=r11*100, label="Highest relative likelihood for inserted planet", zorder=2)
+                plt.scatter(p11, np.ones(len(p11))*np.amax(hist_norm)/1e6, c="purple", marker="s", s=[r11[i]*100 for i in range(len(r11))], label="Highest relative likelihood for inserted planet", zorder=2)
 
             if len(p12) > 0:
-                plt.scatter(p12, np.ones(len(p12))*ul/20, c="g", marker="^", s=r12*100, label=("Known non-transiting planets" if len(p12) > 1 else "Known non-transiting planet"), zorder=2)
+                plt.scatter(p12, np.ones(len(p12))*np.amax(hist_norm)/1e6, c="g", marker="^", s=[r12[i]*100 for i in range(len(r12))], label=("Known non-transiting planets" if len(p12) > 1 else "Known non-transiting planet"), zorder=2)
 
             if len(p2) > 0:
-                plt.scatter(p2, np.ones(len(p2))*ul/20, c="w", marker="X", edgecolors="k", s=r2*100, linewidth=2, label=("Known planets removed from system" if len(p2) > 1 else "Known planet removed from system"), zorder=2)
+                plt.scatter(p2, np.ones(len(p2))*np.amax(hist_norm)/1e6, c="w", marker="X", edgecolors="k", s=[r2[i]*100 for i in range(len(r2))], linewidth=2, label=("Known planets removed from system" if len(p2) > 1 else "Known planet removed from system"), zorder=2)
 
             if len(p3) > 0:
-                plt.scatter(p3, np.ones(len(p3))*ul/20, c="y", marker='$?$', s=r3*100, label=("Unconfirmed planet candidates" if len(p3) > 1 else "Unconfirmed planet candidate"), zorder=2)
+                plt.scatter(p3, np.ones(len(p3))*np.amax(hist_norm)/1e6, c="y", marker='$?$', s=[r3[i]*100 for i in range(len(r3))], label=("Unconfirmed planet candidates" if len(p3) > 1 else "Unconfirmed planet candidate"), zorder=2)
 
             plt.xlabel("Log Period (days)", fontsize=20)
             plt.ylabel("Relative Likelihood", fontsize=20)
             plt.xscale("Log")
             plt.xlim(0.5, 730)
-            plt.ylim(0, ul)
+            plt.ylim(0, np.amax(hist_norm)*1.2/1e5)
             plt.legend(fontsize=16)
             ax.tick_params(labelsize=14)
             ax.xaxis.set_major_formatter(mticker.ScalarFormatter())
-            fig.suptitle(system + " Period Relative Likelihood", fontsize=30)
-            plt.savefig(system + "_P_log.png")
+            fig.suptitle((r"$\tau$ Ceti" if system == "tau Ceti" else system) + " Period Relative Likelihood", fontsize=30)
+
+            if self.config_parameters["period"] == "epos":
+                plt.savefig(system + "_P_log_epos.png")
+
+            elif self.config_parameters["period"] == "syssim":
+                plt.savefig(system + "_P_log_syssim.png")
 
             if self.config_parameters["show_plots"] == "True":
                 plt.show()
@@ -559,28 +568,31 @@ class dynamite_plots:
         elif self.config_parameters["ind_R"] == "linear":
             Rb = list(R)
             Rb.append(float(self.config_parameters["radmax"]) + 0.01)
-            n, b, _ = plt.hist(Rk, bins=Rb, weights=np.ones(len(Rk))*10 / len(Rk), label="DYNAMITE Predictions")
+            fig, ax = plt.subplots(figsize=(12,8))
+            n, b, _ = plt.hist(Rk, bins=Rb, weights=np.ones(len(Rk))*100 / len(Rk), label="DYNAMITE Predictions")
             plt.plot(R, PR, label="PDF")
 
             if len(r1) > 0:
-                plt.scatter(r1, np.ones(len(r1)*ul/20), c="g", label=("Known planets in system" if len(p1) > 1 else "Known planet in system"), zorder=2)
+                plt.scatter(r1, np.ones(len(r1))*np.amax(n)/10, c="g", s=200, label=("Known planets in system" if len(p1) > 1 else "Known planet in system"), zorder=2)
 
             if len(r11) > 0:
-                plt.scatter(r11, np.ones(len(r11))*ul/20, c="purple", marker="s", label="Highest relative likelihood for inserted planet", zorder=2)
+                plt.scatter(r11, np.ones(len(r11))*np.amax(n)/10, c="purple", marker="s", s=200, label="Highest relative likelihood for inserted planet", zorder=2)
 
             if len(r12) > 0:
-                plt.scatter(r12, np.ones(len(r12)*ul/20, c="g", marker="^", label=("Known non-transiting planets" if len(r12) > 1 else "Known non-transiting planet"), zorder=2)
+                plt.scatter(r12, np.ones(len(r12))*np.amax(n)/10, c="g", marker="^", s=200, label=("Known non-transiting planets" if len(r12) > 1 else "Known non-transiting planet"), zorder=2)
 
             if len(r2) > 0:
-                plt.scatter(r2, np.ones(len(r2))*ul/20, c="w", marker="X", edgecolors="k", linewidth=2, label=("Known planets removed from system" if len(r2) > 1 else "Known planet removed from system"), zorder=2)
+                plt.scatter(r2, np.ones(len(r2))*np.amax(n)/10, c="w", marker="X", s=200, edgecolors="k", linewidth=2, label=("Known planets removed from system" if len(r2) > 1 else "Known planet removed from system"), zorder=2)
 
-            if len(r3) > 0
-                plt.scatter(r3, np.ones(len(r3)*ul/20, c="y", marker='$?$', label=("Unconfirmed planet candidates" if len(r3) > 1 else "Unconfirmed planet candidate"), zorder=2)
+            if len(r3) > 0:
+                plt.scatter(r3, np.ones(len(r3))*np.amax(n)/10, c="y", marker='$?$', s=200, label=("Unconfirmed planet candidates" if len(r3) > 1 else "Unconfirmed planet candidate"), zorder=2)
 
-            plt.xlabel(r"Radius ($R_{\oplus}$)")
-            plt.ylabel("Relative Likelihood")
-            plt.legend()
-            fig.suptitle(system + " Planet Radius Relative Likelihood", fontsize=30)
+            plt.ylim(0,1.2*np.amax(n))
+            plt.xlabel(r"Radius ($R_{\oplus}$)", fontsize=20)
+            plt.ylabel("Relative Likelihood", fontsize=20)
+            plt.legend(loc=1, fontsize=16)
+            ax.tick_params(labelsize=14)
+            fig.suptitle((r"$\tau$ Ceti" if system == "tau Ceti" else system) + " Planet Radius Relative Likelihood", fontsize=30)
             plt.savefig(system + "_R_linear.png")
 
             if self.config_parameters["show_plots"] == "True":
@@ -591,22 +603,26 @@ class dynamite_plots:
 
         if self.config_parameters["ind_i"] == "full":
             ik = np.array(ik)
+            fname = system + "_inc_full.png"
 
         elif self.config_paramters["ind_i"] == "truncated":
             ik = np.array([ik[j] if ik[j] < 90 else 180-ik[j] for j in range(len(ik))])     # toggle for allowing inclinations to be greater than 90 degrees or truncated back to 0-90 range
+            fname = system + "_inc_trunc.png"
 
         plt.hist(ik, bins=np.linspace(0, 180.5, 362), weights=np.ones(len(ik)) / (len(ik)), label="DYNAMITE Predictions")
         plt.plot(inc, Pi, label="PDF")
         plt.xlabel("Inclination (degrees)")
         plt.ylabel("Relative Likelihood")
         plt.legend()
-        fig.suptitle(system + " Inclination Relative Likelihood", fontsize=30)
+        fig.suptitle(r"$\tau$ Ceti" if system == "tau Ceti" else system + " Inclination Relative Likelihood", fontsize=30)
+        plt.savefig(fname)
 
         if self.config_parameters["show_plots"] == "True":
             plt.show()
 
         elif self.config_parameters["show_plots"] == "False":
             plt.close()
+
 
 
 if __name__ == '__main__':
