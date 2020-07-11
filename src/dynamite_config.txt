@@ -1,0 +1,52 @@
+### DYNAMITE Configuration File
+### Version 1.0
+### Jeremy Dietrich
+### 2020 July 11
+
+## PREDICTION PARAMETERS
+
+# MC_chain: length of Monte Carlo chain - currently 10000; has to be integer
+# mode: Run mode for DYNAMITE - currently accepts single/Tess/Kepler/all
+# system: Single system to run on - only used if mode is single
+# period: Probability distribution for planet periods - currently accepts epos/syssim
+# radius: Probability distribution for planet radii - currently accepts epos/syssim
+# radtype: planet radius function type - powerlaw/clustered, radius must be syssim
+# radmin: planet radius minimum - 0.5 for full Kepler popluation stats, 0.1 for reaching the smallest planets in TOI multi systems
+# radmax: planet radius maximum - 5 for Neptunes and below, 10 for full Kepler population stats, 15 for largest super-Jupiter planets in TOI multi systems
+
+MC_chain::10000
+mode::single
+system::tau Ceti
+period::epos
+radius::syssim
+radtype::clustered
+radmin::0.1
+radmax::5
+
+## PLOTTING PARAMETERS
+
+# plot: run plotting code - True/False; must have at least one individual plotting parameter below also true for any plot to output
+# show_plots: whether to show the plots after they've been saved - True/False
+# saved: use saved values instead of re-running DYNAMITE - True/False; switch to true for plotting
+# plt_P_R: plot the periods and radii of each system, as well as against each other - True/False; mode must not be single
+# plt_P_scale: the x-axis scale for the system vs period plot - linear/log; mode must not be single
+# plt_tdtp: plot the transit probability vs the transit depth for all systems - True/False; mode must not be single
+# plt_deltas: plot the injection probability compared to the separation stability criterion in terms of mutual Hill radii - True/False; mode must not be single
+# plt_ratios: plot the period ratios of successive pairs of planets across all systems - TrueFalse; mode must not be single
+# plt_indpars: plot the histograms of the individual parameters of a system - True/False; mode must be single
+# ind_P: scale of the x-axis for the individual system period plot - linear_zoom/linear/log; mode must be single
+# ind_R: scale of the x-axis for the individual system planet radius plot - linear_zoom/linear; mode must be single
+# ind_i: scale of the x-axis for the individual system inclination plot - full/truncated; mode must be single
+
+plot::True
+show_plots::False
+saved::False
+plt_P_R::False
+plt_P_scale::log
+plt_tdtp::False
+plt_deltas::False
+plt_ratios::False
+plt_indpars::True
+ind_P::log
+ind_R::linear
+ind_i::full
