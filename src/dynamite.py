@@ -78,8 +78,6 @@ class dynamite:
                 R_star, Rse, M_star, Mse, target, target_name = set_up(self.config_parameters["system"])
                 target = target[target[:, 2].argsort()]
                 data = self.run_monte_carlo(R_star, Rse, M_star, Mse, target, target_name) + ([target[i][2] for i in range(len(target))], [target[i][1] for i in range(len(target))])
-                #print(data[0])
-                #exit()
                 np.savez("saved_data.npz", data=data)
 
             else:
@@ -242,7 +240,7 @@ class dynamite:
 
         print(datetime.now(), "setup")
 
-        Pis = np.hstack(array([np.arange(0.5, 1.001, 0.001), np.arange(1.01, 10.01, 0.01), np.arange(10.1, 100.1, 0.1), np.arange(101,731,1)]))
+        Pis = np.hstack(np.array([np.arange(0.5, 1.001, 0.001), np.arange(1.01, 10.01, 0.01), np.arange(10.1, 100.1, 0.1), np.arange(101,731,1)]))
 
         if self.config_parameters["period"] == "epos":
             PPi, _ = self.epos_pers(p0, per, rad, Pis, M_star)
@@ -293,6 +291,7 @@ class dynamite:
             if math.cos(ik[j]*math.pi/180) < ((R_star + Rse)*const.R_sun.cgs.value + (Rm + Rue)*const.R_earth.cgs.value)/self.K3(Pm, (M_star - Mse)):
                 ntu += 1
 
+        print(datetime.now(), "Numbers")
         tpm = ntrans/len(ik)
         tple = max(1e-3, ntrans/len(ik) - ntl/len(ik)) if (tpm != 0 and tpm != 1) else ntrans/len(ik) - ntl/len(ik)
         tpue = max(1e-3, ntu/len(ik) - ntrans/len(ik)) if (tpm != 0 and tpm != 1) else ntu/len(ik) - ntrans/len(ik)
@@ -311,7 +310,6 @@ class dynamite:
 
         print("\t\t" + target_name + " & $" + str(Pm) + "^{" + str(Pue) + "}_{" + str(Ple) + "}$ & $" + str(Rm) + "^{" + str(Rue) + "}_{" + str(Rle) + "}$ & $" + str(R_star) + "\pm" + str(Rse) + "$ & $" + str(tdm) + "^{" + str(tdue) + "}_{" + str(tdle) + "}$ & $" + str(tpm) + "^{" + str(tpue) + "}_{" + str(tple) + "}$ \\\\")
         print(datetime.now(), "Done")
-        exit()
 
         self.targets.append([target_name, Pm, Ple, Pue, Rm, Rle, Rue])
 
