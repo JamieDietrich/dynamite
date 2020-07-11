@@ -312,7 +312,6 @@ class dynamite:
 
         print("\t\t" + target_name + " & $" + str(Pm) + "^{" + str(Pue) + "}_{" + str(Ple) + "}$ & $" + str(Rm) + "^{" + str(Rue) + "}_{" + str(Rle) + "}$ & $" + str(R_star) + "\pm" + str(Rse) + "$ & $" + str(tdm) + "^{" + str(tdue) + "}_{" + str(tdle) + "}$ & $" + str(tpm) + "^{" + str(tpue) + "}_{" + str(tple) + "}$ \\\\")
         print(datetime.now(), "Done")
-        exit()
 
         self.targets.append([target_name, Pm, Ple, Pue, Rm, Rle, Rue])
 
