@@ -286,4 +286,7 @@ class dynamite_targets:
             elif mode == "all" and key.find("test") == -1:
                 sub_targets[key] = targets[key]
 
+            elif mode == "test" and key.find("test 3") != -1:
+                sub_targets[key] = targets[key]
+
         return sub_targets

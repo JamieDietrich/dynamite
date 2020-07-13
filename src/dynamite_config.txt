@@ -6,7 +6,7 @@
 ## PREDICTION PARAMETERS
 
 # MC_chain: length of Monte Carlo chain - currently 10000; has to be integer
-# mode: Run mode for DYNAMITE - currently accepts single/Tess/Kepler/all
+# mode: Run mode for DYNAMITE - currently accepts single/TESS/Kepler/all/test
 # system: Single system to run on - only used if mode is single
 # period: Probability distribution for planet periods - currently accepts epos/syssim
 # radius: Probability distribution for planet radii - currently accepts epos/syssim
@@ -15,7 +15,7 @@
 # radmax: planet radius maximum - 5 for Neptunes and below, 10 for full Kepler population stats, 15 for largest super-Jupiter planets in TOI multi systems
 
 MC_chain::10000
-mode::single
+mode::test
 system::tau Ceti
 period::epos
 radius::syssim
@@ -25,9 +25,9 @@ radmax::5
 
 ## PLOTTING PARAMETERS
 
-# plot: run plotting code - True/False; must have at least one individual plotting parameter below also true for any plot to output
+# plot: run plotting code - True/False; must have at least one individual plotting parameter below also True for any plot to output
 # show_plots: whether to show the plots after they've been saved - True/False
-# saved: use saved values instead of re-running DYNAMITE - True/False; switch to true for plotting
+# saved: use saved values instead of re-running DYNAMITE - True/False; switch to True for plotting, switch to False when changing datasets
 # plt_P_R: plot the periods and radii of each system, as well as against each other - True/False; mode must not be single
 # plt_P_scale: the x-axis scale for the system vs period plot - linear/log; mode must not be single
 # plt_tdtp: plot the transit probability vs the transit depth for all systems - True/False; mode must not be single
@@ -41,12 +41,12 @@ radmax::5
 plot::True
 show_plots::False
 saved::False
-plt_P_R::False
+plt_P_R::True
 plt_P_scale::log
 plt_tdtp::False
 plt_deltas::False
 plt_ratios::False
-plt_indpars::True
+plt_indpars::False
 ind_P::log
 ind_R::linear
 ind_i::full

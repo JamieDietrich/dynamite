@@ -7,7 +7,7 @@ from mrexo import predict_from_measurement as pfm
 
 class dynamite_plots:
 
-    def __init__(self, Pk=None, P=None, PP=None, per=None, Rk=None, R=None, PR=None, ik=None, inc=None, Pi=None, deltas=None, ratios=None, tdm=None, tdle=None, tdue=None, tpm=None, tple=None, tpue=None, pers=None, rads=None, targets=None):
+    def __init__(self, Pk=[], P=[], PP=[], per=[], Rk=[], R=[], PR=[], ik=[], inc=[], Pi=[], deltas=[], ratios=[], tdm=[], tdle=[], tdue=[], tpm=[], tple=[], tpue=[], pers=[], rads=[], targets=[]):
         """Sets up plotting routines"""
 
         self.config_parameters = {}
@@ -25,25 +25,14 @@ class dynamite_plots:
         n_tot = []
         r_tot = []
 
-        if Pk == None:
-            Pk, P, PP, per, Rk, R, PR, ik, inc, Pi, deltas, ratios, tdm, tdle, tdue, tpm, tple, tpue, pers, rads = self.read_saved_data()
-
-        Pb = list(P)
-        Pb.append(730.1)
-        n, b, _ = plt.hist(Pk, bins=Pb, weights=np.ones(len(Pk))*10 / len(Pk), label="DYNAMITE Predictions")
-        n_tot.append(n)
-        plt.close()
-        Rb = list(R)
-        Rb.append(float(self.config_parameters["radmax"]) + 0.01)
-        n, b, _ = plt.hist(Rk, bins=Rb, weights=np.ones(len(Rk))*10 / len(Rk), label="DYNAMITE Predictions")
-        r_tot.append(n)
-        plt.close()
+        if len(Pk) == 0:
+            Pk, P, PP, per, Rk, R, PR, ik, inc, Pi, deltas, ratios, tdm, tdle, tdue, tpm, tple, tpue, pers, rads, targets = self.read_saved_data()
 
         if self.config_parameters["plt_P_R"] == "True":
-            self.set_up_P_R(targets, pers, rads, n_tot, r_tot)
+            self.set_up_P_R(Pk, P, Rk, R, targets, pers, rads)
 
         if self.config_parameters["plt_tdtp"] == "True":
-            self.plot_td_tp(tdm, tdle, tdue, tpm, tple, tpue)
+            self.plot_td_tp(tdm, tdle, tdue, tpm, tple, tpue, targets)
 
         if self.config_parameters["plt_deltas"] == "True":
             self.plot_deltas(deltas)
@@ -61,12 +50,29 @@ class dynamite_plots:
 
         with np.load("saved_data.npz", allow_pickle=True) as fd:
             Pk, P, PP, per, Rk, R, PR, ik, inc, Pi, deltas, ratios, tdm, tdle, tdue, tpm, tple, tpue, pers, rads = fd["data"]
+
+        targets = np.loadtxt("targets.txt", dtype='str', delimiter='\t')
         
-        return Pk, P, PP, per, Rk, R, PR, ik, inc, Pi, deltas, ratios, tdm, tdle, tdue, tpm, tple, tpue, pers, rads
+        return Pk, P, PP, per, Rk, R, PR, ik, inc, Pi, deltas, ratios, tdm, tdle, tdue, tpm, tple, tpue, pers, rads, targets
 
 
-    def set_up_P_R(self, targets, pers, rads, n_tot, r_tot):
+    def set_up_P_R(self, Pk, P, Rk, R, targets, pers, rads):
         """Sets up the P and R distributions for plotting"""
+
+        Pb = list(P[0])
+        Pb.append(730.1)
+        Rb = list(R[0])
+        Rb.append(float(self.config_parameters["radmax"]) + 0.01)
+        n_tot = []
+        r_tot = []
+
+        for i in range(len(Pk)):
+            n, b, _ = plt.hist(Pk[i], bins=Pb, weights=np.ones(len(Pk[i]))*10 / len(Pk[i]), label="DYNAMITE Predictions")
+            n_tot.append(n)
+            plt.close()
+            n, b, _ = plt.hist(Rk[i], bins=Rb, weights=np.ones(len(Rk[i]))*10 / len(Rk[i]), label="DYNAMITE Predictions")
+            r_tot.append(n)
+            plt.close()
 
         Pf = np.arange(0.5, 730.01, 0.01)
         Rf = np.arange(float(self.config_parameters["radmin"]), float(self.config_parameters["radmax"]) + 0.001, 0.001)
@@ -90,9 +96,8 @@ class dynamite_plots:
         elif self.config_parameters["saved"] == "True":
             plot_fig_p = np.loadtxt("plot_fig_p.txt")
             plot_fig_r = np.loadtxt("plot_fig_r.txt")
-            targets = np.loadtxt("targets.txt", dtype='str', delimiter='\t')
 
-        self.plot_figs(plot_fig_p, plot_fig_r, P, R, Pf, Rf, pers, rads, targets)
+        self.plot_P_R(plot_fig_p, plot_fig_r, P, R, Pf, Rf, pers, rads, targets)
 
 
 
@@ -110,12 +115,12 @@ class dynamite_plots:
         pfpi = np.zeros((len(plot_fig_p), len(Pf)))
 
         for i in range(len(plot_fig_p)):
-            pfpi[i] = np.interp(Pf, P[:1855], plot_fig_p[i])
+            pfpi[i] = np.interp(Pf, P[0][:1855], plot_fig_p[i])
 
         pfri = np.zeros((len(plot_fig_r), len(Rf)))
 
         for i in range(len(plot_fig_r)):
-            pfri[i] = np.interp(Rf, R, plot_fig_r[i])
+            pfri[i] = np.interp(Rf, R[0], plot_fig_r[i])
 
         prf = np.zeros((len(Rf), len(Pf)))
 
@@ -206,11 +211,11 @@ class dynamite_plots:
 
         if self.config_parameters["period"] == "epos":
             plt.xlim(150, 11000)
-            plt.savefig("PRfig_epos_ell.png", bbox_inches='tight')
+            plt.savefig("PRfig_epos_ell_" + self.config_parameters["mode"] + ".png", bbox_inches='tight')
 
         elif self.config_parameters["period"] == "syssim":
             plt.xlim(40, 11000)    
-            plt.savefig("PRfig_syssim_ell.png", bbox_inches='tight')
+            plt.savefig("PRfig_syssim_ell_" + self.config_parameters["mode"] + ".png", bbox_inches='tight')
 
         if self.config_parameters["show_plots"] == "True":
             plt.show()
@@ -219,7 +224,7 @@ class dynamite_plots:
             plt.close()
 
         fig, ax = plt.subplots(1,1, figsize=(10,12))
-        fig.suptitle(r"Period Relative Likelihoods for $TESS$ Systems", fontsize=30)
+        fig.suptitle("Period Relative Likelihoods for " + self.config_parameters["mode"] + " Systems", fontsize=30)
         img = ax.imshow(pfpi, cmap=plt.cm.Blues, origin="lower", aspect="auto")
 
         if self.config_parameters["plt_P_scale"] == "linear":
@@ -233,7 +238,7 @@ class dynamite_plots:
             ax.set_xticks([0, 90, 990, 9990])
             plt.xlim(10, 73000)
 
-        ylabels = [tn for tn in targets_dict.keys() if tn.find("TOI") != -1]
+        ylabels = [targets[i][0] for i in range(len(targets))]
         ax.set_yticks(np.arange(100, len(ylabels)*200 + 100, 200))
         ax.set_xticklabels(xlabels)
         ax.set_yticklabels(ylabels)
@@ -252,11 +257,7 @@ class dynamite_plots:
 
             pc += 200
 
-        if self.config_parameters["period"] == "epos":
-            plt.savefig("logPfig_epos.png", bbox_inches='tight')
-
-        elif self.config_parameters["period"] == "syssim":
-            plt.savefig("logPfig_syssim.png", bbox_inches='tight')
+        plt.savefig("logPfig_" + self.config_parameters["period"] + "_" + self.config_parameters["mode"] + ".png", bbox_inches='tight')
 
         if self.config_parameters["show_plots"] == "True":
             plt.show()
@@ -265,10 +266,10 @@ class dynamite_plots:
             plt.close()
        
         fig, ax = plt.subplots(1,1, figsize=(10,12))
-        fig.suptitle(r"Planet Radius Relative Likelihoods for $TESS$ Systems", fontsize=30)
+        fig.suptitle("Planet Radius Relative Likelihoods for " + self.config_parameters["mode"] + " Systems", fontsize=30)
         img = ax.imshow(pfri, cmap=plt.cm.Blues, origin="lower", aspect="auto")
         xlabels = [0, 1, 2, 3, 4, 5]
-        ylabels = [tn for tn in targets_dict.keys() if tn.find("TOI") != -1]
+        ylabels = [targets[i][0] for i in range(len(targets))]
         ax.set_xticks([-100, 900, 1900, 2900, 3900, 4900]) 
         ax.set_yticks(np.arange(100, len(ylabels)*200 + 100, 200))
         ax.set_xticklabels(xlabels)
@@ -288,7 +289,7 @@ class dynamite_plots:
 
             rc += 200
 
-        plt.savefig("Rfig.png", bbox_inches='tight')
+        plt.savefig("Rfig_" + self.config_parameters["mode"] + ".png", bbox_inches='tight')
 
         if self.config_parameters["show_plots"] == "True":
             plt.show()
@@ -316,7 +317,7 @@ class dynamite_plots:
 
         elif self.config_parameters["saved"] == "True":
             if self.config_parameters["period"] == "epos":
-                Du, deltas = np.loadtxt("Deltas_epos.txt", delimiter="\t", unpack=True)
+                Du, deltas = np.loadtxt("Deltas_" + self.config_parameters[""] + ".txt", delimiter="\t", unpack=True)
 
             elif self.config_parameters["period"] == "syssim":
                 Du, deltas = np.loadtxt("Deltas_syssim.txt", delimiter="\t", unpack=True)
@@ -375,13 +376,13 @@ class dynamite_plots:
 
 
 
-    def plot_td_tp(self, tdm, tdle, tdue, tpm, tple, tpue):
+    def plot_td_tp(self, tdm, tdle, tdue, tpm, tple, tpue, targets):
         """Plots the transit probability vs the transit depth for each system in the current data subset"""
 
         fig, ax = plt.subplots(figsize=(12,8))
         plt.plot(tdm, tpm, "o")
         
-        names = [set_up(tn)[5] for tn in targets_dict.keys() if tn.find("TOI") != -1]
+        names = [targets[i][0] for i in range(len(targets))]
         #bunch = ["TOI 261", "TOI 266", "TOI 396", "TOI 411", "TOI 487", "TOI 561", "TOI 703", "TOI 797", "TOI 1238", "TOI 1346", "TOI 1453", "TOI 1469", "TOI 1726"]
         bunch = ["TOI 256", "TOI 714", "TOI 736"]
         #bunch = ["TOI 396", "TOI 411", "TOI 286", "TOI 1469", "TOI 487", "TOI 174", "TOI 261", "TOI 1453", "TOI 713", "TOI 1339", "TOI 431", "TOI 282", "TOI 1346", "TOI 1238", "TOI 266", "TOI 1726", "TOI 797", "TOI 1269", "TOI 703", "TOI 1730", "TOI 696", "TOI 836", "TOI 732", "TOI 1449", "TOI 763", "TOI 1260"]
@@ -570,19 +571,19 @@ class dynamite_plots:
             Rb.append(float(self.config_parameters["radmax"]) + 0.01)
             fig, ax = plt.subplots(figsize=(12,8))
             n, b, _ = plt.hist(Rk, bins=Rb, weights=np.ones(len(Rk))*100 / len(Rk), label="DYNAMITE Predictions")
-            plt.plot(R, PR, label="PDF")
+            plt.plot(R, PR, color='#ff7f0e', label="PDF", linewidth=4)
 
             if len(r1) > 0:
-                plt.scatter(r1, np.ones(len(r1))*np.amax(n)/10, c="g", s=200, label=("Known planets in system" if len(p1) > 1 else "Known planet in system"), zorder=2)
+                plt.scatter(r1, np.ones(len(r1))*np.amax(n)/10, c="g", edgecolors="w", s=200, linewidth=2, label=("Known planets in system" if len(p1) > 1 else "Known planet in system"), zorder=2)
 
             if len(r11) > 0:
-                plt.scatter(r11, np.ones(len(r11))*np.amax(n)/10, c="purple", marker="s", s=200, label="Highest relative likelihood for inserted planet", zorder=2)
+                plt.scatter(r11, np.ones(len(r11))*np.amax(n)/10, c="purple", marker="s", edgecolors="w", s=200, linewidth=2, label="Highest relative likelihood for inserted planet", zorder=2)
 
             if len(r12) > 0:
-                plt.scatter(r12, np.ones(len(r12))*np.amax(n)/10, c="g", marker="^", s=200, label=("Known non-transiting planets" if len(r12) > 1 else "Known non-transiting planet"), zorder=2)
+                plt.scatter(r12, np.ones(len(r12))*np.amax(n)/10, c="g", marker="^", edgecolors="k", s=200, linewidth=2, label=("Known non-transiting planets" if len(r12) > 1 else "Known non-transiting planet"), zorder=2)
 
             if len(r2) > 0:
-                plt.scatter(r2, np.ones(len(r2))*np.amax(n)/10, c="w", marker="X", s=200, edgecolors="k", linewidth=2, label=("Known planets removed from system" if len(r2) > 1 else "Known planet removed from system"), zorder=2)
+                plt.scatter(r2, np.ones(len(r2))*np.amax(n)/10, c="r", marker="X", s=200, edgecolors="w", linewidth=2, label=("Known planets removed from system" if len(r2) > 1 else "Known planet removed from system"), zorder=2)
 
             if len(r3) > 0:
                 plt.scatter(r3, np.ones(len(r3))*np.amax(n)/10, c="y", marker='$?$', s=200, label=("Unconfirmed planet candidates" if len(r3) > 1 else "Unconfirmed planet candidate"), zorder=2)
@@ -610,7 +611,7 @@ class dynamite_plots:
             fname = system + "_inc_trunc.png"
 
         plt.hist(ik, bins=np.linspace(0, 180.5, 362), weights=np.ones(len(ik)) / (len(ik)), label="DYNAMITE Predictions")
-        plt.plot(inc, Pi, label="PDF")
+        plt.plot(inc, Pi, color='#ff7f0e', label="PDF", linewidth=2)
         plt.xlabel("Inclination (degrees)")
         plt.ylabel("Relative Likelihood")
         plt.legend()
