@@ -1,3 +1,11 @@
+### DYNAmical Multi-planet Injection TEster (DYNAMITE) ###
+### Targets List ###
+### Jeremy Dietrich ###
+### 2020 July 15 ###
+### Version 1.2 ###
+### Dietrich & Apai (2020), Astronomical Journal in press ###
+### http://arxiv.org/pdf/2007.06521.pdf ###
+
 import math
 import numpy as np
 import astropy.constants as const
@@ -19,7 +27,7 @@ class dynamite_targets:
         "TOI 1346"  :([0.774, 0.020, 0.819, 0.097], [('get_arccos', (0.5, 1.762)), 1.979, 1.762], [('get_arccos', (0.5, 5.503)), 2.061, 5.503]),
         "TOI 797"   :([0.477, 0.017, 0.471, 0.020], [('get_arccos', (0.48, 1.801)), 1.269, 1.801], [('get_arccos', (0.38, 4.14)), 1.406, 4.14]),
         "TOI 713"   :([0.686, 0.047, 0.670, 0.085], [('get_arccos', (0.27, 1.872)), 1.144, 1.872], [('get_arccos', (0.04, 36)), 2.445, 36]),
-        "TOI 1468"  :([0.369, 0.011, 0.356, 0.020], [('get_arccos', (0.04, 1.88)), 1.452, 1.88], [('get_arccos', (0.73, 7.77)), 2.333, 7.77]),
+        "TOI 1468"  :([0.369, 0.011, 0.356, 0.020], [('get_arccos', (0.04, 1.88)), 1.452, 1.88], [('get_arccos', (0.73, 7.77)), 2.333, 15.53]),
         "TOI 1730"  :([0.532, 0.016, 0.529, 0.020], [('get_arccos', (0.5, 2.156)), 1.441, 2.156], [('get_arccos', (0.5, 6.222)), 2.299, 6.222]),
         "TOI 175"   :([0.319, 0.003, 0.302, 0.008], [88.7, 0.8, 2.253], [89.3, 1.35, 3.691], [88.5, 1.57, 7.451]),
         "TOI 1449"  :([0.568, 0.011, 0.590, 0.018], [('get_arccos', (0.31, 2.369)), 1.625, 2.369], [('get_arccos', (0.99, 24.71)), 4.756, 24.71]),
@@ -245,12 +253,13 @@ class dynamite_targets:
         "K2-233"    :([0.745, 0.8],  [88.79, round(0.1247*const.R_jup.value/const.R_earth.value, 3), 2.467], [88.95, round(0.1191*const.R_jup.value/const.R_earth.value, 3), 7.061], [89.35, round(0.236*const.R_jup.value/const.R_earth.value, 3), 24.3662]),
         "K2-239"    :([0.36, 0.4],   [88.99, round(0.098*const.R_jup.value/const.R_earth.value, 3), 5.24], [88.77, round(0.089*const.R_jup.value/const.R_earth.value, 3), 7.775], [89.43, round(0.098*const.R_jup.value/const.R_earth.value, 3), 10.115]),
         "K2-266"    :([0.703, 0.686],[88.28, round(0.0629*const.R_jup.value/const.R_earth.value, 3), 7.814], [89.46, round(0.261*const.R_jup.value/const.R_earth.value, 3), 14.697], [89.45, round(0.244*const.R_jup.value/const.R_earth.value, 3), 19.482]),
-        "tau Ceti"  :([0.783, 0.012, 0.793, 0.004], [35, round(pfm(measurement=1.75/math.sin(35*math.pi/180), predict="Radius", dataset="kepler")[0], 3), 20], [35, round(pfm(measurement=1.83/math.sin(35*math.pi/180), predict="Radius", dataset="kepler")[0], 3), 49.41], [35, round(pfm(measurement=3.93/math.sin(35*math.pi/180), predict="Radius", dataset="kepler")[0], 3), 162.87], [35, round(pfm(measurement=3.93/math.sin(35*math.pi/180), predict="Radius", dataset="kepler")[0], 3), 636.13]),
         "HIP 41378" :([1.4, 1.15],   [88.4, 2.9, 5.715], [89.58, 2.56, 31.698], [89.98, 5.51, 131], [89.7, 3.96, 157], [89.9, 10.2, 324]),
         "V1298 Tau" :([1.345, 1.101],[89, round(0.916*const.R_jup.value/const.R_earth.value, 3), 24.14], [88.49, round(0.499*const.R_jup.value/const.R_earth.value, 3), 8.25], [89.04, round(0.572*const.R_jup.value/const.R_earth.value, 3), 12.403], [89.4, round(0.78*const.R_jup.value/const.R_earth.value, 3), 60]),
         "GJ 9827"   :([0.602, 0.606],[86.07, round(0.1407*const.R_jup.value/const.R_earth.value, 3), 1.209], [88.19, round(0.1107*const.R_jup.value/const.R_earth.value, 3), 3.648], [87.443, round(0.1804*const.R_jup.value/const.R_earth.value, 3), 6.765]),
         "HR 858"    :([1.31, 1.145], [85.5, round(0.186*const.R_jup.value/const.R_earth.value, 3), 3.586], [86.23, round(0.173*const.R_jup.value/const.R_earth.value, 3), 5.973], [87.43, round(0.1931*const.R_jup.value/const.R_earth.value, 3), 11.23]),
         "WASP-47"   :([1.16, 1.11],  [89.02, round(1.17*const.R_jup.value/const.R_earth.value, 3), 4.159], [89.22, round(0.331*const.R_jup.value/const.R_earth.value, 3), 9.03], [86.2, round(0.167*const.R_jup.value/const.R_earth.value, 3), 0.79]),
+        "tau Ceti"  :([0.783, 0.012, 0.793, 0.004], [35, round(pfm(measurement=1.75/math.sin(35*math.pi/180), predict="Radius", dataset="kepler")[0], 3), 20], [35, round(pfm(measurement=1.83/math.sin(35*math.pi/180), predict="Radius", dataset="kepler")[0], 3), 49.41], [35, round(pfm(measurement=3.93/math.sin(35*math.pi/180), predict="Radius", dataset="kepler")[0], 3), 162.87], [35, round(pfm(measurement=3.93/math.sin(35*math.pi/180), predict="Radius", dataset="kepler")[0], 3), 636.13]),
+        "alpha Centauri"    :([1.10, 0.01, 1.22, 0.01], [45, 6.5, 383], [45, 1.5, 12])
         }
 
 

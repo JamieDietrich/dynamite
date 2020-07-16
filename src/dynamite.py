@@ -1,13 +1,19 @@
+### DYNAmical Multi-planet Injection TEster (DYNAMITE) ###
+### Main File ###
+### Jeremy Dietrich ###
+### 2020 July 15 ###
+### Version 1.2 ###
+### Dietrich & Apai (2020), Astronomical Journal in press ###
+### http://arxiv.org/pdf/2007.06521.pdf ###
+
+import os
 import math
 import itertools
 import numpy as np
-import dynamite_plots
 from Client import Client
 import scipy.stats as spst
 from datetime import datetime
-import scipy.optimize as spopt
 import astropy.constants as const
-import scipy.interpolate as spinter
 from dynamite_plots import dynamite_plots
 from dynamite_targets import dynamite_targets
 from mrexo import predict_from_measurement as pfm
@@ -19,6 +25,7 @@ class dynamite:
 
         print(datetime.now(), "Initiating DYNAMITE")
         np.random.seed(1)
+
         self.config_parameters = {}
 
         try:
@@ -37,14 +44,14 @@ class dynamite:
             print("Error: No targets selected!")
             exit()
        
-        self.targets = []
-        Pk, P, PP, Rk, R, PR, per, ik, il, Pin, deltas, ratios, tdm, tdue, tdle, tpm, tpue, tple, pers, rads = ([] for _ in range(20))
-        datavars = [Pk, P, PP, Rk, R, PR, per, ik, il, Pin, deltas, ratios, tdm, tdue, tdle, tpm, tpue, tple, pers, rads]
-        client =  Client((self, None))  #function within main class  
+        client = Client((self, None))
 
         if self.config_parameters["saved"] == "False":
+            if os.path.exists("table_" + self.config_parameters["mode"] + "_" + self.config_parameters["period"] + ".txt"):
+                os.remove("table_" + self.config_parameters["mode"] + "_" + self.config_parameters["period"] + ".txt")
+
             if self.config_parameters["mode"] == "single":
-                R_star, Rse, M_star, Mse, target, target_name = self.set_up(self.config_parameters["system"])
+                R_star, Rse, M_star, Mse, target, target_name = self.set_up(targets_dict, self.config_parameters["system"])
                 target = target[target[:, 2].argsort()]
                 data = self.run_monte_carlo(R_star, Rse, M_star, Mse, target, target_name) + ([target[i][2] for i in range(len(target))], [target[i][1] for i in range(len(target))])
                 np.savez("saved_data.npz", data=data)
@@ -65,30 +72,25 @@ class dynamite:
                     elif self.config_parameters["mode"] == "test" and tn.find("test 3") != -1:
                         targlist.append(tn)
 
-                data = client.create_processes("mt_mc", (targets_dict, targlist), -len(targlist), return_sorted=False)
-                print(len(data), data[0].keys())
-
-                for i in range(len(data)):
-                    for j in range(len(datavars)):
-                        getattr(datavars[j],'append')(data[i][j])
+                Pk, P, PP, per, Rk, R, PR, ik, il, Pin, deltas, ratios, tdm, tdle, tdue, tpm, tple, tpue, targets, pers, rads = datavars = client.create_processes("mt_mc", (targets_dict, targlist), -len(targlist), self.process_data)
 
                 np.savez("saved_data.npz", data=datavars)
 
-            np.savetxt("targets.txt", self.targets, fmt='%s', delimiter='\t')
-
         elif self.config_parameters["saved"] == "True":
             with np.load("saved_data.npz", allow_pickle=True) as data:
-                Pk, P, PP, per, Rk, R, PR, ik, il, Pin, deltas, ratios, tdm, tdle, tdue, tpm, tple, tpue, pers, rads = data["data"]
+                Pk, P, PP, per, Rk, R, PR, ik, il, Pinc, deltas, ratios, tdm, tdle, tdue, tpm, tple, tpue, targets, pers, rads = data["data"]
 
         if self.config_parameters["plot"] == "True":
             if self.config_parameters["saved"] == "False" and self.config_parameters["mode"] == "single":
-                Pk, P, PP, per, Rk, R, PR, ik, il, Pin, deltas, ratios, tdm, tdle, tdue, tpm, tple, tpue, pers, rads = data
+                Pk, P, PP, per, Rk, R, PR, ik, il, Pinc, deltas, ratios, tdm, tdle, tdue, tpm, tple, tpue, targets, pers, rads = data
 
             elif self.config_parameters["saved"] == "False" and self.config_parameters["mode"] != "single":
-                Pk, P, PP, per, Rk, R, PR, ik, il, Pin, deltas, ratios, tdm, tdle, tdue, tpm, tple, tpue, pers, rads = datavars
+                Pk, P, PP, per, Rk, R, PR, ik, il, Pinc, deltas, ratios, tdm, tdle, tdue, tpm, tple, tpue, targets, pers, rads = datavars
 
             print(datetime.now(), "Creating Plots")
-            plots = dynamite_plots(Pk, P, PP, per, Rk, R, PR, ik, il, Pin, deltas, ratios, tdm, tdle, tdue, tpm, tple, tpue, pers, rads, self.targets)
+            plots = dynamite_plots(Pk, P, PP, per, Rk, R, PR, ik, il, Pinc, deltas, ratios, tdm, tdle, tdue, tpm, tple, tpue, targets, pers, rads)
+            print(datetime.now(), "Finishing DYNAMITE")
+
 
 
     def mt_mc(self, targets_dict, targlist, i):
@@ -98,8 +100,14 @@ class dynamite:
         target = target[target[:, 2].argsort()]
         data = self.run_monte_carlo(R_star, Rse, M_star, Mse, target, target_name) + ([target[i][2] for i in range(len(target))], [target[i][1] for i in range(len(target))])
 
-        return {i: (data,)}
+        return {i:data}
     
+
+
+    def process_data(self, data):
+        """Processes data for the multithreading component"""
+
+        return tuple([list(z) for z in zip(*itertools.chain([data[k] for k in data]))])
 
 
     def set_up(self, targets_dict, target):
@@ -187,7 +195,6 @@ class dynamite:
 
             fi = fi*76/(300*np.trapz(fi, il))
 
-
         elif len(inc) == 3:
             finew = finew*0.81
 
@@ -202,7 +209,7 @@ class dynamite:
             fi[i_ib + j] += finew[j]
 
         cdfi = np.array([1 - math.exp(-(inew[j])**2/(2*(rylgh)**2)) for j in range(len(inew))])
-        Pin = fi/2
+        Pinc = fi/2
         print(datetime.now(), "Running Monte Carlo for", target_name)
         Pk = []
         Rk = []
@@ -257,7 +264,13 @@ class dynamite:
             PPm = np.amax(PPi)
 
         Ple = Pm - Pis[np.where((Pis < Pm) & (PPi < 0.606*PPm))][-1]
-        Pue = Pis[np.where((Pis > Pm) & (PPi < 0.606*PPm))][0] - Pm
+
+        if len(Pis[np.where((Pis > Pm) & (PPi < 0.606*PPm))]) > 0:
+            Pue = Pis[np.where((Pis > Pm) & (PPi < 0.606*PPm))][0] - Pm
+
+        else:
+            Pue = 0.606*Pm
+
         Rm = np.percentile(Rk, 50)
         Rle = Rm - np.percentile(Rk, 16)
         Rue = np.percentile(Rk, 84) - Rm
@@ -296,12 +309,13 @@ class dynamite:
         tpm = round(tpm, 3)
         tpue = round(tpue, 3)
         tple = round(tple, 3)
+        target_values = [target_name, Pm, Ple, Pue, Rm, Rle, Rue]
 
-        print("\t\t" + target_name + " & $" + str(Pm) + "^{" + str(Pue) + "}_{" + str(Ple) + "}$ & $" + str(Rm) + "^{" + str(Rue) + "}_{" + str(Rle) + "}$ & $" + str(R_star) + "\pm" + str(Rse) + "$ & $" + str(tdm) + "^{" + str(tdue) + "}_{" + str(tdle) + "}$ & $" + str(tpm) + "^{" + str(tpue) + "}_{" + str(tple) + "}$ \\\\")
+        f = open("table_" + self.config_parameters["mode"] + "_" + self.config_parameters["period"] + ".txt", "a+")
+        f.write(target_name + " & $" + str(Pm) + "^{" + str(Pue) + "}_{" + str(Ple) + "}$ & $" + str(Rm) + "^{" + str(Rue) + "}_{" + str(Rle) + "}$ & $" + str(R_star) + "\pm" + str(Rse) + "$ & $" + str(tdm) + "^{" + str(tdue) + "}_{" + str(tdle) + "}$ & $" + str(tpm) + "^{" + str(tpue) + "}_{" + str(tple) + "}$ \\\\\n")
+        f.close()
 
-        self.targets.append([target_name, Pm, Ple, Pue, Rm, Rle, Rue])
-
-        return Pk, P, PP, per, Rk, R, PR, ik, il, Pin, deltas, ratios, tdm, tdle, tdue, tpm, tpue, tple
+        return Pk, P, PP, per, Rk, R, PR, ik, il, Pinc, deltas, ratios, tdm, tdle, tdue, tpm, tpue, tple, target_values
 
 
 
@@ -346,7 +360,7 @@ class dynamite:
         m = np.zeros(len(per))
 
         for k in range(len(per)):
-            m[k] = pfm(measurement=rad[k], predict='Mass', dataset='kepler')[0]
+            m[k] = self.mr_predict(rad[k], 'Mass')
 
         for i in range(len(P)):
             for k in range(len(per)):
@@ -472,7 +486,7 @@ class dynamite:
         m = np.zeros(len(per))
 
         for k in range(len(per)):
-            m[k] = pfm(measurement=rad[k], predict='Mass', dataset='kepler')[0]
+            m[k] = self.mr_predict(rad[k], 'Mass')
 
         for i in range(len(P)):
             for k in range(len(per)):
@@ -632,4 +646,14 @@ class dynamite:
         
         return (const.G.cgs.value*(M*const.M_sun.cgs.value)*(P*seconds_per_day)**2/(4*math.pi**2))**(1/3)
 
-dynamite()
+
+
+    def mr_predict(self, meas, value):
+        """Calls the mass-radius relationship prediction code"""
+
+        return pfm(measurement=meas, predict=value, dataset="kepler")[0]
+
+
+
+if __name__ == '__main__':
+    dynamite()  

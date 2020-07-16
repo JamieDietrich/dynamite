@@ -1,9 +1,9 @@
-from itertools import chain
 import multiprocessing
+import collections
 import importlib
 import traceback
 import os
- 
+
 def run_functions(params):
     ((instance, func), args) = params
     try:
@@ -26,30 +26,24 @@ class Client:
                 print("Invalid Instance Name")
                 
     def get_func(self, func):
-        if self.instance[1]: return (getattr(self.instance[0], func), None)
-        return (self.instance[0], func)
+        return (getattr(self.instance[0], func), None) if self.instance[1] else (self.instance[0], func)
     
-    def create_processes(self, function, args, size = None, return_sorted = True, block = True):
-        processes, results = [], []
+    def create_processes(self, function, args, size = None, callback = None, async = False):
         if (size != None):
-            results = getattr(self.pool,"map" if block else "apply_async")(run_functions,[(self.get_func(function), t) for t in self.process_begin_size_tuple(args, (0, size))],)
-            if not block: results = []
+            rslt = getattr(self.pool,"apply_async" if async else "map")(run_functions,[(self.get_func(function), t) for t in self.process_begin_size_tuple(args, (0, size))],)
         else:
             if isinstance(args, list):
+                processes, rslt = [], []
                 for i in range(len(args)):
                     processes.append(self.pool.apply_async(run_functions, [(self.get_func(function[i] if isinstance(function, list) else function), args[i]),]))
-                if block:
-                    for i in range(len(processes)):
-                        results.append(processes[i].get())
+                if not async:
+                    for r in range(len(processes)): rslt.append(processes[r].get())
             else:
-                results = getattr(self.pool,"map" if block else "apply_async")(run_functions, [(self.get_func(function), args)])
-                if not block: results = []
-        #if not return_sorted: return ", ".join(repr(e) for e in results)
-        return results
-        results.sort(key = lambda d: list(d.keys())[0])
-        results = [list(chain([it for its in i for it in its])) for i in zip(*chain.from_iterable(map(lambda d: list(d.values()),results)))]
-        return ", ".join(repr(e) for e in results[0]) if len(results) == 1 else ", ".join(repr(e) for e in results)
-        
+                rslt = getattr(self.pool,"apply_async" if async else "map")(run_functions, [(self.get_func(function), args)])
+        if async: return {} if callback == None else callback({})
+        results = collections.OrderedDict((key,d[key]) for d in sorted(rslt, key = lambda d: list(d.keys())[0]) for key in d)
+        return results if callback == None else callback(results)
+    
     def process_begin_size_tuple(self, arg, params):
         (begin, size) = params
         args = []
@@ -84,4 +78,3 @@ class Client:
         
 if __name__ == '__main__':
     Client(None)
-    
