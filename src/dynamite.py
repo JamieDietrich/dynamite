@@ -1,12 +1,19 @@
+### DYNAmical Multi-planet Injection TEster (DYNAMITE) ###
+### Main File ###
+### Jeremy Dietrich ###
+### 2020 July 15 ###
+### Version 1.2 ###
+### Dietrich & Apai (2020), Astronomical Journal in press ###
+### http://arxiv.org/pdf/2007.06521.pdf ###
+
+import os
 import math
 import itertools
 import numpy as np
-import dynamite_plots
+from Client import Client
 import scipy.stats as spst
 from datetime import datetime
-import scipy.optimize as spopt
 import astropy.constants as const
-import scipy.interpolate as spinter
 from dynamite_plots import dynamite_plots
 from dynamite_targets import dynamite_targets
 from mrexo import predict_from_measurement as pfm
@@ -16,8 +23,9 @@ class dynamite:
     def __init__(self):
         """Runs the script"""
 
-        print(datetime.now(), "Init")
+        print(datetime.now(), "Initiating DYNAMITE")
         np.random.seed(1)
+
         self.config_parameters = {}
 
         try:
@@ -36,106 +44,91 @@ class dynamite:
             print("Error: No targets selected!")
             exit()
        
-        pers = []
-        rads = []
-        self.targets = []
-        Pk = []
-        P = []
-        PP = []
-        Rk = []
-        R = []
-        PR = []
-        per = []
-        ik = []
-        il = []
-        Pin = []
-        deltas = []
-        ratios = []
-        tdm = []
-        tdue = []
-        tdle = []
-        tpm = []
-        tpue = []
-        tple = []
-
-        def set_up(target):
-            """Sets up target"""
-
-            def get_arccos(star_pars, planet_pars):
-                return round(np.arccos(planet_pars[0]/(self.K3(planet_pars[1], star_pars[2])/(star_pars[0]*const.R_sun.cgs.value)))*180/math.pi, 3)
-               
-            t = list(targets_dict[target])
-            for x in range(len(t)):
-                for y in range(len(t[x])):
-                    if isinstance(t[x][y], tuple):
-                        t[x][y] = locals()[t[x][y][0]](t[0],t[x][y][1])
-
-            return t[0][0], t[0][1], t[0][2], t[0][3], np.array(t[1:]), target
-
+        client = Client((self, None))
 
         if self.config_parameters["saved"] == "False":
+            if os.path.exists("table_" + self.config_parameters["mode"] + "_" + self.config_parameters["period"] + ".txt"):
+                os.remove("table_" + self.config_parameters["mode"] + "_" + self.config_parameters["period"] + ".txt")
+
             if self.config_parameters["mode"] == "single":
-                R_star, Rse, M_star, Mse, target, target_name = set_up(self.config_parameters["system"])
+                R_star, Rse, M_star, Mse, target, target_name = self.set_up(targets_dict, self.config_parameters["system"])
                 target = target[target[:, 2].argsort()]
                 data = self.run_monte_carlo(R_star, Rse, M_star, Mse, target, target_name) + ([target[i][2] for i in range(len(target))], [target[i][1] for i in range(len(target))])
-                #print(data[0])
-                #exit()
                 np.savez("saved_data.npz", data=data)
 
             else:
+                targlist = []
+
                 for tn in targets_dict.keys():
                     if self.config_parameters["mode"] == "all":
-                        R_star, Rse, M_star, Mse, target, target_name = set_up(tn)
+                        targlist.append(tn)
 
                     elif self.config_parameters["mode"] == "TESS" and tn.find("TOI") != -1:
-                        R_star, Rse, M_star, Mse, target, target_name = set_up(tn)
+                        targlist.append(tn)
 
                     elif self.config_parameters["mode"] == "Kepler" and (tn.find("Kepler") != -1 or tn.find("K2") != -1 or tn.find("KOI") != -1):
-                        R_star, Rse, M_star, Mse, target, target_name = set_up(tn)
+                        targlist.append(tn)
 
-                    target = target[target[:, 2].argsort()]
-                    data = self.run_monte_carlo(R_star, Rse, M_star, Mse, target, target_name)
-                    Pk.append(data[0])
-                    P.append(data[1])
-                    PP.append(data[2])
-                    per.append(data[3])
-                    Rk.append(data[4])
-                    R.append(data[5])
-                    PR.append(data[6])
-                    ik.append(data[7])
-                    il.append(data[8])
-                    Pin.append(data[9])
-                    deltas.append(data[10])
-                    ratios.append(data[11])
-                    tdm.append(data[12])
-                    tdle.append(data[13])
-                    tdue.append(data[14])
-                    tpm.append(data[15])
-                    tple.append(data[16])
-                    tpue.append(data[17])
-                    pers.append([target[i][2] for i in range(len(target))])
-                    rads.append([target[i][1] for i in range(len(target))])
+                    elif self.config_parameters["mode"] == "test" and tn.find("test 3") != -1:
+                        targlist.append(tn)
 
-                np.savez("saved_data.npz", data=data)
+                Pk, P, PP, per, Rk, R, PR, ik, il, Pin, deltas, ratios, tdm, tdle, tdue, tpm, tple, tpue, targets, pers, rads = datavars = client.create_processes("mt_mc", (targets_dict, targlist), -len(targlist), self.process_data)
 
-            np.savetxt("targets.txt", self.targets, fmt='%s', delimiter='\t')
+                np.savez("saved_data.npz", data=datavars)
 
         elif self.config_parameters["saved"] == "True":
             with np.load("saved_data.npz", allow_pickle=True) as data:
-                Pk, P, PP, per, Rk, R, PR, ik, il, Pin, deltas, ratios, tdm, tdle, tdue, tpm, tple, tpue, pers, rads = data["data"]
+                Pk, P, PP, per, Rk, R, PR, ik, il, Pinc, deltas, ratios, tdm, tdle, tdue, tpm, tple, tpue, targets, pers, rads = data["data"]
 
         if self.config_parameters["plot"] == "True":
             if self.config_parameters["saved"] == "False" and self.config_parameters["mode"] == "single":
-                Pk, P, PP, per, Rk, R, PR, ik, il, Pin, deltas, ratios, tdm, tdle, tdue, tpm, tple, tpue, pers, rads = data
+                Pk, P, PP, per, Rk, R, PR, ik, il, Pinc, deltas, ratios, tdm, tdle, tdue, tpm, tple, tpue, targets, pers, rads = data
 
-            plots = dynamite_plots(Pk, P, PP, per, Rk, R, PR, ik, il, Pin, deltas, ratios, tdm, tdle, tdue, tpm, tple, tpue, pers, rads, self.targets)
+            elif self.config_parameters["saved"] == "False" and self.config_parameters["mode"] != "single":
+                Pk, P, PP, per, Rk, R, PR, ik, il, Pinc, deltas, ratios, tdm, tdle, tdue, tpm, tple, tpue, targets, pers, rads = datavars
+
+            print(datetime.now(), "Creating Plots")
+            plots = dynamite_plots(Pk, P, PP, per, Rk, R, PR, ik, il, Pinc, deltas, ratios, tdm, tdle, tdue, tpm, tple, tpue, targets, pers, rads)
+            print(datetime.now(), "Finishing DYNAMITE")
+
+
+
+    def mt_mc(self, targets_dict, targlist, i):
+        """Runs the Monte Carlo code on multiple threads"""
+
+        R_star, Rse, M_star, Mse, target, target_name = self.set_up(targets_dict, targlist[i])
+        target = target[target[:, 2].argsort()]
+        data = self.run_monte_carlo(R_star, Rse, M_star, Mse, target, target_name) + ([target[i][2] for i in range(len(target))], [target[i][1] for i in range(len(target))])
+
+        return {i:data}
+    
+
+
+    def process_data(self, data):
+        """Processes data for the multithreading component"""
+
+        return tuple([list(z) for z in zip(*itertools.chain([data[k] for k in data]))])
+
+
+    def set_up(self, targets_dict, target):
+        """Sets up target"""
+
+        def get_arccos(star_pars, planet_pars):
+            return round(np.arccos(planet_pars[0]/(self.K3(planet_pars[1], star_pars[2])/(star_pars[0]*const.R_sun.cgs.value)))*180/math.pi, 3)
+           
+        t = list(targets_dict[target])
+        for x in range(len(t)):
+            for y in range(len(t[x])):
+                if isinstance(t[x][y], tuple):
+                    t[x][y] = locals()[t[x][y][0]](t[0],t[x][y][1])
+
+        return t[0][0], t[0][1], t[0][2], t[0][3], np.array(t[1:]), target
 
 
 
     def run_monte_carlo(self, R_star, Rse, M_star, Mse, target, target_name):
         """Runs the Monte Carlo analysis."""
 
-        print(datetime.now(), "P")
         inc = [target[i][0] for i in range(len(target))]
         rad = [target[i][1] for i in range(len(target))]
         per = [target[i][2] for i in range(len(target))]
@@ -149,13 +142,15 @@ class dynamite:
         r2 = max(rad)
         P = np.arange(0.5, 730.1, 0.1)
 
+        print(datetime.now(), "Creating Period Distributions for", target_name)
+
         if self.config_parameters["period"] == "epos":
             PP, deltas = self.epos_pers(p0, per, rad, P, M_star)
 
         elif self.config_parameters["period"] == "syssim":
             PP, deltas = self.syssim_pers(per, rad, P, M_star)
 
-        print(datetime.now(), "R")
+        print(datetime.now(), "Creating Planet Radius Distributions for", target_name)
 
         if self.config_parameters["radius"] == "epos":
             R, PR, cdfR = self.epos_rads(r1, r2)
@@ -163,7 +158,7 @@ class dynamite:
         elif self.config_parameters["radius"] == "syssim":
             R, PR, cdfR = self.syssim_rads(self.config_parameters["radtype"], rad)
 
-        print(datetime.now(), "I")
+        print(datetime.now(), "Creating Inclination Distributions for", target_name)
         il = np.linspace(0, 180.1, 1802)
         fi = np.zeros(len(il))
         rylgh = 2
@@ -200,7 +195,6 @@ class dynamite:
 
             fi = fi*76/(300*np.trapz(fi, il))
 
-
         elif len(inc) == 3:
             finew = finew*0.81
 
@@ -215,8 +209,8 @@ class dynamite:
             fi[i_ib + j] += finew[j]
 
         cdfi = np.array([1 - math.exp(-(inew[j])**2/(2*(rylgh)**2)) for j in range(len(inew))])
-        Pin = fi/2
-        print(datetime.now(), "MC")
+        Pinc = fi/2
+        print(datetime.now(), "Running Monte Carlo for", target_name)
         Pk = []
         Rk = []
         ik = []
@@ -240,7 +234,7 @@ class dynamite:
                     else:
                         ik.append(np.arccos(np.random.rand()*2 - 1)*180/math.pi)
 
-        print(datetime.now(), "setup")
+        print(datetime.now(), "Calculating Best Fit Predictions for", target_name)
 
         Pis = np.hstack(np.array([np.arange(0.5, 1.001, 0.001), np.arange(1.01, 10.01, 0.01), np.arange(10.1, 100.1, 0.1), np.arange(101,731,1)]))
 
@@ -270,7 +264,13 @@ class dynamite:
             PPm = np.amax(PPi)
 
         Ple = Pm - Pis[np.where((Pis < Pm) & (PPi < 0.606*PPm))][-1]
-        Pue = Pis[np.where((Pis > Pm) & (PPi < 0.606*PPm))][0] - Pm
+
+        if len(Pis[np.where((Pis > Pm) & (PPi < 0.606*PPm))]) > 0:
+            Pue = Pis[np.where((Pis > Pm) & (PPi < 0.606*PPm))][0] - Pm
+
+        else:
+            Pue = 0.606*Pm
+
         Rm = np.percentile(Rk, 50)
         Rle = Rm - np.percentile(Rk, 16)
         Rue = np.percentile(Rk, 84) - Rm
@@ -281,7 +281,7 @@ class dynamite:
         ntl = 0
         ntu = 0
 
-        print(datetime.now(), "limits")
+        print(datetime.now(), "Running Transit Calculations for", target_name)
 
         for j in range(len(ik)):
             if math.cos(ik[j]*math.pi/180) < (R_star*const.R_sun.cgs.value + Rm*const.R_earth.cgs.value)/self.K3(Pm, M_star):
@@ -293,7 +293,7 @@ class dynamite:
             if math.cos(ik[j]*math.pi/180) < ((R_star + Rse)*const.R_sun.cgs.value + (Rm + Rue)*const.R_earth.cgs.value)/self.K3(Pm, (M_star - Mse)):
                 ntu += 1
 
-        print(datetime.now(), "Numbers")
+        print(datetime.now(), "Writing out Best Values for", target_name)
         tpm = ntrans/len(ik)
         tple = max(1e-3, ntrans/len(ik) - ntl/len(ik)) if (tpm != 0 and tpm != 1) else ntrans/len(ik) - ntl/len(ik)
         tpue = max(1e-3, ntu/len(ik) - ntrans/len(ik)) if (tpm != 0 and tpm != 1) else ntu/len(ik) - ntrans/len(ik)
@@ -309,13 +309,13 @@ class dynamite:
         tpm = round(tpm, 3)
         tpue = round(tpue, 3)
         tple = round(tple, 3)
+        target_values = [target_name, Pm, Ple, Pue, Rm, Rle, Rue]
 
-        print("\t\t" + target_name + " & $" + str(Pm) + "^{" + str(Pue) + "}_{" + str(Ple) + "}$ & $" + str(Rm) + "^{" + str(Rue) + "}_{" + str(Rle) + "}$ & $" + str(R_star) + "\pm" + str(Rse) + "$ & $" + str(tdm) + "^{" + str(tdue) + "}_{" + str(tdle) + "}$ & $" + str(tpm) + "^{" + str(tpue) + "}_{" + str(tple) + "}$ \\\\")
-        print(datetime.now(), "Done")
+        f = open("table_" + self.config_parameters["mode"] + "_" + self.config_parameters["period"] + ".txt", "a+")
+        f.write(target_name + " & $" + str(Pm) + "^{" + str(Pue) + "}_{" + str(Ple) + "}$ & $" + str(Rm) + "^{" + str(Rue) + "}_{" + str(Rle) + "}$ & $" + str(R_star) + "\pm" + str(Rse) + "$ & $" + str(tdm) + "^{" + str(tdue) + "}_{" + str(tdle) + "}$ & $" + str(tpm) + "^{" + str(tpue) + "}_{" + str(tple) + "}$ \\\\\n")
+        f.close()
 
-        self.targets.append([target_name, Pm, Ple, Pue, Rm, Rle, Rue])
-
-        return Pk, P, PP, per, Rk, R, PR, ik, il, Pin, deltas, ratios, tdm, tdle, tdue, tpm, tpue, tple
+        return Pk, P, PP, per, Rk, R, PR, ik, il, Pinc, deltas, ratios, tdm, tdle, tdue, tpm, tpue, tple, target_values
 
 
 
@@ -360,7 +360,7 @@ class dynamite:
         m = np.zeros(len(per))
 
         for k in range(len(per)):
-            m[k] = pfm(measurement=rad[k], predict='Mass', dataset='kepler')[0]
+            m[k] = self.mr_predict(rad[k], 'Mass')
 
         for i in range(len(P)):
             for k in range(len(per)):
@@ -486,7 +486,7 @@ class dynamite:
         m = np.zeros(len(per))
 
         for k in range(len(per)):
-            m[k] = pfm(measurement=rad[k], predict='Mass', dataset='kepler')[0]
+            m[k] = self.mr_predict(rad[k], 'Mass')
 
         for i in range(len(P)):
             for k in range(len(per)):
@@ -646,4 +646,14 @@ class dynamite:
         
         return (const.G.cgs.value*(M*const.M_sun.cgs.value)*(P*seconds_per_day)**2/(4*math.pi**2))**(1/3)
 
-dynamite()
+
+
+    def mr_predict(self, meas, value):
+        """Calls the mass-radius relationship prediction code"""
+
+        return pfm(measurement=meas, predict=value, dataset="kepler")[0]
+
+
+
+if __name__ == '__main__':
+    dynamite()  
