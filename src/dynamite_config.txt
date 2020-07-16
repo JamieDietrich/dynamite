@@ -4,9 +4,9 @@
 ### 2020 July 15 ###
 ### Version 1.2 ###
 ### Dietrich & Apai (2020), Astronomical Journal in press ###
-### http://arxiv.org/pdf/2007.06521.pdf ###
+### http://arxiv.org/pdf/2007.06745.pdf ###
 
-## PREDICTION PARAMETERS
+## PREDICTION PARAMETERS ##
 
 # MC_chain: length of Monte Carlo chain - currently 10000; has to be integer
 # mode: Run mode for DYNAMITE - currently accepts single/TESS/Kepler/all/test
@@ -26,7 +26,7 @@ radtype::clustered
 radmin::0.1
 radmax::5
 
-## PLOTTING PARAMETERS
+## PLOTTING PARAMETERS ##
 
 # plot: run plotting code - True/False; must have at least one individual plotting parameter below also True for any plot to output
 # show_plots: whether to show the plots after they've been saved - True/False

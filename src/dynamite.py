@@ -4,7 +4,7 @@
 ### 2020 July 15 ###
 ### Version 1.2 ###
 ### Dietrich & Apai (2020), Astronomical Journal in press ###
-### http://arxiv.org/pdf/2007.06521.pdf ###
+### http://arxiv.org/pdf/2007.06745.pdf ###
 
 import os
 import math
