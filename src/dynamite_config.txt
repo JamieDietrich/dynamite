@@ -19,7 +19,7 @@
 
 MC_chain::10000
 mode::test
-system::tau Ceti
+system::Kepler-154
 period::epos
 radius::syssim
 radtype::clustered
