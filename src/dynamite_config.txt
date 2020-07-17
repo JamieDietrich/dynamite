@@ -4,9 +4,9 @@
 ### 2020 July 15 ###
 ### Version 1.2 ###
 ### Dietrich & Apai (2020), Astronomical Journal in press ###
-### http://arxiv.org/pdf/2007.06521.pdf ###
+### http://arxiv.org/pdf/2007.06745.pdf ###
 
-## PREDICTION PARAMETERS
+## PREDICTION PARAMETERS ##
 
 # MC_chain: length of Monte Carlo chain - currently 10000; has to be integer
 # mode: Run mode for DYNAMITE - currently accepts single/TESS/Kepler/all/test
@@ -18,19 +18,19 @@
 # radmax: planet radius maximum - 5 for Neptunes and below, 10 for full Kepler population stats, 15 for largest super-Jupiter planets in TOI multi systems
 
 MC_chain::10000
-mode::test
-system::tau Ceti
+mode::single
+system::Kepler-154
 period::epos
 radius::syssim
 radtype::clustered
 radmin::0.1
 radmax::5
 
-## PLOTTING PARAMETERS
+## PLOTTING PARAMETERS ##
 
 # plot: run plotting code - True/False; must have at least one individual plotting parameter below also True for any plot to output
 # show_plots: whether to show the plots after they've been saved - True/False
-# saved: use saved values instead of re-running DYNAMITE - True/False; switch to True for plotting, switch to False when changing datasets
+# saved: use saved values instead of re-running DYNAMITE - True/False; switch to True when running plotting code only, switch to False when changing datasets and running main code
 # plt_P_R: plot the periods and radii of each system, as well as against each other - True/False; mode must not be single
 # plt_P_scale: the x-axis scale for the system vs period plot - linear/log; used only when plt_P_R is True, mode must not be single
 # plt_tdtp: plot the transit probability vs the transit depth for all systems - True/False; mode must not be single
@@ -44,14 +44,24 @@ radmax::5
 
 plot::True
 show_plots::False
-saved::False
+saved::True
 plt_P_R::False
 plt_P_scale::log
-plt_tdtp::True
-plt_deltas::True
-plt_ratios::True
-plt_indpars::False
+plt_tdtp::False
+plt_deltas::False
+plt_ratios::False
+plt_indpars::True
 plt_PDFs::False
 ind_P::log
 ind_R::linear
 ind_i::full
+
+## SYSTEM ARCHITECTURE PARAMETERS ##
+
+# additional: the parameters of the planet(s) you want to add - must be a list of lists, with each internal list having the parameters in order [inclination, planet radius, period]; mode must be single
+# unconfirmed: the parameters of the unconfirmed candidate(s) - must be a list of lists, with each internal list having the parameters in order [inclination, planet radius, period]; mode must be single
+# removed: the parameters of the planet or planets you want to remove - must be a list of the periods for the planets to remove, as those are unique identifiers; mode must be single
+
+additional::[[]]
+unconfirmed::[[]]
+removed::[]

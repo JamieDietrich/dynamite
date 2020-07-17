@@ -4,9 +4,10 @@
 ### 2020 July 15 ###
 ### Version 1.2 ###
 ### Dietrich & Apai (2020), Astronomical Journal in press ###
-### http://arxiv.org/pdf/2007.06521.pdf ###
+### http://arxiv.org/pdf/2007.06745.pdf ###
 
 import os
+import ast
 import math
 import itertools
 import numpy as np
@@ -36,9 +37,10 @@ class dynamite:
             exit()
 
         for i in range(len(config_data)):
-            self.config_parameters[config_data[i, 0]] = config_data[i, 1]
+            self.config_parameters[config_data[i, 0]] = config_data[i, 1] if config_data[i, 1].find("[") == -1 else ast.literal_eval(config_data[i, 1])
 
-        targets_dict = dynamite_targets().get_targets(self.config_parameters["mode"], self.config_parameters["system"], self.config_parameters["radmax"])
+        removed = self.config_parameters["removed"]
+        targets_dict = dynamite_targets().get_targets(self.config_parameters["mode"], self.config_parameters["system"], self.config_parameters["radmax"], removed)
 
         if len(targets_dict) == 0:
             print("Error: No targets selected!")
@@ -52,7 +54,14 @@ class dynamite:
 
             if self.config_parameters["mode"] == "single":
                 R_star, Rse, M_star, Mse, target, target_name = self.set_up(targets_dict, self.config_parameters["system"])
-                target = target[target[:, 2].argsort()]
+                targ_rem = []
+
+                for i in range(len(target) - 1):
+                    if target[i][2] not in removed:
+                        targ_rem.append(target[i])
+
+                targ_rem = np.array(targ_rem)
+                target = targ_rem[targ_rem[:, 2].argsort()]
                 data = self.run_monte_carlo(R_star, Rse, M_star, Mse, target, target_name) + ([target[i][2] for i in range(len(target))], [target[i][1] for i in range(len(target))])
                 np.savez("saved_data.npz", data=data)
 

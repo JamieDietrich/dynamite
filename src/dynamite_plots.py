@@ -4,15 +4,18 @@
 ### 2020 July 15 ###
 ### Version 1.2 ###
 ### Dietrich & Apai (2020), Astronomical Journal in press ###
-### http://arxiv.org/pdf/2007.06521.pdf ###
+### http://arxiv.org/pdf/2007.06745.pdf ###
 
+import ast
 import math
 import numpy as np
 import scipy.stats as spst
 from datetime import datetime
 import matplotlib.pyplot as plt
+import astropy.constants as const
 import matplotlib.ticker as mticker
 import matplotlib.patches as mpatch
+from dynamite_targets import dynamite_targets
 from mrexo import predict_from_measurement as pfm
 
 class dynamite_plots:
@@ -30,7 +33,7 @@ class dynamite_plots:
             exit()
 
         for i in range(len(config_data)):
-            self.config_parameters[config_data[i, 0]] = config_data[i, 1]
+            self.config_parameters[config_data[i, 0]] = config_data[i, 1] if config_data[i, 1].find("[") == -1 else ast.literal_eval(config_data[i, 1])
 
         if len(Pk) == 0:
             Pk, P, PP, per, Rk, R, PR, ik, inc, Pi, deltas, ratios, tdm, tdle, tdue, tpm, tple, tpue, targets, pers, rads = self.read_saved_data()
@@ -449,29 +452,52 @@ class dynamite_plots:
     def plot_ind_params(self, Pk, P, PP, per, Rk, R, PR, ik, inc, Pi):
         """Plots histograms of each individual distribution"""
 
-        print(datetime.now(), "Creating Histograms for", self.config_parameters["system"])
-
         system = self.config_parameters["system"]
-        p1 = []     # known planet period
-        p11 = []    # inserted planet period for iteration
-        p12 = [20, 49.41, 162.87, 636.13]       # known non-transiting planet periods
-        p2 = []     # removed known planet period
-        p3 = [13.965, 35.362, 94.11]        # unconfirmed planet candidate periods
-        r1 = []     # " for planet radius
-        r11 = []    # " for planet radius
-        r12 = [self.mr_predict(1.75/math.sin(35*math.pi/180), "Radius"), self.mr_predict(1.83/math.sin(35*math.pi/180), "Radius"), self.mr_predict(3.93/math.sin(35*math.pi/180), "Radius"), self.mr_predict(3.93/math.sin(35*math.pi/180), "Radius")]      # " for planet radius
-        r2 = []     # " for planet radius
-        r3 = [self.mr_predict(2/math.sin(35*math.pi/180), "Radius"), self.mr_predict(3.1/math.sin(35*math.pi/180), "Radius"), self.mr_predict(3.6/math.sin(35*math.pi/180), "Radius")]     # " for planet radius
-        i1 = []
-        i11 = []
-        i12 = [35, 35, 35, 35]
-        i2 = []
-        i3 = [35, 35, 35]
+
+        print(datetime.now(), "Creating Histograms for", system)
+
+        removed = self.config_parameters["removed"]
+        targets = dynamite_targets().get_targets(self.config_parameters["mode"], system, self.config_parameters["radmax"], removed)[system]
+        target = targets[:-1]
+        p1, p11, p12, p2, p3, r1, r11, r12, r2, r3, i1, i11, i12, i2, i3 = [],[],[],[],[],[],[],[],[],[],[],[],[],[],[]
+
+        for i in range(1, len(target)):
+            if target[i][2] not in removed:
+                if math.cos(target[i][0]*math.pi/180) * self.K3(target[i][2], target[0][0]) / target[0][2] <= 1:
+                    p1.append(target[i][2])
+                    r1.append(target[i][1])
+                    i1.append(target[i][0])
+
+                else:
+                    p12.append(target[i][2])
+                    r12.append(target[i][1])
+                    i12.append(target[i][0])
+
+        if len(self.config_parameters["additional"][0]) > 0:
+            for i in self.config_parameters["additional"]:
+                p11.append(i[2])
+                r11.append(i[1])
+                i11.append(i[0])
+
+        if len(self.config_parameters["unconfirmed"][0]) > 0:
+            for i in self.config_parameters["unconfirmed"]:
+                p3.append(i[2])
+                r3.append(i[1])
+                i3.append(i[0])
+
+        if len(removed) > 0:
+            for i in range(len(removed)):
+                p2 = [targets[j][2] for j in range(1, len(targets) - 1) if targets[j][2] == removed[i]]
+                r2 = [targets[j][1] for j in range(1, len(targets) - 1) if targets[j][2] == removed[i]]
+                i2 = [targets[j][0] for j in range(1, len(targets) - 1) if targets[j][2] == removed[i]]
+
         l1 = []
         l11 = []
-        l12 = ["g", "h", "e", "f"]
+        #l12 = ["g", "h", "e", "f"]
+        l12 = ["h", "e", "f"]
         l2 = []
-        l3 = ["b", "c", "d"]
+        #l3 = ["b", "c", "d"]
+        l3 = ["b"]
 
         if self.config_parameters["ind_P"] == "linear_zoom":
             fig, ax = plt.subplots(figsize=(12, 8))
@@ -578,13 +604,13 @@ class dynamite_plots:
             plt.legend(fontsize=16)
             ax.tick_params(labelsize=14)
             ax.xaxis.set_major_formatter(mticker.ScalarFormatter())
-            fig.suptitle((r"$\tau$ Ceti" if system == "tau Ceti" else system) + " Period Relative Likelihood", fontsize=30)
+            fig.suptitle((r"$\tau$ Ceti" if system == "tau Ceti" else r"$\alpha$ Centauri" if system == "alpha Centauri" else system) + (" Period Ratio" if self.config_parameters["period"] == "epos" else " Clustered Periods") + " Relative Likelihood", fontsize=30)
 
             if self.config_parameters["period"] == "epos":
-                plt.savefig(system + "_P_log_epos.png")
+                plt.savefig(system.replace(" ", "") + "_P_log_epos.png")
 
             elif self.config_parameters["period"] == "syssim":
-                plt.savefig(system + "_P_log_syssim.png")
+                plt.savefig(system.replace(" ", "") + "_P_log_syssim.png")
 
             if self.config_parameters["show_plots"] == "True":
                 plt.show()
@@ -604,7 +630,7 @@ class dynamite_plots:
             plt.ylabel("Relative Likelihood")
             plt.legend()
             fig.suptitle((r"$\tau$ Ceti" if system == "tau Ceti" else system) + " Planet Radius Relative Likelihood")
-            plt.savefig(system + "_R_linear_zoom.png")
+            plt.savefig(system.replace(" ", "") + "_R_linear_zoom.png")
 
             if self.config_parameters["show_plots"] == "True":
                 plt.show()
@@ -642,7 +668,7 @@ class dynamite_plots:
             plt.legend(loc=1, fontsize=16)
             ax.tick_params(labelsize=14)
             fig.suptitle((r"$\tau$ Ceti" if system == "tau Ceti" else system) + " Planet Radius Relative Likelihood", fontsize=30)
-            plt.savefig(system + "_R_linear.png")
+            plt.savefig(system.replace(" ", "") + "_R_linear.png")
 
             if self.config_parameters["show_plots"] == "True":
                 plt.show()
@@ -652,11 +678,11 @@ class dynamite_plots:
 
         if self.config_parameters["ind_i"] == "full":
             ik = np.array(ik)
-            fname = system + "_inc_full.png"
+            fname = system.replace(" ", "") + "_inc_full.png"
 
         elif self.config_paramters["ind_i"] == "truncated":
             ik = np.array([ik[j] if ik[j] < 90 else 180-ik[j] for j in range(len(ik))])     # toggle for allowing inclinations to be greater than 90 degrees or truncated back to 0-90 range
-            fname = system + "_inc_trunc.png"
+            fname = system.replace(" ", "") + "_inc_trunc.png"
 
         n, _, _ = plt.hist(ik, bins=np.linspace(0, 180.5, 362), weights=np.ones(len(ik)) / (len(ik)), label="DYNAMITE Predictions")
 
@@ -691,6 +717,15 @@ class dynamite_plots:
 
         elif self.config_parameters["show_plots"] == "False":
             plt.close()
+
+
+
+    def K3(self, P, M):
+        """Calculates semi-major axis in cm using period in days and mass in solar masses"""
+
+        seconds_per_day = 86400
+        
+        return (const.G.cgs.value*(M*const.M_sun.cgs.value)*(P*seconds_per_day)**2/(4*math.pi**2))**(1/3)
 
 
 

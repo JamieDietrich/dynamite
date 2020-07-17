@@ -4,7 +4,7 @@
 ### 2020 July 15 ###
 ### Version 1.2 ###
 ### Dietrich & Apai (2020), Astronomical Journal in press ###
-### http://arxiv.org/pdf/2007.06521.pdf ###
+### http://arxiv.org/pdf/2007.06745.pdf ###
 
 import math
 import numpy as np
@@ -264,7 +264,7 @@ class dynamite_targets:
 
 
 
-    def get_targets(self, mode, system, radmax):
+    def get_targets(self, mode, system, radmax, removed=[]):
         """Gets the specific set of targets based on config parameters"""
 
         targets = self.targets
@@ -273,7 +273,13 @@ class dynamite_targets:
         if mode == "single":
             for key in targets.keys():
                 if key.find(system) != -1:
-                    sub_targets[key] = targets[key]
+
+                    if len(removed) > 0:
+                        sub_targets[key] = tuple(list(targets[key]) + [removed])
+
+                    else:
+                        sub_targets[key] = targets[key]
+
                     break
 
             return sub_targets
