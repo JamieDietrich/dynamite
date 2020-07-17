@@ -450,28 +450,28 @@ class dynamite_plots:
         """Plots histograms of each individual distribution"""
 
         print(datetime.now(), "Creating Histograms for", self.config_parameters["system"])
-
+        ## UPDATE THESE PARAMETERS WITH CURRENT SYSTEM VALUES - SEE COMMENTS FOR WHICH VALUE
         system = self.config_parameters["system"]
-        p1 = []     # known planet period
+        p1 = []     # known transiting planet periods
         p11 = []    # inserted planet period for iteration
-        p12 = [20, 49.41, 162.87, 636.13]       # known non-transiting planet periods
+        p12 = []       # known non-transiting planet periods
         p2 = []     # removed known planet period
-        p3 = [13.965, 35.362, 94.11]        # unconfirmed planet candidate periods
-        r1 = []     # " for planet radius
-        r11 = []    # " for planet radius
-        r12 = [self.mr_predict(1.75/math.sin(35*math.pi/180), "Radius"), self.mr_predict(1.83/math.sin(35*math.pi/180), "Radius"), self.mr_predict(3.93/math.sin(35*math.pi/180), "Radius"), self.mr_predict(3.93/math.sin(35*math.pi/180), "Radius")]      # " for planet radius
-        r2 = []     # " for planet radius
-        r3 = [self.mr_predict(2/math.sin(35*math.pi/180), "Radius"), self.mr_predict(3.1/math.sin(35*math.pi/180), "Radius"), self.mr_predict(3.6/math.sin(35*math.pi/180), "Radius")]     # " for planet radius
-        i1 = []
-        i11 = []
-        i12 = [35, 35, 35, 35]
-        i2 = []
-        i3 = [35, 35, 35]
-        l1 = []
+        p3 = []        # unconfirmed planet candidate periods
+        r1 = []     # known transiting planet radius
+        r11 = []    # inserted planet radius
+        r12 = [self.mr_predict(1.75/math.sin(35*math.pi/180), "Radius"), self.mr_predict(1.83/math.sin(35*math.pi/180), "Radius"), self.mr_predict(3.93/math.sin(35*math.pi/180), "Radius"), self.mr_predict(3.93/math.sin(35*math.pi/180), "Radius")]      # known non-transiting planet radius (converted from mass)
+        r2 = []     # removed planet radius
+        r3 = [self.mr_predict(2/math.sin(35*math.pi/180), "Radius"), self.mr_predict(3.1/math.sin(35*math.pi/180), "Radius"), self.mr_predict(3.6/math.sin(35*math.pi/180), "Radius")]     # unconfirmed planet radius
+        i1 = []     # known transiting planet inclinations
+        i11 = []    # inserted planet inclinations
+        i12 = []  # known non-transiting planet inclination
+        i2 = []     # removed planet inclination
+        i3 = []   # unconfirmed planet inclinations
+        l1 = []     
         l11 = []
-        l12 = ["g", "h", "e", "f"]
+        l12 = []
         l2 = []
-        l3 = ["b", "c", "d"]
+        l3 = []
 
         if self.config_parameters["ind_P"] == "linear_zoom":
             fig, ax = plt.subplots(figsize=(12, 8))
