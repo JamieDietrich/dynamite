@@ -44,14 +44,14 @@ radmax::5
 
 plot::True
 show_plots::False
-saved::True
+saved::False
 plt_P_R::False
 plt_P_scale::log
 plt_tdtp::False
 plt_deltas::False
 plt_ratios::False
 plt_indpars::True
-plt_PDFs::False
+plt_PDFs::True
 ind_P::log
 ind_R::linear
 ind_i::full
@@ -64,4 +64,4 @@ ind_i::full
 
 additional::[[]]
 unconfirmed::[[]]
-removed::[]
+removed::[9.919]

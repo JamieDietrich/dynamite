@@ -91,8 +91,8 @@ class dynamite_targets:
         "Kepler-62" :([0.64, 0.69],  [89.2, 1.31, 5.715], [89.7, 0.54, 12.442], [89.7, 1.95, 18.164], [89.98, 1.61, 122.387], [89.9, 1.41, 267.29]),
         "Kepler-84" :([1.11, 1.06],  [('get_arccos', (0.02, 4.225)), 1.38, 4.225], [('get_arccos', (0.35, 8.726)), 2.47, 8.726], [('get_arccos', (0.8, 12.883)), 2.76, 12.883], [('get_arccos', (0.09, 27.434)), 2.6, 27.434], [('get_arccos', (0.34, 44.552)), 2.2, 44.552]),
         "Kepler-102":([0.74, 0.8],   [85.37, 0.47, 5.287], [87.09, 0.58, 7.071], [87.09, 1.18, 10.312], [87.66, 2.22, 16.146], [88.24, 0.88, 27.454]),
-        "Kepler-154":([0.96, 0.03, 1.08, 0.12],  [('get_arccos', (0.92, 3.933)), 1.78, 3.933], [('get_arccos', (0.77, 20.55)), 4.12, 20.55], [('get_arccos', (0.37, 33.041)), 2.26, 33.041], [('get_arccos', (0.7, 62.303)), 2.95, 62.303]),
-        "Kepler-154 test 1":([0.96, 0.03, 1.08, 0.12],  [('get_arccos', (0.92, 3.933)), 1.78, 3.933], [('get_arccos', (0.5, 9.919)), 1.5, 9.919], [('get_arccos', (0.77, 20.55)), 4.12, 20.55], [('get_arccos', (0.37, 33.041)), 2.26, 33.041], [('get_arccos', (0.7, 62.303)), 2.95, 62.303]),       # removed Kepler-154 f
+        "Kepler-154":([0.96, 0.03, 1.08, 0.12],  [('get_arccos', (0.92, 3.933)), 1.78, 3.933, "e"], [('get_arccos', (0.5, 9.919)), 1.5, 9.919, "f"], [('get_arccos', (0.77, 20.55)), 4.12, 20.55, "d"], [('get_arccos', (0.37, 33.041)), 2.26, 33.041, "b"], [('get_arccos', (0.7, 62.303)), 2.95, 62.303, "c"]),
+        "Kepler-154 test 1":([0.96, 0.03, 1.08, 0.12],  [('get_arccos', (0.92, 3.933)), 1.78, 3.933], [('get_arccos', (0.77, 20.55)), 4.12, 20.55], [('get_arccos', (0.37, 33.041)), 2.26, 33.041], [('get_arccos', (0.7, 62.303)), 2.95, 62.303]),     # removed Kepler-154 f
         "Kepler-169":([0.78, 0.84],  [('get_arccos', (0.47, 3.251)), 1.13, 3.251], [('get_arccos', (0.04, 6.195)), 1.21, 6.195], [('get_arccos', (0.04, 8.348)), 1.25, 8.348], [('get_arccos', (0.11, 13.767)), 2.2, 13.767], [('get_arccos', (0.56, 87.09)), 2.58, 87.09]),
         "Kepler-186":([0.523, 0.544],[83.65, 1.08, 3.887], [85.94, 1.25, 7.267], [87.09, 1.39, 13.343], [88.24, 1.33, 22.408], [89.9, 1.17, 129.944]),                          
         "Kepler-238":([1.26, 1.06],  [('get_arccos', (0.78, 2.091)), 1.73, 2.091], [('get_arccos', (0.06, 6.156)), 2.39, 6.156], [('get_arccos', (0.43, 13.234)), 3.07, 13.234], [('get_arccos', (0.14, 23.654)), 8.26, 23.654], [('get_arccos', (0.21, 50.444)), 2.76, 50.444]),
@@ -258,7 +258,7 @@ class dynamite_targets:
         "GJ 9827"   :([0.602, 0.606],[86.07, round(0.1407*const.R_jup.value/const.R_earth.value, 3), 1.209], [88.19, round(0.1107*const.R_jup.value/const.R_earth.value, 3), 3.648], [87.443, round(0.1804*const.R_jup.value/const.R_earth.value, 3), 6.765]),
         "HR 858"    :([1.31, 1.145], [85.5, round(0.186*const.R_jup.value/const.R_earth.value, 3), 3.586], [86.23, round(0.173*const.R_jup.value/const.R_earth.value, 3), 5.973], [87.43, round(0.1931*const.R_jup.value/const.R_earth.value, 3), 11.23]),
         "WASP-47"   :([1.16, 1.11],  [89.02, round(1.17*const.R_jup.value/const.R_earth.value, 3), 4.159], [89.22, round(0.331*const.R_jup.value/const.R_earth.value, 3), 9.03], [86.2, round(0.167*const.R_jup.value/const.R_earth.value, 3), 0.79]),
-        "tau Ceti"  :([0.783, 0.012, 0.793, 0.004], [35, round(pfm(measurement=1.75/math.sin(35*math.pi/180), predict="Radius", dataset="kepler")[0], 3), 20], [35, round(pfm(measurement=1.83/math.sin(35*math.pi/180), predict="Radius", dataset="kepler")[0], 3), 49.41], [35, round(pfm(measurement=3.93/math.sin(35*math.pi/180), predict="Radius", dataset="kepler")[0], 3), 162.87], [35, round(pfm(measurement=3.93/math.sin(35*math.pi/180), predict="Radius", dataset="kepler")[0], 3), 636.13]),
+        "tau Ceti"  :([0.783, 0.012, 0.793, 0.004], [35, round(pfm(measurement=1.75/math.sin(35*math.pi/180), predict="Radius", dataset="kepler")[0], 3), 20, "g"], [35, round(pfm(measurement=1.83/math.sin(35*math.pi/180), predict="Radius", dataset="kepler")[0], 3), 49.41, "h"], [35, round(pfm(measurement=3.93/math.sin(35*math.pi/180), predict="Radius", dataset="kepler")[0], 3), 162.87, "e"], [35, round(pfm(measurement=3.93/math.sin(35*math.pi/180), predict="Radius", dataset="kepler")[0], 3), 636.13, "f"]),
         "alpha Centauri"    :([1.10, 0.01, 1.22, 0.01], [45, 6.5, 383], [45, 1.5, 12])
         }
 
@@ -273,7 +273,6 @@ class dynamite_targets:
         if mode == "single":
             for key in targets.keys():
                 if key.find(system) != -1:
-
                     if len(removed) > 0:
                         sub_targets[key] = tuple(list(targets[key]) + [removed])
 

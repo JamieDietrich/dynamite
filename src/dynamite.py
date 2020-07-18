@@ -56,7 +56,7 @@ class dynamite:
                 R_star, Rse, M_star, Mse, target, target_name = self.set_up(targets_dict, self.config_parameters["system"])
                 targ_rem = []
 
-                for i in range(len(target) - 1):
+                for i in range(len(target) - 1 if len(removed) > 0 else len(target)):
                     if target[i][2] not in removed:
                         targ_rem.append(target[i])
 
@@ -119,6 +119,7 @@ class dynamite:
         return tuple([list(z) for z in zip(*itertools.chain([data[k] for k in data]))])
 
 
+
     def set_up(self, targets_dict, target):
         """Sets up target"""
 
@@ -126,12 +127,13 @@ class dynamite:
             return round(np.arccos(planet_pars[0]/(self.K3(planet_pars[1], star_pars[2])/(star_pars[0]*const.R_sun.cgs.value)))*180/math.pi, 3)
            
         t = list(targets_dict[target])
+
         for x in range(len(t)):
             for y in range(len(t[x])):
                 if isinstance(t[x][y], tuple):
                     t[x][y] = locals()[t[x][y][0]](t[0],t[x][y][1])
 
-        return t[0][0], t[0][1], t[0][2], t[0][3], np.array(t[1:]), target
+        return t[0][0], t[0][1], t[0][2], t[0][3], np.array([t[i][:-1] for i in range(1, len(t))]), target
 
 
 

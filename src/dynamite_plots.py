@@ -457,47 +457,45 @@ class dynamite_plots:
         print(datetime.now(), "Creating Histograms for", system)
 
         removed = self.config_parameters["removed"]
-        targets = dynamite_targets().get_targets(self.config_parameters["mode"], system, self.config_parameters["radmax"], removed)[system]
-        target = targets[:-1]
-        p1, p11, p12, p2, p3, r1, r11, r12, r2, r3, i1, i11, i12, i2, i3 = [],[],[],[],[],[],[],[],[],[],[],[],[],[],[]
+        targets_dict = dynamite_targets().get_targets(self.config_parameters["mode"], system, self.config_parameters["radmax"], removed)
+        Rs, Ms, target, names = self.set_up(targets_dict, system)
+        target = target[:-1] if len(removed) > 0 else target
+        p1, p11, p12, p2, p3, r1, r11, r12, r2, r3, i1, i11, i12, i2, i3, l1, l11, l12, l2, l3 = [],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]
 
-        for i in range(1, len(target)):
+        for i in range(len(target)):
             if target[i][2] not in removed:
-                if math.cos(target[i][0]*math.pi/180) * self.K3(target[i][2], target[0][0]) / target[0][2] <= 1:
+                if math.cos(target[i][0]*math.pi/180) * self.K3(target[i][2], Ms) / (Rs*const.R_sun.cgs.value) <= 1:
                     p1.append(target[i][2])
                     r1.append(target[i][1])
                     i1.append(target[i][0])
+                    l1.append(names[i])
 
                 else:
                     p12.append(target[i][2])
                     r12.append(target[i][1])
                     i12.append(target[i][0])
+                    l12.append(names[i])
 
         if len(self.config_parameters["additional"][0]) > 0:
             for i in self.config_parameters["additional"]:
                 p11.append(i[2])
                 r11.append(i[1])
                 i11.append(i[0])
+                l11.append(i[3])
 
         if len(self.config_parameters["unconfirmed"][0]) > 0:
             for i in self.config_parameters["unconfirmed"]:
                 p3.append(i[2])
                 r3.append(i[1])
                 i3.append(i[0])
+                l3.append(i[3])
 
         if len(removed) > 0:
             for i in range(len(removed)):
-                p2 = [targets[j][2] for j in range(1, len(targets) - 1) if targets[j][2] == removed[i]]
-                r2 = [targets[j][1] for j in range(1, len(targets) - 1) if targets[j][2] == removed[i]]
-                i2 = [targets[j][0] for j in range(1, len(targets) - 1) if targets[j][2] == removed[i]]
-
-        l1 = []
-        l11 = []
-        #l12 = ["g", "h", "e", "f"]
-        l12 = ["h", "e", "f"]
-        l2 = []
-        #l3 = ["b", "c", "d"]
-        l3 = ["b"]
+                p2 = [target[j][2] for j in range(len(target)) if target[j][2] == removed[i]]
+                r2 = [target[j][1] for j in range(len(target)) if target[j][2] == removed[i]]
+                i2 = [target[j][0] for j in range(len(target)) if target[j][2] == removed[i]]
+                l2 = [names[j] for j in range(len(target)) if target[j][2] == removed[i]]
 
         if self.config_parameters["ind_P"] == "linear_zoom":
             fig, ax = plt.subplots(figsize=(12, 8))
@@ -527,7 +525,7 @@ class dynamite_plots:
         elif self.config_parameters["ind_P"] == "linear":
             Pb = list(P)
             Pb.append(730.1)
-            fig, ax = plt.subplots(figsize=(12, 8))
+            fig, ax = plt.subplots(figsize=(12,8))
             plt.hist(Pk, bins=Pb, weights=np.ones(len(Pk))*10 / len(Pk), label="DYNAMITE Predictions")
 
             if self.config_parameters["plt_PDFs"] == "True":
@@ -560,48 +558,62 @@ class dynamite_plots:
             hist, _ = np.histogram(Pk, bins=bins)
             hist_norm = hist/widths
             fig, ax = plt.subplots(figsize=(12,8))
-            plt.bar(bins[:-1], hist_norm/1e5, widths, label="DYNAMITE Predictions")
+            h1 = plt.bar(bins[:-1], hist_norm/1e5, widths, color="#377eb8")
             PPl = np.interp(Pl, P, PP)
+            hands = [h1]
+            labs = [(r"$\tau$ Ceti" if system == "tau Ceti" else system) + " DYNAMITE Predictions"]
 
             if self.config_parameters["plt_PDFs"] == "True":
-                plt.plot(Pl, PPl, color='#ff7f0e', label="PDF", linewidth=4)
-            
+                h2 = plt.plot(Pl, PPl, color='#ff7f00', linewidth=3)
+                hands.append(h2[0])
+                labs.append("Probability Distribution Function")
+
             if len(p1) > 0:
-                plt.scatter(p1, np.ones(len(p1))*np.amax(hist_norm)/1e6, c="w", edgecolors="g", s=[r1[i]*200 for i in range(len(r1))], linewidth=2, label=("Known planets in system" if len(p1) > 1 else "Known planet in system"), zorder=2)
+                h3 = plt.scatter(p1, np.ones(len(p1))*np.amax(hist_norm)/1e6, c="w", edgecolors="#4daf4a", s=[r1[i]*200 for i in range(len(r1))], linewidth=2, zorder=2)
+                hands.append(h3)
+                labs.append("Known transiting planets" if len(p1) > 1 else "Known transiting planet")
 
                 for i in range(len(l1)):
-                    plt.annotate(l1[i], (p1[i], np.amax(hist_norm)/1e6), color="k", textcoords="offset points", ha="center", weight='bold', fontsize=16)
+                    plt.annotate(l1[i], (p1[i], np.amax(hist_norm)/1e6), color="k", textcoords="offset points", xytext=(0,-(20+r1[i]*2.5)), ha="center", weight='bold', fontsize=16)
 
             if len(p11) > 0:
-                plt.scatter(p11, np.ones(len(p11))*np.amax(hist_norm)/1e6, c="w", edgecolors="purple", marker="s", s=[r11[i]*200 for i in range(len(r11))], linewidth=2, label="Highest relative likelihood for inserted planet", zorder=2)
+                h4 = plt.scatter(p11, np.ones(len(p11))*np.amax(hist_norm)/1e6, c="w", edgecolors="#984ea3", marker="s", s=[r11[i]*200 for i in range(len(r11))], linewidth=2, zorder=2)
+                hands.append(h4)
+                labs.append("Additional inserted planets" if len(p11) > 1 else "Additional inserted planet")
 
                 for i in range(len(l11)):
-                    plt.annotate(l11[i], (p11[i], np.amax(hist_norm)/1e6), color="k", textcoords="offset points", ha="center", weight='bold', fontsize=16)
+                    plt.annotate(l11[i], (p11[i], np.amax(hist_norm)/1e6), color="k", textcoords="offset points", xytext=(0,-(20+r11[i]*2.5)), ha="center", weight='bold', fontsize=16)
 
             if len(p12) > 0:
-                plt.scatter(p12, np.ones(len(p12))*np.amax(hist_norm)/1e6, c="w", edgecolors="g", marker="^", s=[r12[i]*200 for i in range(len(r12))], linewidth=2, label=("Known non-transiting planets" if len(p12) > 1 else "Known non-transiting planet"), zorder=2)
+                h5 = plt.scatter(p12, np.ones(len(p12))*np.amax(hist_norm)/1e6, c="w", edgecolors="#4daf4a", marker="^", s=[r12[i]*200 for i in range(len(r12))], linewidth=2, zorder=2)
+                hands.append(h5)
+                labs.append("Known non-transiting planets" if len(p12) > 1 else "Known non-transiting planet")
 
                 for i in range(len(l12)):
-                    plt.annotate(l12[i], (p12[i], np.amax(hist_norm)/1e6), color="k", textcoords="offset points", ha="center", weight='bold', fontsize=16)
+                    plt.annotate(l12[i], (p12[i], np.amax(hist_norm)/1e6), color="k", textcoords="offset points", xytext=(0,-(20+r12[i]*2.5)), ha="center", weight='bold', fontsize=16)
 
             if len(p2) > 0:
-                plt.scatter(p2, np.ones(len(p2))*np.amax(hist_norm)/1e6, c="w", edgecolors="r", marker="X", s=[r2[i]*200 for i in range(len(r2))], linewidth=2, label=("Known planets removed from system" if len(p2) > 1 else "Known planet removed from system"), zorder=2)
+                h6 = plt.scatter(p2, np.ones(len(p2))*np.amax(hist_norm)/1e6, c="w", edgecolors="#e41a1c", marker="X", s=[r2[i]*200 for i in range(len(r2))], linewidth=2, zorder=2)
+                hands.append(h6)
+                labs.append("Known planets removed from system" if len(p2) > 1 else "Known planet removed from system")
 
                 for i in range(len(l2)):
-                    plt.annotate(l2[i], (p2[i], np.amax(hist_norm)/1e6), color="k", textcoords="offset points", ha="center", weight='bold', fontsize=16)
+                    plt.annotate(l2[i], (p2[i], np.amax(hist_norm)/1e6), color="k", textcoords="offset points", xytext=(0,-(20+r2[i]*2.5)), ha="center", weight='bold', fontsize=16)
 
             if len(p3) > 0:
-                plt.scatter(p3, np.ones(len(p3))*np.amax(hist_norm)/1e6, c="w", edgecolors="y", marker='$?$', s=[r3[i]*200 for i in range(len(r3))], linewidth=2, label=("Unconfirmed planet candidates" if len(p3) > 1 else "Unconfirmed planet candidate"), zorder=2)
+                h7 = plt.scatter(p3, np.ones(len(p3))*np.amax(hist_norm)/1e6, c="w", edgecolors="#e6ab02", marker='d', s=[r3[i]*200 for i in range(len(r3))], linewidth=2, zorder=2)
+                hands.append(h7)
+                labs.append("Unconfirmed planet candidates" if len(p3) > 1 else "Unconfirmed planet candidate")
 
                 for i in range(len(l3)):
-                    plt.annotate(l3[i], (p3[i], np.amax(hist_norm)/1e6), color="k", textcoords="offset points", ha="center", weight='bold', fontsize=16)
+                    plt.annotate(l3[i], (p3[i], np.amax(hist_norm)/1e6), color="k", textcoords="offset points", xytext=(0,-(20+r3[i]*2.5)), ha="center", weight='bold', fontsize=16)
 
             plt.xlabel("Log Period (days)", fontsize=20)
             plt.ylabel("Relative Likelihood", fontsize=20)
             plt.xscale("Log")
             plt.xlim(0.5, 730)
-            plt.ylim(0, np.amax(hist_norm)*1.2/1e5)
-            plt.legend(fontsize=16)
+            plt.ylim(0, np.amax(hist_norm)*1.5e-5)
+            plt.legend(hands, labs, fontsize=15, ncol=2, markerscale=0.75)
             ax.tick_params(labelsize=14)
             ax.xaxis.set_major_formatter(mticker.ScalarFormatter())
             fig.suptitle((r"$\tau$ Ceti" if system == "tau Ceti" else r"$\alpha$ Centauri" if system == "alpha Centauri" else system) + (" Period Ratio" if self.config_parameters["period"] == "epos" else " Clustered Periods") + " Relative Likelihood", fontsize=30)
@@ -645,7 +657,7 @@ class dynamite_plots:
             n, _, _ = plt.hist(Rk, bins=Rb, weights=np.ones(len(Rk))*100 / len(Rk), label="DYNAMITE Predictions")
 
             if self.config_parameters["plt_PDFs"] == "True":
-                plt.plot(R, PR, label="PDF")
+                plt.plot(R, PR, label="PDF", linewidth=3)
 
             if len(r1) > 0:
                 plt.scatter(r1, np.ones(len(r1))*np.amax(n)/10, c="g", edgecolors="w", s=200, linewidth=2, label=("Known planets in system" if len(p1) > 1 else "Known planet in system"), zorder=2)
@@ -660,7 +672,7 @@ class dynamite_plots:
                 plt.scatter(r2, np.ones(len(r2))*np.amax(n)/10, c="r", marker="X", s=200, edgecolors="w", linewidth=2, label=("Known planets removed from system" if len(r2) > 1 else "Known planet removed from system"), zorder=2)
 
             if len(r3) > 0:
-                plt.scatter(r3, np.ones(len(r3))*np.amax(n)/10, c="y", marker='$?$', s=200, label=("Unconfirmed planet candidates" if len(r3) > 1 else "Unconfirmed planet candidate"), zorder=2)
+                plt.scatter(r3, np.ones(len(r3))*np.amax(n)/10, c="y", marker='d', s=200, label=("Unconfirmed planet candidates" if len(r3) > 1 else "Unconfirmed planet candidate"), zorder=2)
 
             plt.ylim(0,1.2*np.amax(n))
             plt.xlabel(r"Radius ($R_{\oplus}$)", fontsize=20)
@@ -687,7 +699,7 @@ class dynamite_plots:
         n, _, _ = plt.hist(ik, bins=np.linspace(0, 180.5, 362), weights=np.ones(len(ik)) / (len(ik)), label="DYNAMITE Predictions")
 
         if self.config_parameters["plt_PDFs"] == "True":
-            plt.plot(inc, Pi, label="PDF")
+            plt.plot(inc, Pi, label="PDF", linewidth=3)
 
         if len(i1) > 0:
             plt.scatter(i1, np.ones(len(i1))*np.amax(n)/10, c="g", edgecolors="w", s=200, linewidth=2, label=("Known planets in system" if len(i1) > 1 else "Known planet in system"), zorder=2)
@@ -702,7 +714,7 @@ class dynamite_plots:
             plt.scatter(i2, np.ones(len(i2))*np.amax(n)/10, c="r", marker="X", s=200, edgecolors="w", linewidth=2, label=("Known planets removed from system" if len(i2) > 1 else "Known planet removed from system"), zorder=2)
 
         if len(i3) > 0:
-            plt.scatter(i3, np.ones(len(i3))*np.amax(n)/10, c="y", marker='$?$', s=200, label=("Unconfirmed planet candidates" if len(i3) > 1 else "Unconfirmed planet candidate"), zorder=2)
+            plt.scatter(i3, np.ones(len(i3))*np.amax(n)/10, c="y", marker='d', s=200, label=("Unconfirmed planet candidates" if len(i3) > 1 else "Unconfirmed planet candidate"), zorder=2)
 
         plt.xlabel("Inclination (degrees)")
         plt.ylabel("Relative Likelihood")
@@ -717,6 +729,23 @@ class dynamite_plots:
 
         elif self.config_parameters["show_plots"] == "False":
             plt.close()
+
+
+
+    def set_up(self, targets_dict, target):
+        """Sets up target"""
+
+        def get_arccos(star_pars, planet_pars):
+            return round(np.arccos(planet_pars[0]/(self.K3(planet_pars[1], star_pars[2])/(star_pars[0]*const.R_sun.cgs.value)))*180/math.pi, 3)
+           
+        t = list(targets_dict[target])
+
+        for x in range(len(t)):
+            for y in range(len(t[x])):
+                if isinstance(t[x][y], tuple):
+                    t[x][y] = locals()[t[x][y][0]](t[0],t[x][y][1])
+
+        return t[0][0], t[0][2], np.array([t[i][:-1] for i in range(1, len(t))]), np.array([t[i][-1] for i in range(1, len(t))])
 
 
 
