@@ -8,10 +8,11 @@
 
 import os
 import ast
+import sys
 import math
 import itertools
 import numpy as np
-from Client import Client
+from PPR import PPR
 import scipy.stats as spst
 from datetime import datetime
 import astropy.constants as const
@@ -21,7 +22,7 @@ from mrexo import predict_from_measurement as pfm
 
 class dynamite:
 
-    def __init__(self):
+    def __init__(self, cfname="dynamite_config.txt"):
         """Runs the script"""
 
         print(datetime.now(), "Initiating DYNAMITE")
@@ -30,7 +31,7 @@ class dynamite:
         self.config_parameters = {}
 
         try:
-            config_data = np.loadtxt("dynamite_config.txt", dtype=str, delimiter='::')
+            config_data = np.loadtxt(cfname, dtype=str, delimiter='::')
 
         except IOError:
             print("Error, configuration file not found!")
@@ -46,7 +47,7 @@ class dynamite:
             print("Error: No targets selected!")
             exit()
        
-        client = Client((self, None))
+        ppr = PPR((self, None))
 
         if self.config_parameters["saved"] == "False":
             if os.path.exists("table_" + self.config_parameters["mode"] + "_" + self.config_parameters["period"] + ".txt"):
@@ -81,7 +82,7 @@ class dynamite:
                     elif self.config_parameters["mode"] == "test" and tn.find("test 3") != -1:
                         targlist.append(tn)
 
-                Pk, P, PP, per, Rk, R, PR, ik, il, Pin, deltas, ratios, tdm, tdle, tdue, tpm, tple, tpue, targets, pers, rads = datavars = client.create_processes("mt_mc", (targets_dict, targlist), -len(targlist), self.process_data)
+                Pk, P, PP, per, Rk, R, PR, ik, il, Pin, deltas, ratios, tdm, tdle, tdue, tpm, tple, tpue, targets, pers, rads = datavars = ppr.create_processes("mt_mc", (targets_dict, targlist), -len(targlist), self.process_data)
 
                 np.savez("saved_data.npz", data=datavars)
 
@@ -97,7 +98,7 @@ class dynamite:
                 Pk, P, PP, per, Rk, R, PR, ik, il, Pinc, deltas, ratios, tdm, tdle, tdue, tpm, tple, tpue, targets, pers, rads = datavars
 
             print(datetime.now(), "Creating Plots")
-            plots = dynamite_plots(Pk, P, PP, per, Rk, R, PR, ik, il, Pinc, deltas, ratios, tdm, tdle, tdue, tpm, tple, tpue, targets, pers, rads)
+            plots = dynamite_plots(Pk, P, PP, per, Rk, R, PR, ik, il, Pinc, deltas, ratios, tdm, tdle, tdue, tpm, tple, tpue, targets, pers, rads, cfname)
             print(datetime.now(), "Finishing DYNAMITE")
 
 
@@ -667,4 +668,8 @@ class dynamite:
 
 
 if __name__ == '__main__':
-    dynamite()  
+    if len(sys.argv) > 1:
+        dynamite(sys.argv[1])
+
+    else:
+        dynamite()

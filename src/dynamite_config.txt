@@ -38,13 +38,14 @@ radmax::5
 # plt_ratios: plot the period ratios of successive pairs of planets across all systems - True/False; mode must not be single
 # plt_indpars: plot the histograms of the individual parameters of a system - True/False; mode must be single
 # plt_PDFs: plot the probability distribution functions of the system over the histograms - True/False; mode must be single
+# plt_colors: hex codes for different plotted elements over the histogram - list of hex code strings (WITHOUT HASH), order [prediction, pdf, known, additional, removed, unconfirmed]; mode must be single
 # ind_P: scale of the x-axis for the individual system period plot - linear_zoom/linear/log; mode must be single
 # ind_R: scale of the x-axis for the individual system planet radius plot - linear_zoom/linear; mode must be single
 # ind_i: scale of the x-axis for the individual system inclination plot - full/truncated; mode must be single
 
 plot::True
 show_plots::False
-saved::False
+saved::True
 plt_P_R::False
 plt_P_scale::log
 plt_tdtp::False
@@ -52,6 +53,7 @@ plt_deltas::False
 plt_ratios::False
 plt_indpars::True
 plt_PDFs::True
+plt_colors::["377eb8", "d95f02", "4daf4a", "984ea3", "e41a1c", "e6ab02"]
 ind_P::log
 ind_R::linear
 ind_i::full

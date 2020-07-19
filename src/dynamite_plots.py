@@ -7,8 +7,10 @@
 ### http://arxiv.org/pdf/2007.06745.pdf ###
 
 import ast
+import sys
 import math
 import numpy as np
+from PPR import PPR
 import scipy.stats as spst
 from datetime import datetime
 import matplotlib.pyplot as plt
@@ -20,13 +22,13 @@ from mrexo import predict_from_measurement as pfm
 
 class dynamite_plots:
 
-    def __init__(self, Pk=[], P=[], PP=[], per=[], Rk=[], R=[], PR=[], ik=[], inc=[], Pi=[], deltas=[], ratios=[], tdm=[], tdle=[], tdue=[], tpm=[], tple=[], tpue=[], targets=[], pers=[], rads=[]):
+    def __init__(self, Pk=[], P=[], PP=[], per=[], Rk=[], R=[], PR=[], ik=[], inc=[], Pi=[], deltas=[], ratios=[], tdm=[], tdle=[], tdue=[], tpm=[], tple=[], tpue=[], targets=[], pers=[], rads=[], cfname="dynamite_config.txt"):
         """Sets up plotting routines"""
 
         self.config_parameters = {}
 
         try:
-            config_data = np.loadtxt("dynamite_config.txt", dtype=str, delimiter='::')
+            config_data = np.loadtxt(cfname, dtype=str, delimiter='::')
 
         except IOError:
             print("Error, configuration file not found!")
@@ -43,20 +45,24 @@ class dynamite_plots:
             R = R[0]
             inc = inc[0]
 
+        ppr = PPR((self, None))
+        
         if self.config_parameters["plt_P_R"] == "True":
-            self.plot_P_R(Pk, P, Rk, R, targets, pers, rads)
+            ppr.create_processes("plot_P_R", (Pk, P, Rk, R, targets, pers, rads), queue=True)
 
         if self.config_parameters["plt_tdtp"] == "True":
-            self.plot_td_tp(tdm, tdle, tdue, tpm, tple, tpue, targets)
+            ppr.create_processes("plot_td_tp", (tdm, tdle, tdue, tpm, tple, tpue, targets), queue=True)
 
         if self.config_parameters["plt_deltas"] == "True":
-            self.plot_deltas(deltas)
+            ppr.create_processes("plot_deltas", (deltas,), queue=True)
 
         if self.config_parameters["plt_ratios"] == "True":
-            self.plot_ratios(ratios)
+            ppr.create_processes("plot_ratios", (ratios,), queue=True)
 
         if self.config_parameters["plt_indpars"] == "True":
-            self.plot_ind_params(Pk, P, PP, per, Rk, R, PR, ik, inc, Pi)
+            ppr.create_processes("plot_ind_params", (Pk, P, PP, per, Rk, R, PR, ik, inc, Pi), queue=True)
+
+        ppr.create_processes(None)
 
         print(datetime.now(), "Finishing Plots")
 
@@ -457,6 +463,7 @@ class dynamite_plots:
         print(datetime.now(), "Creating Histograms for", system)
 
         removed = self.config_parameters["removed"]
+        color_scheme = ["#" + self.config_parameters["plt_colors"][i] for i in range(len(self.config_parameters["plt_colors"]))]
         targets_dict = dynamite_targets().get_targets(self.config_parameters["mode"], system, self.config_parameters["radmax"], removed)
         Rs, Ms, target, names = self.set_up(targets_dict, system)
         target = target[:-1] if len(removed) > 0 else target
@@ -550,26 +557,23 @@ class dynamite_plots:
                 plt.close()
 
         elif self.config_parameters["ind_P"] == "log":
-            Pl = np.logspace(-0.3, 2.86, 317)
-            Plb = list(Pl)
-            Plb.append(10**2.895)
-            bins = np.array(Plb)
+            bins = np.hstack(np.array([np.arange(0.5, 100, 0.1), np.arange(100,731,1)]))
             widths = (bins[1:] - bins[:-1])
             hist, _ = np.histogram(Pk, bins=bins)
             hist_norm = hist/widths
             fig, ax = plt.subplots(figsize=(12,8))
-            h1 = plt.bar(bins[:-1], hist_norm/1e5, widths, color="#377eb8")
-            PPl = np.interp(Pl, P, PP)
+            h1 = plt.bar(bins[:-1], hist_norm/1e5, widths, color=color_scheme[0])
+            PPl = np.interp(bins, P, PP)
             hands = [h1]
             labs = [(r"$\tau$ Ceti" if system == "tau Ceti" else system) + " DYNAMITE Predictions"]
 
             if self.config_parameters["plt_PDFs"] == "True":
-                h2 = plt.plot(Pl, PPl, color='#ff7f00', linewidth=3)
+                h2 = plt.plot(bins, PPl, color=color_scheme[1], linewidth=3)
                 hands.append(h2[0])
                 labs.append("Probability Distribution Function")
 
             if len(p1) > 0:
-                h3 = plt.scatter(p1, np.ones(len(p1))*np.amax(hist_norm)/1e6, c="w", edgecolors="#4daf4a", s=[r1[i]*200 for i in range(len(r1))], linewidth=2, zorder=2)
+                h3 = plt.scatter(p1, np.ones(len(p1))*np.amax(hist_norm)/1e6, c=color_scheme[2], edgecolors="k", s=[r1[i]*200 for i in range(len(r1))], linewidth=2, zorder=2)
                 hands.append(h3)
                 labs.append("Known transiting planets" if len(p1) > 1 else "Known transiting planet")
 
@@ -577,7 +581,7 @@ class dynamite_plots:
                     plt.annotate(l1[i], (p1[i], np.amax(hist_norm)/1e6), color="k", textcoords="offset points", xytext=(0,-(20+r1[i]*2.5)), ha="center", weight='bold', fontsize=16)
 
             if len(p11) > 0:
-                h4 = plt.scatter(p11, np.ones(len(p11))*np.amax(hist_norm)/1e6, c="w", edgecolors="#984ea3", marker="s", s=[r11[i]*200 for i in range(len(r11))], linewidth=2, zorder=2)
+                h4 = plt.scatter(p11, np.ones(len(p11))*np.amax(hist_norm)/1e6, c=color_scheme[3], edgecolors="k", marker="s", s=[r11[i]*200 for i in range(len(r11))], linewidth=2, zorder=2)
                 hands.append(h4)
                 labs.append("Additional inserted planets" if len(p11) > 1 else "Additional inserted planet")
 
@@ -585,7 +589,7 @@ class dynamite_plots:
                     plt.annotate(l11[i], (p11[i], np.amax(hist_norm)/1e6), color="k", textcoords="offset points", xytext=(0,-(20+r11[i]*2.5)), ha="center", weight='bold', fontsize=16)
 
             if len(p12) > 0:
-                h5 = plt.scatter(p12, np.ones(len(p12))*np.amax(hist_norm)/1e6, c="w", edgecolors="#4daf4a", marker="^", s=[r12[i]*200 for i in range(len(r12))], linewidth=2, zorder=2)
+                h5 = plt.scatter(p12, np.ones(len(p12))*np.amax(hist_norm)/1e6, c=color_scheme[2], edgecolors="k", marker="^", s=[r12[i]*200 for i in range(len(r12))], linewidth=2, zorder=2)
                 hands.append(h5)
                 labs.append("Known non-transiting planets" if len(p12) > 1 else "Known non-transiting planet")
 
@@ -593,7 +597,7 @@ class dynamite_plots:
                     plt.annotate(l12[i], (p12[i], np.amax(hist_norm)/1e6), color="k", textcoords="offset points", xytext=(0,-(20+r12[i]*2.5)), ha="center", weight='bold', fontsize=16)
 
             if len(p2) > 0:
-                h6 = plt.scatter(p2, np.ones(len(p2))*np.amax(hist_norm)/1e6, c="w", edgecolors="#e41a1c", marker="X", s=[r2[i]*200 for i in range(len(r2))], linewidth=2, zorder=2)
+                h6 = plt.scatter(p2, np.ones(len(p2))*np.amax(hist_norm)/1e6, c=color_scheme[4], edgecolors="k", marker="X", s=[r2[i]*200 for i in range(len(r2))], linewidth=2, zorder=2)
                 hands.append(h6)
                 labs.append("Known planets removed from system" if len(p2) > 1 else "Known planet removed from system")
 
@@ -601,20 +605,24 @@ class dynamite_plots:
                     plt.annotate(l2[i], (p2[i], np.amax(hist_norm)/1e6), color="k", textcoords="offset points", xytext=(0,-(20+r2[i]*2.5)), ha="center", weight='bold', fontsize=16)
 
             if len(p3) > 0:
-                h7 = plt.scatter(p3, np.ones(len(p3))*np.amax(hist_norm)/1e6, c="w", edgecolors="#e6ab02", marker='d', s=[r3[i]*200 for i in range(len(r3))], linewidth=2, zorder=2)
+                h7 = plt.scatter(p3, np.ones(len(p3))*np.amax(hist_norm)/1e6, c=color_scheme[5], edgecolors="k", marker='d', s=[r3[i]*200 for i in range(len(r3))], linewidth=2, zorder=2)
                 hands.append(h7)
                 labs.append("Unconfirmed planet candidates" if len(p3) > 1 else "Unconfirmed planet candidate")
 
                 for i in range(len(l3)):
                     plt.annotate(l3[i], (p3[i], np.amax(hist_norm)/1e6), color="k", textcoords="offset points", xytext=(0,-(20+r3[i]*2.5)), ha="center", weight='bold', fontsize=16)
 
-            plt.xlabel("Log Period (days)", fontsize=20)
-            plt.ylabel("Relative Likelihood", fontsize=20)
+            plt.xlabel("Log Period (days)", fontsize=24)
+            plt.ylabel("Relative Likelihood", fontsize=24)
             plt.xscale("Log")
             plt.xlim(0.5, 730)
             plt.ylim(0, np.amax(hist_norm)*1.5e-5)
             plt.legend(hands, labs, fontsize=15, ncol=2, markerscale=0.75)
-            ax.tick_params(labelsize=14)
+            ax.tick_params(labelsize=18)
+            ax.ticklabel_format(axis='y', style='sci', scilimits=(0,0))
+            tx = ax.yaxis.get_offset_text()
+            tx.set_fontsize(20)
+            tx.set_position((-0.1,1.05))
             ax.xaxis.set_major_formatter(mticker.ScalarFormatter())
             fig.suptitle((r"$\tau$ Ceti" if system == "tau Ceti" else r"$\alpha$ Centauri" if system == "alpha Centauri" else system) + (" Period Ratio" if self.config_parameters["period"] == "epos" else " Clustered Periods") + " Relative Likelihood", fontsize=30)
 
@@ -766,4 +774,8 @@ class dynamite_plots:
 
 
 if __name__ == '__main__':
-    dynamite_plots()
+    if len(sys.argv) > 1:
+        dynamite_plots(sys.argv[1])
+
+    else:
+        dynamite_plots()

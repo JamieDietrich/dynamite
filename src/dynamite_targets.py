@@ -146,7 +146,7 @@ class dynamite_targets:
         "Kepler-37" :([0.78, 0.83],  [('get_arccos', (0.14, 13.368)), 0.31, 13.368], [('get_arccos', (0.13, 21.302)), 0.73, 21.302], [('get_arccos', (0.34, 39.792)), 1.91, 39.792]),
         "Kepler-42" :([0.17, 0.13],  [('get_arccos', (0.78, 1.214)), 0.78, 1.214], [('get_arccos', (0.92, 0.453)), 0.73, 0.453], [('get_arccos', (0.95, 1.865)), 0.57, 1.865]),
         "Kepler-46" :([0.938, 0.902],[88.55, round(0.151*const.R_jup.value/const.R_earth.value, 3), 6.767], [89.04, round(0.81*const.R_jup.value/const.R_earth.value, 3), 33.648], [88.66, round(0.481*const.R_jup.value/const.R_earth.value, 3), 57.325]),
-        "Kepler-47" :([0.936, 0.957],[89.752, round(0.272*const.R_jup.value/const.R_earth.value, 3), 49.464], [180-90.1925, round(0.415*const.R_jup.value/const.R_earth.value, 3), 303.227], [180-90.395, round(0.628*const.R_jup.value/const.R_earth.value, 3), 187.366]),
+        "Kepler-47" :([1.41, 0.07, 0.964, 0.017],[89.752, round(0.272*const.R_jup.value/const.R_earth.value, 3), 49.464, "b"], [180-90.1925, round(0.415*const.R_jup.value/const.R_earth.value, 3), 303.227, "c"], [180-90.395, round(0.628*const.R_jup.value/const.R_earth.value, 3), 187.366, "d"]),
         "Kepler-48" :([0.86, 0.89],  [('get_arccos', (0.47, 4.778)), 2.07, 4.778], [('get_arccos', (0.21, 9.674)), 2.87, 9.674], [('get_arccos', (0.1, 42.896)), 2.2, 42.896]),
         "Kepler-51" :([1.05, 1.05],  [('get_arccos', (0.27, 45.155)), 7.64, 45.155], [('get_arccos', (0.31, 130.18)), 10.42, 130.18], [('get_arccos', (0.1, 85.315)), 5.48, 85.315]),
         "Kepler-52" :([0.63, 0.66],  [('get_arccos', (0.27, 16.385)), 1.71, 16.385], [('get_arccos', (0.86, 7.877)), 2.34, 7.877], [('get_arccos', (0.76, 36.445)), 1.95, 36.445]),
