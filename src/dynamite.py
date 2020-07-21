@@ -1,16 +1,19 @@
 ### DYNAmical Multi-planet Injection TEster (DYNAMITE) ###
 ### Main File ###
 ### Jeremy Dietrich ###
-### 2020 July 15 ###
+### jdietrich1@email.arizona.edu ###
+### 2020 July 20 ###
 ### Version 1.2 ###
 ### Dietrich & Apai (2020), Astronomical Journal in press ###
 ### http://arxiv.org/pdf/2007.06745.pdf ###
 
 import os
+import ast
+import sys
 import math
 import itertools
 import numpy as np
-from Client import Client
+from PPR import PPR
 import scipy.stats as spst
 from datetime import datetime
 import astropy.constants as const
@@ -20,7 +23,7 @@ from mrexo import predict_from_measurement as pfm
 
 class dynamite:
 
-    def __init__(self):
+    def __init__(self, cfname="dynamite_config.txt"):
         """Runs the script"""
 
         print(datetime.now(), "Initiating DYNAMITE")
@@ -29,22 +32,22 @@ class dynamite:
         self.config_parameters = {}
 
         try:
-            config_data = np.loadtxt("dynamite_config.txt", dtype=str, delimiter='::')
+            config_data = np.loadtxt(cfname, dtype=str, delimiter='::')
 
         except IOError:
             print("Error, configuration file not found!")
             exit()
 
         for i in range(len(config_data)):
-            self.config_parameters[config_data[i, 0]] = config_data[i, 1]
+            self.config_parameters[config_data[i, 0]] = config_data[i, 1] if config_data[i, 1].find("[") == -1 else ast.literal_eval(config_data[i, 1])
 
-        targets_dict = dynamite_targets().get_targets(self.config_parameters["mode"], self.config_parameters["system"], self.config_parameters["radmax"])
+        targets_dict = dynamite_targets().get_targets(self.config_parameters["mode"], self.config_parameters["system"], self.config_parameters["radmax"], self.config_parameters["removed"])
 
         if len(targets_dict) == 0:
             print("Error: No targets selected!")
             exit()
        
-        client = Client((self, None))
+        ppr = PPR((self, None))
 
         if self.config_parameters["saved"] == "False":
             if os.path.exists("table_" + self.config_parameters["mode"] + "_" + self.config_parameters["period"] + ".txt"):
@@ -52,7 +55,18 @@ class dynamite:
 
             if self.config_parameters["mode"] == "single":
                 R_star, Rse, M_star, Mse, target, target_name = self.set_up(targets_dict, self.config_parameters["system"])
-                target = target[target[:, 2].argsort()]
+                targ_rem = []
+
+                for i in range(len(target) - 1 if len(self.config_parameters["removed"]) > 0 else len(target)):
+                    if target[i][2] not in self.config_parameters["removed"]:
+                        targ_rem.append(target[i])
+
+                if len(self.config_parameters["additional"][0]) > 0:
+                    for i in range(len(self.config_parameters["additional"])):
+                        targ_rem.append(self.config_parameters["additional"][i][:-1])
+
+                targ_rem = np.array(targ_rem)
+                target = targ_rem[targ_rem[:, 2].argsort()]
                 data = self.run_monte_carlo(R_star, Rse, M_star, Mse, target, target_name) + ([target[i][2] for i in range(len(target))], [target[i][1] for i in range(len(target))])
                 np.savez("saved_data.npz", data=data)
 
@@ -72,7 +86,7 @@ class dynamite:
                     elif self.config_parameters["mode"] == "test" and tn.find("test 3") != -1:
                         targlist.append(tn)
 
-                Pk, P, PP, per, Rk, R, PR, ik, il, Pin, deltas, ratios, tdm, tdle, tdue, tpm, tple, tpue, targets, pers, rads = datavars = client.create_processes("mt_mc", (targets_dict, targlist), -len(targlist), self.process_data)
+                Pk, P, PP, per, Rk, R, PR, ik, il, Pin, deltas, ratios, tdm, tdle, tdue, tpm, tple, tpue, targets, pers, rads = datavars = ppr.create_processes("mt_mc", (targets_dict, targlist), -len(targlist), self.process_data)
 
                 np.savez("saved_data.npz", data=datavars)
 
@@ -88,7 +102,7 @@ class dynamite:
                 Pk, P, PP, per, Rk, R, PR, ik, il, Pinc, deltas, ratios, tdm, tdle, tdue, tpm, tple, tpue, targets, pers, rads = datavars
 
             print(datetime.now(), "Creating Plots")
-            plots = dynamite_plots(Pk, P, PP, per, Rk, R, PR, ik, il, Pinc, deltas, ratios, tdm, tdle, tdue, tpm, tple, tpue, targets, pers, rads)
+            plots = dynamite_plots(Pk, P, PP, per, Rk, R, PR, ik, il, Pinc, deltas, ratios, tdm, tdle, tdue, tpm, tple, tpue, targets, pers, rads, cfname)
             print(datetime.now(), "Finishing DYNAMITE")
 
 
@@ -110,6 +124,7 @@ class dynamite:
         return tuple([list(z) for z in zip(*itertools.chain([data[k] for k in data]))])
 
 
+
     def set_up(self, targets_dict, target):
         """Sets up target"""
 
@@ -117,12 +132,39 @@ class dynamite:
             return round(np.arccos(planet_pars[0]/(self.K3(planet_pars[1], star_pars[2])/(star_pars[0]*const.R_sun.cgs.value)))*180/math.pi, 3)
            
         t = list(targets_dict[target])
+
         for x in range(len(t)):
             for y in range(len(t[x])):
                 if isinstance(t[x][y], tuple):
                     t[x][y] = locals()[t[x][y][0]](t[0],t[x][y][1])
 
-        return t[0][0], t[0][1], t[0][2], t[0][3], np.array(t[1:]), target
+        return t[0][0], t[0][1], t[0][2], t[0][3], np.array([t[i][:-1] for i in range(1, len(t))]), target
+
+
+
+    def process_inc_data(self, data):
+        """Processes data for the multithreading component"""
+        
+        return tuple([list(itertools.chain(*i)) for i in zip(*itertools.chain([data[k] for k in data]))])
+
+
+
+    def inc_test(self, il, incn, rylgh, j):
+        """Tests the best system inclination."""
+
+        ibs = []
+        fib = []
+
+        for k in range(len(incn)):
+            test = 0
+
+            for m in range(len(incn[k])):
+                test += spst.rayleigh.pdf(abs(incn[k][m]-il[j]), rylgh)
+
+            ibs.append(il[j])
+            fib.append(test)
+            
+        return {j: (ibs, fib)}
 
 
 
@@ -165,19 +207,32 @@ class dynamite:
         ibs = []
         fib = []
         incn = []
+        ppr = PPR((self, None))
 
         for case in [[False] + list(t) for t in list(itertools.product([False,True], repeat=len(inc)-1))]:
             incn.append([180-inc[i] if case[i] else inc[i] for i in range(0, len(inc))])
 
+        ibs, fib = ppr.create_processes("inc_test", (il, incn, rylgh), -len(il), self.process_inc_data)
+        """
+        data = ppr.create_processes("inc_test", (il, incn, rylgh), -len(il))
+
+        for i in data:
+            for j in range(len(data[i])):
+                ibs.append(data[i][0][j])
+                fib.append(data[i][1][j])
+
+        
         for j in range(len(il)):
+
             for k in range(len(incn)):
                 test = 0
 
                 for m in range(len(incn[k])):
                     test += spst.rayleigh.pdf(abs(incn[k][m]-il[j]), rylgh)
 
-                ibs.append(il[j])
-                fib.append(test)
+                #ibs.append(il[j])
+                #fib.append(test)
+        """
 
         ib = ibs[np.where(fib == max(fib))[0][0]]
 
@@ -656,4 +711,8 @@ class dynamite:
 
 
 if __name__ == '__main__':
-    dynamite()  
+    if len(sys.argv) > 1:
+        dynamite(sys.argv[1])
+
+    else:
+        dynamite()
