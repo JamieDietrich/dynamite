@@ -2,7 +2,7 @@
 ### Plotting File ###
 ### Jeremy Dietrich ###
 ### jdietrich1@email.arizona.edu ###
-### 2020 July 20 ###
+### 2020 July 21 ###
 ### Version 1.2 ###
 ### Dietrich & Apai (2020), Astronomical Journal in press ###
 ### http://arxiv.org/pdf/2007.06745.pdf ###
