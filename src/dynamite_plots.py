@@ -847,7 +847,7 @@ class dynamite_plots:
 
 if __name__ == '__main__':
     if len(sys.argv) > 1:
-        dynamite_plots(sys.argv[1])
+        dynamite_plots(cfname=sys.argv[1])
 
     else:
         dynamite_plots()
