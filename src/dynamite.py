@@ -40,8 +40,7 @@ class dynamite:
         for i in range(len(config_data)):
             self.config_parameters[config_data[i, 0]] = config_data[i, 1] if config_data[i, 1].find("[") == -1 else ast.literal_eval(config_data[i, 1])
 
-        removed = self.config_parameters["removed"]
-        targets_dict = dynamite_targets().get_targets(self.config_parameters["mode"], self.config_parameters["system"], self.config_parameters["radmax"], removed)
+        targets_dict = dynamite_targets().get_targets(self.config_parameters["mode"], self.config_parameters["system"], self.config_parameters["radmax"], self.config_parameters["removed"])
 
         if len(targets_dict) == 0:
             print("Error: No targets selected!")
@@ -57,9 +56,13 @@ class dynamite:
                 R_star, Rse, M_star, Mse, target, target_name = self.set_up(targets_dict, self.config_parameters["system"])
                 targ_rem = []
 
-                for i in range(len(target) - 1 if len(removed) > 0 else len(target)):
-                    if target[i][2] not in removed:
+                for i in range(len(target) - 1 if len(self.config_parameters["removed"]) > 0 else len(target)):
+                    if target[i][2] not in self.config_parameters["removed"]:
                         targ_rem.append(target[i])
+
+                if len(self.config_parameters["additional"][0]) > 0:
+                    for i in range(len(self.config_parameters["additional"])):
+                        targ_rem.append(self.config_parameters["additional"][i][:-1])
 
                 targ_rem = np.array(targ_rem)
                 target = targ_rem[targ_rem[:, 2].argsort()]
@@ -138,6 +141,32 @@ class dynamite:
 
 
 
+    def process_inc_data(self, data):
+        """Processes data for the multithreading component"""
+        
+        return tuple([list(itertools.chain(*i)) for i in zip(*itertools.chain([data[k] for k in data]))])
+
+
+
+    def inc_test(self, il, incn, rylgh, j):
+        """Tests the best system inclination."""
+
+        ibs = []
+        fib = []
+
+        for k in range(len(incn)):
+            test = 0
+
+            for m in range(len(incn[k])):
+                test += spst.rayleigh.pdf(abs(incn[k][m]-il[j]), rylgh)
+
+            ibs.append(il[j])
+            fib.append(test)
+            
+        return {j: (ibs, fib)}
+
+
+
     def run_monte_carlo(self, R_star, Rse, M_star, Mse, target, target_name):
         """Runs the Monte Carlo analysis."""
 
@@ -177,19 +206,32 @@ class dynamite:
         ibs = []
         fib = []
         incn = []
+        ppr = PPR((self, None))
 
         for case in [[False] + list(t) for t in list(itertools.product([False,True], repeat=len(inc)-1))]:
             incn.append([180-inc[i] if case[i] else inc[i] for i in range(0, len(inc))])
 
+        ibs, fib = ppr.create_processes("inc_test", (il, incn, rylgh), -len(il), self.process_inc_data)
+        """
+        data = ppr.create_processes("inc_test", (il, incn, rylgh), -len(il))
+
+        for i in data:
+            for j in range(len(data[i])):
+                ibs.append(data[i][0][j])
+                fib.append(data[i][1][j])
+
+        
         for j in range(len(il)):
+
             for k in range(len(incn)):
                 test = 0
 
                 for m in range(len(incn[k])):
                     test += spst.rayleigh.pdf(abs(incn[k][m]-il[j]), rylgh)
 
-                ibs.append(il[j])
-                fib.append(test)
+                #ibs.append(il[j])
+                #fib.append(test)
+        """
 
         ib = ibs[np.where(fib == max(fib))[0][0]]
 
