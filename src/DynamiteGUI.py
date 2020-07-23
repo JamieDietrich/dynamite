@@ -15,8 +15,8 @@ import atexit
 import threading
 import subprocess
 import scipy as sp
-import tkinter as Tkinter
 from tkinter import ttk
+import tkinter as Tkinter
 from tkinter import filedialog as tkFD
 from tkinter import messagebox as tkMB
 import tkinter.scrolledtext as ScrolledText
@@ -33,8 +33,9 @@ class DynamiteGUI:
             self.targets = None
             
         self.config_entries = {}
-        self.editor_entries = {}
-
+        self.run_editors = {}
+        self.plot_editors = {}
+        
         self.mode_values = ["single", "TESS", "Kepler", "all", "test"]
         self.period_values = ["epos", "syssim"]
         self.radius_values = ["epos", "syssim"]
@@ -53,6 +54,7 @@ class DynamiteGUI:
         self.ind_p_values = ["linear_zoom", "linear", "log"]
         self.ind_r_values = ["linear_zoom", "linear"]
         self.ind_i_values = ["full", "truncated"]
+        self.plot_colors_values = '["377eb8", "d95f02", "4daf4a", "984ea3", "e41a1c", "e6ab02"]'
                        
         self.root = Tkinter.Tk()
         
@@ -86,7 +88,7 @@ class DynamiteGUI:
         self.removed.set("[]")
         self.config_entries["removed"] = self.removed
         self.plot_colors = Tkinter.StringVar()
-        self.plot_colors.set('["377eb8", "d95f02", "4daf4a", "984ea3", "e41a1c", "e6ab02"]')
+        self.plot_colors.set(self.plot_colors_values)
         self.config_entries["plt_colors"] = self.plot_colors
 
         self.mode_box = ttk.Combobox(self.root, width = 10, justify = Tkconstants.RIGHT)
@@ -217,7 +219,6 @@ class DynamiteGUI:
         
         vcmd = (self.root.register(self.validate_key), '%P', '%S')
         vcmd1 = (self.root.register(self.validate_system), '%P', '%S')
-        vcmd2 = (self.root.register(self.remove_hash_symbol), '%P', '%S')
         
         self.check_valid_entries_list = [self.additional, self.unconfirmed, self.removed, self.plot_colors]
         
@@ -238,8 +239,8 @@ class DynamiteGUI:
         row += 1
         Tkinter.Label(self.root, text = "Radius").grid(row = row, column = 0, padx = 5, sticky = 'W', pady = 5)
         self.radius_box.grid(row = row, column = 0, padx = 0, sticky = 'E')
-        Tkinter.Label(self.root, text = "Rad Type").grid(row = row, column = 1, padx = 20, sticky ='W')
-        self.radtype_box.grid(row = row, column = 1, sticky = 'E')
+        Tkinter.Label(self.root, text = "Rad Type").grid(row = row, column = 1, padx = 10, sticky ='W')
+        self.radtype_box.grid(row = row, column = 1, padx = 0, sticky = 'E')
         Tkinter.Label(self.root, text = "Rad Min").grid(row = row, column = 2, sticky = 'W', padx = 10)
         self.radmin_text_box = Tkinter.Entry(self.root, textvariable = self.radmin, width = 8, validate = "key", validatecommand = vcmd, justify ='center')
         self.radmin_text_box.grid(row = row, column = 2, padx = 20, sticky = 'E')
@@ -282,7 +283,7 @@ class DynamiteGUI:
         self.ind_i_box.grid(row = row, column = 2, padx = 0, sticky = 'E')
         row += 1
         Tkinter.Label(self.root, text = "Plot Colors").grid(row = row, column = 0, sticky = 'W', padx = 5, pady = 5)
-        self.plot_colors_text_box = Tkinter.Entry(self.root, textvariable = self.plot_colors, width = 70, validate = "focusout", validatecommand = vcmd2, justify ='left')
+        self.plot_colors_text_box = Tkinter.Entry(self.root, textvariable = self.plot_colors, width = 70, justify ='left')
         self.plot_colors_text_box.grid(row = row, column = 0, padx = 40, sticky = 'E',columnspan = 4)
         row += 1
         Tkinter.Label(self.root, text = "SYSTEM ARCHITECTURE PARAMETERS").grid(row = row, column = 1, sticky = 'E', padx = 0, pady = 5, columnspan = 2)
@@ -313,27 +314,75 @@ class DynamiteGUI:
         """check that entries are valid lists"""
         for l in self.check_valid_entries_list:
             if not self.validate_entry(l.get()):
-                tkMB.showerror(title="Invalid Entry for " + self.find_config_key(l) + " cannot Run Dynamite", message=l.get() )
+                tkMB.showerror(title="INVALID ENTRY RUN ABORTED", message= "Invalid Entry for " + self.find_config_key(l) + " -> " +l.get() )
                 return False
         return True    
+    
 
     def run_dynamite(self):
-        """run dynamitr program"""
-        if self.check_valid_entries():
-            self.save_config_data()
-            thread = threading.Thread(target=self.execute_program, args=("DYNAMITE", "dynamite.py"))
-            thread.daemon = True
-            thread.start()
-        return
+        """run dynamite program"""
+        if self.run_entries_validator():
+            if self.check_valid_entries():
+                self.save_config_data()
+                if len(self.run_editors) > 0:
+                    if (tkMB.askyesno("Close Output Window(s)", "Do you want to close previous RUN output window(s)?")):
+                        for e in self.run_editors:
+                            e.destroy()
+                        self.run_editors = {}
+                self.editors = self.run_editors
+                thread = threading.Thread(target=self.execute_program, args=("DYNAMITE", "dynamite.py"))
+                thread.daemon = True
+                thread.start()
+            return
 
+    def run_entries_validator(self):
+        """ Validate run entries"""
+        return True
+    
     def run_plots(self):
         """run plots program"""
-        if self.check_valid_entries():
-            thread = threading.Thread(target=self.execute_program, args=("DYNAMITE PLOTS", "dynamite_plots.py"))
-            thread.daemon = True
-            thread.start()
-            self.save_config_data()
+        if self.show_plots_box.get() == 'False':
+            tkMB.showerror("CANNOT RUN PLOTS", "Show Plots is set to False")
+            return
+        if self.plot_entries_validator():
+            if self.check_valid_entries():
+                self.save_config_data()
+                if len(self.plot_editors) > 0:
+                    if (tkMB.askyesno("Close Output Window(s)", "Do you want to close previous PLOT output window(s)?")):
+                        for e in self.plot_editors:
+                            e.destroy()
+                        self.plot_editors = {}
+                self.editors = self.plot_editors
+                thread = threading.Thread(target=self.execute_program, args=("DYNAMITE PLOTS", "dynamite_plots.py"))
+                thread.daemon = True
+                thread.start()
         return
+
+    def plot_entries_validator(self):
+        """valid plot entries"""
+        if self.mode_box.get() == "single":
+            if self.plot_p_r_box.get() == "True":
+                tkMB.showerror(title="INVALID ENTRY PLOT ABORTED", message= " Mode must NOT be single when Plot P R is True")
+                return False
+            if self.plot_tdtp_box.get() == "True":
+                tkMB.showerror(title="INVALID ENTRY PLOT ABORTED", message= " Mode must NOT be single when Plot P(t) is True")
+                return False
+            if self.plot_deltas_box.get() == "True" :
+                tkMB.showerror(title="INVALID ENTRY PLOT ABORTED", message= " Mode must NOT be single when Plot Deltas is True")
+                return False
+            if self.plot_ratios_box.get() == "True":
+                tkMB.showerror(title="INVALID ENTRY PLOT ABORTED", message= " Mode must NOT be single when Plot Ratios is True")
+                return False
+            if self.plot_hist_box.get() == "True":
+                tkMB.showerror(title="INVALID ENTRY PLOT ABORTED", message= " Mode must NOT be single when Plot Hist is True")
+                return False
+            if self.plot_pdf_box.get() == "True":
+                tkMB.showerror(title="INVALID ENTRY PLOT ABORTED", message= " Mode must NOT be single when Plot PDF is True")
+                return False
+            if self.show_rearth_box.get() == "True":
+                tkMB.showerror(title="INVALID ENTRY PLOT ABORTED", message= " Mode must NOT be single when Show Rearth is True")
+                return False
+        return True
        
     def validate_key(self, value, text):
         """Validates that the keystrokes for the text boxes are allowed."""        
@@ -352,9 +401,11 @@ class DynamiteGUI:
     def validate_entry(self, value):
         """Validates the entry."""  
         try:   
-            return isinstance(ast.literal_eval(value), list)
+            if isinstance(ast.literal_eval(value), list):
+                return True    
         except:
-            return False  
+            pass
+        return False  
         
     def validate_system(self, value, text):
         """Validates the system."""        
@@ -367,48 +418,49 @@ class DynamiteGUI:
             pass
         tkMB.showerror(title="Invalid System Target", message="System " + value + " does NOT exist in targets dictionary")
         return False
-    
-    def remove_hash_symbol(self, value, text):
-        """Remove # symbol from color string""" 
-        self.plot_colors.set(value.replace("#", ""))
-        return True
-    
+        
     def execute_program(self, title, program):
         """execute program"""
         editor = Tkinter.Toplevel(self.root)
         editor.bind('<ButtonRelease-3>', self.clicker, add='')
         text_pad = ScrolledText.ScrolledText(editor, width=140, height=40)
-        editor.wm_title(title)
+        editor.wm_title(title + "  -->  RUNNING")
         editor.protocol("WM_DELETE_WINDOW", lambda:self.close_editor_window(editor))
         text_pad.pack(fill=Tkinter.BOTH, expand=True)
         try:
             p = subprocess.Popen(shlex.split("python -u " + program + " " + self.config_file, posix=False), shell=False, cwd=".", stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
             atexit.register(p.terminate)
-            self.editor_entries[editor] = p
-            while self.root.winfo_exists() and editor and p != None:
+            self.editors[editor] = p
+            while self.root.winfo_exists() and editor in self.editors and self.editors[editor] != None:
                 out = p.stdout.readline()
-                if out == '' and p.poll() != None:
+                if len(out) == 0:
                     break
-                text_pad.insert(Tkconstants.END, out)
-                text_pad.see(Tkconstants.END)
+                try:
+                    text_pad.insert(Tkconstants.END, out)
+                    text_pad.see(Tkconstants.END)
+                except:
+                    pass
+                p.poll()
+            self.editors[editor] = None
+            editor.wm_title(title + "  -->  COMPLETED")
+            print("Program " + program + " has Completed")
         except Exception as e:
-            self.kill_processes(p, editor)
+            self.kill_processes(editor)
             print(e)
    
     def close_editor_window(self, editor):
         """Close process window and kill processes"""
-        p = self.editor_entries[editor]
+        p = self.editors[editor]
         if p == None:
             editor.destroy()
-            del self.editor_entries[editor]
+            del self.editors[editor]
         else:
-            self.kill_processes(p, editor)
-            if (tkMB.askyesno("Close Output Window", "Do you want to close output window?")):
-                editor.destroy()
-                del self.editor_entries[editor]
+            if (tkMB.askyesno("RUNNING JOBS", "Do you want to terminate running jobs?")):
+                self.kill_processes(editor)
     
-    def kill_processes(self, p, editor):
+    def kill_processes(self, editor):
         """kill processes"""
+        p = self.editors[editor]
         if p == None:
             return
         try:
@@ -417,7 +469,7 @@ class DynamiteGUI:
             os.kill(p.pid, 0)
         except Exception:
             pass
-        self.editor_entries[editor] = None
+        self.editors[editor] = None
                   
     def load_config_data(self):
         """Loads config file."""
@@ -483,7 +535,7 @@ class DynamiteGUI:
                         cfile.write(l)
                     else:
                         parts = l.strip().split("::")
-                        for entry in self.config_entries.keys():        
+                        for entry in self.config_entries.keys():
                             if parts[0] == entry:
                                 cfile.write(parts[0] + "::" + str(self.config_entries[entry].get()) + "\n")
                                 break
@@ -495,13 +547,16 @@ class DynamiteGUI:
         try:
             with open(self.config_file, "r") as cfile:
                 data = cfile.readlines()
+            changed = False
             for l in data:
                 if "::" in l:
                     parts = l.strip().split("::")
-                    for entry in self.config_entries.keys():     
+                    for entry in self.config_entries.keys(): 
+                        if entry == "plt_colors":
+                            self.config_entries[entry].set(self.config_entries[entry].get().replace("#",''))
                         if parts[0] == entry and str(parts[1]) != str(self.config_entries[entry].get()):
-                            return data
-            return None
+                            changed = True
+            return data if changed else None
         except Exception as e:
             print(str(e))
             return None

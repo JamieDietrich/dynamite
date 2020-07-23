@@ -1,7 +1,8 @@
 ### DYNAmical Multi-planet Injection TEster (DYNAMITE) ###
 ### Plotting File ###
 ### Jeremy Dietrich ###
-### 2020 July 15 ###
+### jdietrich1@email.arizona.edu ###
+### 2020 July 20 ###
 ### Version 1.2 ###
 ### Dietrich & Apai (2020), Astronomical Journal in press ###
 ### http://arxiv.org/pdf/2007.06745.pdf ###
@@ -47,19 +48,19 @@ class dynamite_plots:
 
         ppr = PPR((self, None))
         
-        if self.config_parameters["plt_P_R"] == "True":
+        if self.config_parameters["plt_P_R"] == "True" and self.config_parameters["mode"] != "single":
             ppr.create_processes("plot_P_R", (Pk, P, Rk, R, targets, pers, rads), queue=True)
 
-        if self.config_parameters["plt_tdtp"] == "True":
+        if self.config_parameters["plt_tdtp"] == "True" and self.config_parameters["mode"] != "single":
             ppr.create_processes("plot_td_tp", (tdm, tdle, tdue, tpm, tple, tpue, targets), queue=True)
 
-        if self.config_parameters["plt_deltas"] == "True":
+        if self.config_parameters["plt_deltas"] == "True" and self.config_parameters["mode"] != "single":
             ppr.create_processes("plot_deltas", (deltas,), queue=True)
 
-        if self.config_parameters["plt_ratios"] == "True":
+        if self.config_parameters["plt_ratios"] == "True" and self.config_parameters["mode"] != "single":
             ppr.create_processes("plot_ratios", (ratios,), queue=True)
 
-        if self.config_parameters["plt_indpars"] == "True":
+        if self.config_parameters["plt_indpars"] == "True" and self.config_parameters["mode"] == "single":
             ppr.create_processes("plot_ind_params", (Pk, P, PP, per, Rk, R, PR, ik, inc, Pi), queue=True)
 
         ppr.create_processes(None)
@@ -464,7 +465,7 @@ class dynamite_plots:
 
         self.config_parameters["removed"]
         color_scheme = ["#" + self.config_parameters["plt_colors"][i] for i in range(len(self.config_parameters["plt_colors"]))]
-        targets_dict = dynamite_targets().get_targets(self.config_parameters["mode"], system, self.config_parameters["radmax"], self.config_parameters["removed"])
+        targets_dict = dynamite_targets(self.config_parameters).get_targets(self.config_parameters["mode"], system, self.config_parameters["radmax"], self.config_parameters["removed"])
         Rs, Ms, Ts, target, names = self.set_up(targets_dict, system)
         target = target[:-1] if len(self.config_parameters["removed"]) > 0 else target
         p1, p11, p12, p2, p3, r1, r11, r12, r2, r3, i1, i11, i12, i2, i3, l1, l11, l12, l2, l3 = [],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]
@@ -522,11 +523,7 @@ class dynamite_plots:
             plt.xlim(0, 5*max(per))
             plt.ylim(0, ul)
 
-            if self.config_parameters["period"] == "epos":
-                plt_savename = system.replace(" ", "") + "_P_linear_zoom_epos.png"
-
-            elif self.config_parameters["period"] == "syssim":
-                plt_savename = system.replace(" ", "") + "_P_linear_zoom_syssim.png"
+            plt_savename = system.replace(" ", "") + "_P_linear_zoom_" + self.config_parameters["period"] + "_" + self.config_parameters["mass_radius"] + "_" + (self.config_parameters["otegi_rho"] if self.config_parameters["mass_radius"] == "otegi" else "") + " .png"
 
         elif self.config_parameters["ind_P"] == "linear":
             Pb = list(P)
@@ -541,12 +538,7 @@ class dynamite_plots:
 
             ul = np.amax(n)*1.5
             plt.ylim(0, ul)
-
-            if self.config_parameters["period"] == "epos":
-                plt_savename = system.replace(" ", "") + "_P_linear_epos.png"
-
-            elif self.config_parameters["period"] == "syssim":
-                plt_savename = system.replace(" ", "") + "_P_linear_syssim.png"
+            plt_savename = system.replace(" ", "") + "_P_linear_" + self.config_parameters["period"] + "_" + self.config_parameters["mass_radius"] + "_" + (self.config_parameters["otegi_rho"] if self.config_parameters["mass_radius"] == "otegi" else "") + ".png"
 
         elif self.config_parameters["ind_P"] == "log":
             bins = np.hstack(np.array([np.arange(0.5, 100, 0.1), np.arange(100,731,1)]))
@@ -566,12 +558,7 @@ class dynamite_plots:
             plt.xscale("Log")
             plt.xlim(0.5 if min(np.hstack([p1, p11, p12, p2, p3])) > 0.5 else min(np.hstack([p1, p11, p12, p2, p3])) - 0.1, 730)
             plt.ylim(0, ul)
-
-            if self.config_parameters["period"] == "epos":
-                plt_savename = system.replace(" ", "") + "_P_log_epos.png"
-
-            elif self.config_parameters["period"] == "syssim":
-                plt_savename = system.replace(" ", "") + "_P_log_syssim.png"
+            plt_savename = system.replace(" ", "") + "_P_log_" + self.config_parameters["period"] + "_" + self.config_parameters["mass_radius"] + "_" + (self.config_parameters["otegi_rho"] if self.config_parameters["mass_radius"] == "otegi" else "") + ".png"
 
         annots = []
 
@@ -624,7 +611,7 @@ class dynamite_plots:
         plt.xlabel("Period (days)", fontsize=24)
         plt.ylabel("Relative Likelihood", fontsize=24)
         plt.ylim(0, np.amax(hist_norm)*1.5e-5)
-        plt.legend(hands, labs, fontsize=15, ncol=2, markerscale=0.75)
+        plt.legend(hands, labs, loc=9, fontsize=15, ncol=2, markerscale=0.75)
         ax.tick_params(labelsize=18)
         ax.ticklabel_format(axis='y', style='sci', scilimits=(0,0))
         tx = ax.yaxis.get_offset_text()
@@ -647,7 +634,7 @@ class dynamite_plots:
         n, _, h1 = plt.hist(Rk, bins=Rb, weights=np.ones(len(Rk))*100 / len(Rk), color=color_scheme[0])
 
         if self.config_parameters["ind_R"] == "linear_zoom":
-            plt_savename = system.replace(" ", "") + "_R_linear_zoom.png"
+            plt_savename = system.replace(" ", "") + "_R_linear_zoom" + ("_Rearth" if self.config_parameters["show_Rearth"] == "True" else "") + "_" + self.config_parameters["mass_radius"] + "_" + (self.config_parameters["otegi_rho"] if self.config_parameters["mass_radius"] == "otegi" else "") + ".png"
 
             if self.config_parameters["show_Rearth"] == "True":
                 plt.xlim(0.75 if min(np.hstack([r1, r11, r12, r2, r3])) > 1 else min(np.hstack([r1, r11, r12, r2, r3])) - 0.25, math.ceil(max(np.hstack([r1, r11, r12, r2, r3]))))
@@ -656,7 +643,7 @@ class dynamite_plots:
                 plt.xlim(math.floor(min(np.hstack([r1, r11, r12, r2, r3]))), math.ceil(max(np.hstack([r1, r11, r12, r2, r3]))))
 
         elif self.config_parameters["ind_R"] == "linear":
-            plt_savename = system.replace(" ", "") + "_R_linear.png"
+            plt_savename = system.replace(" ", "") + "_R_linear_" + self.config_parameters["mass_radius"] + "_" + (self.config_parameters["otegi_rho"] if self.config_parameters["mass_radius"] == "otegi" else "") + ".png"
 
         hands = [h1[0]]
         labs = [(r"$\tau$ Ceti" if system == "tau Ceti" else system) + " DYNAMITE Predictions"]
@@ -671,7 +658,7 @@ class dynamite_plots:
         if len(r1) > 0:
             h3 = plt.scatter(r1, np.ones(len(r1))*ul/10, c=color_scheme[2], edgecolors="k", s=200, linewidth=2, zorder=2)
             hands.append(h3)
-            labs.append("Known planets in system" if len(p1) > 1 else "Known planet in system")
+            labs.append("Known transiting planets" if len(p1) > 1 else "Known transiting planet")
             annots = self.plot_annots(annots, r1, ul, l1)
 
         if len(r11) > 0:
@@ -701,7 +688,7 @@ class dynamite_plots:
         plt.ylim(0,ul)
         plt.xlabel(r"Radius ($R_{\oplus}$)", fontsize=24)
         plt.ylabel("Relative Likelihood", fontsize=24)
-        plt.legend(hands, labs, fontsize=15, ncol=2)
+        plt.legend(hands, labs, loc=9, fontsize=15, ncol=2)
         ax.tick_params(labelsize=18)
         fig.suptitle((r"$\tau$ Ceti" if system == "tau Ceti" else system) + " Planet Radius Relative Likelihood", fontsize=30)
         plt.savefig(plt_savename)
@@ -716,11 +703,11 @@ class dynamite_plots:
 
         if self.config_parameters["ind_i"] == "full":
             ik = np.array(ik)
-            plt_savename = system.replace(" ", "") + "_inc_full.png"
+            plt_savename = system.replace(" ", "") + "_inc_full_" + self.config_parameters["mass_radius"] + "_" + (self.config_parameters["otegi_rho"] if self.config_parameters["mass_radius"] == "otegi" else "") + ".png"
 
         elif self.config_paramters["ind_i"] == "truncated":
             ik = np.array([ik[j] if ik[j] < 90 else 180-ik[j] for j in range(len(ik))])     # toggle for allowing inclinations to be greater than 90 degrees or truncated back to 0-90 range
-            plt_savename = system.replace(" ", "") + "_inc_trunc.png"
+            plt_savename = system.replace(" ", "") + "_inc_trunc_" + self.config_parameters["mass_radius"] + "_" + (self.config_parameters["otegi_rho"] if self.config_parameters["mass_radius"] == "otegi" else "") + ".png"
 
         n, _, h1 = plt.hist(ik, bins=np.linspace(0, 180.5, 362), weights=np.ones(len(ik)) / (len(ik)), color=color_scheme[0])
         hands = [h1[0]]
@@ -736,7 +723,7 @@ class dynamite_plots:
         if len(i1) > 0:
             h3 = plt.scatter(i1, np.ones(len(i1))*ul/10, c=color_scheme[2], edgecolors="k", s=200, linewidth=2, zorder=2)
             hands.append(h3)
-            labs.append("Known planets in system" if len(p1) > 1 else "Known planet in system")
+            labs.append("Known transiting planets" if len(p1) > 1 else "Known transiting planet")
             annots = self.plot_annots(annots, i1, ul, l1)
 
         if len(i11) > 0:
@@ -767,7 +754,7 @@ class dynamite_plots:
         plt.ylabel("Relative Likelihood")
         plt.xlim(math.floor(min(np.hstack([i1, i11, i12, i2, i3]))) - 10, math.ceil(max(np.hstack([i1, i11, i12, i2, i3]))) + 10)
         plt.ylim(0, np.amax(n)*1.5)
-        plt.legend(hands, labs, fontsize=15, ncol=2)
+        plt.legend(hands, labs, loc=9, fontsize=15, ncol=2)
         fig.suptitle((r"$\tau$ Ceti" if system == "tau Ceti" else system) + " Inclination Relative Likelihood", fontsize=30)
         plt.savefig(plt_savename)
 
@@ -834,13 +821,6 @@ class dynamite_plots:
         seconds_per_day = 86400
         
         return (4*math.pi**2*a**3/(const.G.cgs.value*(M*const.M_sun.cgs.value)))**0.5/seconds_per_day
-
-
-
-    def mr_predict(self, meas, value):
-        """Calls the mass-radius relationship prediction code"""
-
-        return pfm(measurement=meas, predict=value, dataset="kepler")[0]
 
 
 

@@ -1,7 +1,8 @@
 ### DYNAmical Multi-planet Injection TEster (DYNAMITE) ###
 ### Configuration File ###
 ### Jeremy Dietrich ###
-### 2020 July 15 ###
+### jdietrich1@email.arizona.edu ###
+### 2020 July 20 ###
 ### Version 1.2 ###
 ### Dietrich & Apai (2020), Astronomical Journal in press ###
 ### http://arxiv.org/pdf/2007.06745.pdf ###
@@ -9,13 +10,15 @@
 ## PREDICTION PARAMETERS ##
 
 # MC_chain: length of Monte Carlo chain - currently 10000; has to be integer
-# mode: Run mode for DYNAMITE - currently accepts single/TESS/Kepler/all/test
+# mode: Run mode for DYNAMITE - currently accepts single/tess/kepler/all/test
 # system: Single system to run on - only used if mode is single
 # period: Probability distribution for planet periods - currently accepts epos/syssim
 # radius: Probability distribution for planet radii - currently accepts epos/syssim
 # radtype: planet radius function type - powerlaw/clustered, radius must be syssim
 # radmin: planet radius minimum - 0.5 for full Kepler popluation stats, 0.1 for reaching the smallest planets in TOI multi systems
 # radmax: planet radius maximum - 5 for Neptunes and below, 10 for full Kepler population stats, 15 for largest super-Jupiter planets in TOI multi systems
+# mass_radius: which mass-radius relationship to use - mrexo/otegi; MRExo for non-parametric model from Ning et al. (2018) and Kanodia et al. (2019), otegi for power-law model from Otegi et al. (2020)
+# otegi_rho: whether to use volatile or rocky formulae for 5 M_earth < M < 25 M_earth - rocky/volatile; only used when mass_radius is otegi
 
 MC_chain::10000
 mode::single
@@ -25,6 +28,8 @@ radius::syssim
 radtype::clustered
 radmin::0.1
 radmax::5
+mass_radius::otegi
+otegi_rho::rocky
 
 ## PLOTTING PARAMETERS ##
 
@@ -40,13 +45,14 @@ radmax::5
 # plt_PDFs: plot the probability distribution functions of the system over the histograms - True/False; mode must be single
 # plt_colors: hex codes for different plotted elements over the histogram - list of hex code strings (WITHOUT HASH), order [prediction, pdf, known, additional, removed, unconfirmed]; mode must be single
 # show_Rearth: whether or not to show R_earth on the zoomed-in plots - True/False; mode must be single
+# use_mass: whether or not to translate planet radius into mass - True/False; mode must be single
 # ind_P: scale of the x-axis for the individual system period plot - linear_zoom/linear/log; mode must be single
 # ind_R: scale of the x-axis for the individual system planet radius plot - linear_zoom/linear; mode must be single
 # ind_i: scale of the x-axis for the individual system inclination plot - full/truncated; mode must be single
 
 plot::True
 show_plots::False
-saved::False
+saved::True
 plt_P_R::False
 plt_P_scale::log
 plt_tdtp::False
@@ -56,6 +62,7 @@ plt_indpars::True
 plt_PDFs::True
 plt_colors::["377eb8", "d95f02", "4daf4a", "984ea3", "e41a1c", "e6ab02", "3ca686"]
 show_Rearth::False
+use_mass::True
 ind_P::log
 ind_R::linear
 ind_i::full

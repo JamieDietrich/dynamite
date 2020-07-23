@@ -1,7 +1,8 @@
 ### DYNAmical Multi-planet Injection TEster (DYNAMITE) ###
 ### Main File ###
 ### Jeremy Dietrich ###
-### 2020 July 15 ###
+### jdietrich1@email.arizona.edu ###
+### 2020 July 20 ###
 ### Version 1.2 ###
 ### Dietrich & Apai (2020), Astronomical Journal in press ###
 ### http://arxiv.org/pdf/2007.06745.pdf ###
@@ -40,7 +41,7 @@ class dynamite:
         for i in range(len(config_data)):
             self.config_parameters[config_data[i, 0]] = config_data[i, 1] if config_data[i, 1].find("[") == -1 else ast.literal_eval(config_data[i, 1])
 
-        targets_dict = dynamite_targets().get_targets(self.config_parameters["mode"], self.config_parameters["system"], self.config_parameters["radmax"], self.config_parameters["removed"])
+        targets_dict = dynamite_targets(self.config_parameters).get_targets(self.config_parameters["mode"], self.config_parameters["system"], self.config_parameters["radmax"], self.config_parameters["removed"])
 
         if len(targets_dict) == 0:
             print("Error: No targets selected!")
@@ -76,10 +77,10 @@ class dynamite:
                     if self.config_parameters["mode"] == "all":
                         targlist.append(tn)
 
-                    elif self.config_parameters["mode"] == "TESS" and tn.find("TOI") != -1:
+                    elif self.config_parameters["mode"] == "tess" and tn.find("TOI") != -1:
                         targlist.append(tn)
 
-                    elif self.config_parameters["mode"] == "Kepler" and (tn.find("Kepler") != -1 or tn.find("K2") != -1 or tn.find("KOI") != -1):
+                    elif self.config_parameters["mode"] == "kepler" and (tn.find("Kepler") != -1 or tn.find("K2") != -1 or tn.find("KOI") != -1):
                         targlist.append(tn)
 
                     elif self.config_parameters["mode"] == "test" and tn.find("test 3") != -1:
@@ -295,7 +296,7 @@ class dynamite:
         if self.config_parameters["period"] == "epos":
             PPi, _ = self.epos_pers(p0, per, rad, Pis, M_star)
 
-            if self.config_parameters["mode"] == "TESS":
+            if self.config_parameters["mode"] == "tess":
                 low_gap_P = ["TOI 561", "TOI 431", "TOI 1238", "TOI 732", "TOI 696", "TOI 175", "TOI 663", "TOI 1469", "TOI 1260", "TOI 270", "TOI 396", "TOI 836", "TOI 411", "TOI 1269", "TOI 1453", "TOI 714", "TOI 1749", "TOI 125", "TOI 1438", "TOI 119", "TOI 763", "TOI 1136", "TOI 1064", "TOI 266", "TOI 178", "TOI 776", "TOI 1339", "TOI 214", "TOI 700", "TOI 1266", "TOI 553", "TOI 699", "TOI 1277"]
                 interior = ["TOI 282"]
         
@@ -414,7 +415,11 @@ class dynamite:
         m = np.zeros(len(per))
 
         for k in range(len(per)):
-            m[k] = self.mr_predict(rad[k], 'Mass')
+            if self.config_parameters["mass_radius"] == "mrexo":
+                m[k] = pfm(measurement=rad[k], predict='mass', dataset='kepler')[0]
+
+            elif self.config_parameters["mass_radius"] == "otegi":
+                m[k] = self.otegi_mr(rad[k], "mass")
 
         for i in range(len(P)):
             for k in range(len(per)):
@@ -540,7 +545,11 @@ class dynamite:
         m = np.zeros(len(per))
 
         for k in range(len(per)):
-            m[k] = self.mr_predict(rad[k], 'Mass')
+            if self.config_parameters["mass_radius"] == "mrexo":
+                m[k] = pfm(measurement=rad[k], predict='mass', dataset='kepler')[0]
+
+            elif self.config_parameters["mass_radius"] == "otegi":
+                m[k] = self.otegi_mr(rad[k], "mass")
 
         for i in range(len(P)):
             for k in range(len(per)):
@@ -693,6 +702,29 @@ class dynamite:
 
 
 
+    def otegi_mr(self, measurement, predict):
+        """Uses a power-law MR to predict mass in Earth values from radius in Earth values or vice versa"""
+
+        if predict == "radius":
+            R_r = 1.03*measurement**0.29
+            R_v = 0.7*measurement**0.63
+            
+            if measurement > 25 or (measurement > 5 and self.config_parameters["otegi_rho"] == "volatile"):
+                return R_v
+
+            return R_r
+
+        elif predict == "mass":
+            M_r = 0.9*measurement**3.45
+            M_v = 1.74*measurement**1.58
+
+            if M_r > 25 or (M_r > 5 and self.config_parameters["otegi_rho"] == "volatile"):
+                return M_v
+
+            return M_r
+
+
+
     def K3(self, P, M):
         """Calculates semi-major axis in cm using period in days and mass in solar masses"""
 
@@ -702,16 +734,9 @@ class dynamite:
 
 
 
-    def mr_predict(self, meas, value):
-        """Calls the mass-radius relationship prediction code"""
-
-        return pfm(measurement=meas, predict=value, dataset="kepler")[0]
-
-
-
 if __name__ == '__main__':
     if len(sys.argv) > 1:
-        dynamite(sys.argv[1])
+        dynamite(cfname=sys.argv[1])
 
     else:
         dynamite()
