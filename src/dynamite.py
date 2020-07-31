@@ -80,7 +80,10 @@ class dynamite:
                     elif self.config_parameters["mode"] == "tess" and tn.find("TOI") != -1:
                         targlist.append(tn)
 
-                    elif self.config_parameters["mode"] == "kepler" and (tn.find("Kepler") != -1 or tn.find("K2") != -1 or tn.find("KOI") != -1):
+                    elif self.config_parameters["mode"] == "kepler" and tn.find("Kepler") != -1:
+                        targlist.append(tn)
+
+                    elif self.config_parameters["mode"] == "k2" and tn.find("K2") != -1:
                         targlist.append(tn)
 
                     elif self.config_parameters["mode"] == "test" and tn.find("test 3") != -1:

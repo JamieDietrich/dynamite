@@ -17,12 +17,12 @@
 # radtype: planet radius function type - powerlaw/clustered, radius must be syssim
 # radmin: planet radius minimum - 0.5 for full Kepler popluation stats, 0.1 for reaching the smallest planets in TOI multi systems
 # radmax: planet radius maximum - 5 for Neptunes and below, 10 for full Kepler population stats, 15 for largest super-Jupiter planets in TOI multi systems
-# mass_radius: which mass-radius relationship to use - mrexo/otegi; MRExo for non-parametric model from Ning et al. (2018) and Kanodia et al. (2019), otegi for power-law model from Otegi et al. (2020)
-# otegi_rho: whether to use volatile or rocky formulae for 5 M_earth < M < 25 M_earth - rocky/volatile; only used when mass_radius is otegi
+# mass_radius: which mass-radius relationship to use - mrexo/otegi; mrexo for non-parametric model from Ning et al. (2018) and Kanodia et al. (2019), otegi for power-law model from Otegi et al. (2020)
+# otegi_rho: whether to use volatile or rocky formulae for 5 M_earth < M < 25 M_earth - rocky/volatile; only used if mass_radius is otegi
 
 MC_chain::10000
 mode::single
-system::TOI 561
+system::Kepler-154
 period::epos
 radius::syssim
 radtype::clustered
@@ -52,7 +52,7 @@ otegi_rho::rocky
 
 plot::True
 show_plots::False
-saved::True
+saved::False
 plt_P_R::False
 plt_P_scale::log
 plt_tdtp::False
@@ -62,15 +62,15 @@ plt_indpars::True
 plt_PDFs::True
 plt_colors::["377eb8", "d95f02", "4daf4a", "984ea3", "e41a1c", "e6ab02", "3ca686"]
 show_Rearth::False
-use_mass::True
+use_mass::False
 ind_P::log
 ind_R::linear
 ind_i::full
 
 ## SYSTEM ARCHITECTURE PARAMETERS ##
 
-# additional: the parameters of the planet(s) you want to add - must be a list of lists, with each internal list having the parameters in order [inclination, planet radius, period]; mode must be single
-# unconfirmed: the parameters of the unconfirmed candidate(s) - must be a list of lists, with each internal list having the parameters in order [inclination, planet radius, period]; mode must be single
+# additional: the parameters of the planet(s) you want to add - must be list of lists, with each inner list having the parameters in order [inclination, planet radius/mass, period]; mode must be single
+# unconfirmed: the parameters of the unconfirmed candidate(s) - must be list of lists, with each inner list having the parameters in order [inclination, planet radius/mass, period]; mode must be single
 # removed: the parameters of the planet or planets you want to remove - must be a list of the periods for the planets to remove, as those are unique identifiers; mode must be single
 
 additional::[[]]
