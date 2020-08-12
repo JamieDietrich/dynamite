@@ -2,10 +2,10 @@
 ### Plotting File ###
 ### Jeremy Dietrich ###
 ### jdietrich1@email.arizona.edu ###
-### 2020 July 21 ###
-### Version 1.2 ###
-### Dietrich & Apai (2020), Astronomical Journal in press ###
-### http://arxiv.org/pdf/2007.06745.pdf ###
+### 2020 August 12 ###
+### Version 1.3 ###
+### Dietrich & Apai (2020), Astronomical Journal ###
+### https://doi.org/10.3847/1538-3881/aba61d ###
 
 import ast
 import sys
@@ -46,24 +46,25 @@ class dynamite_plots:
             R = R[0]
             inc = inc[0]
 
-        ppr = PPR((self, None))
-        
-        if self.config_parameters["plt_P_R"] == "True":
-            ppr.create_processes("plot_P_R", (Pk, P, Rk, R, targets, pers, rads), queue=True)
+        self.ppr = PPR((self, None))
+        functions, args = [], []
 
-        if self.config_parameters["plt_tdtp"] == "True":
-            ppr.create_processes("plot_td_tp", (tdm, tdle, tdue, tpm, tple, tpue, targets), queue=True)
+        if self.config_parameters["plt_P_R"] == "True" and self.config_parameters["mode"] != "single":
+            functions.append("plot_P_R"), args.append((Pk, P, Rk, R, targets, pers, rads))
 
-        if self.config_parameters["plt_deltas"] == "True":
-            ppr.create_processes("plot_deltas", (deltas,), queue=True)
+        if self.config_parameters["plt_tdtp"] == "True" and self.config_parameters["mode"] != "single":
+            functions.append("plot_td_tp"), args.append((tdm, tdle, tdue, tpm, tple, tpue, targets))
 
-        if self.config_parameters["plt_ratios"] == "True":
-            ppr.create_processes("plot_ratios", (ratios,), queue=True)
+        if self.config_parameters["plt_deltas"] == "True" and self.config_parameters["mode"] != "single":
+            functions.append("plot_deltas"), args.append((deltas,))
 
-        if self.config_parameters["plt_indpars"] == "True":
-            ppr.create_processes("plot_ind_params", (Pk, P, PP, per, Rk, R, PR, ik, inc, Pi), queue=True)
+        if self.config_parameters["plt_ratios"] == "True" and self.config_parameters["mode"] != "single":
+            functions.append("plot_ratios"), args.append((ratios,))
 
-        ppr.create_processes(None)
+        self.ppr.create_processes(functions, args)
+
+        if self.config_parameters["plt_indpars"] == "True" and self.config_parameters["mode"] == "single":
+            self.plot_ind_params(Pk, P, PP, per, Rk, R, PR, ik, inc, Pi)
 
         print(datetime.now(), "Finishing Plots")
 
@@ -465,49 +466,73 @@ class dynamite_plots:
 
         self.config_parameters["removed"]
         color_scheme = ["#" + self.config_parameters["plt_colors"][i] for i in range(len(self.config_parameters["plt_colors"]))]
-        targets_dict = dynamite_targets().get_targets(self.config_parameters["mode"], system, self.config_parameters["radmax"], self.config_parameters["removed"])
+        targets_dict = dynamite_targets(self.config_parameters).get_targets(self.config_parameters["mode"], system, self.config_parameters["radmax"], self.config_parameters["removed"])
         Rs, Ms, Ts, target, names = self.set_up(targets_dict, system)
         target = target[:-1] if len(self.config_parameters["removed"]) > 0 else target
-        p1, p11, p12, p2, p3, r1, r11, r12, r2, r3, i1, i11, i12, i2, i3, l1, l11, l12, l2, l3 = [],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]
+        p1, p11, p12, p2, p3, r1, r11, r12, r2, r3, m1, m11, m12, m2, m3, i1, i11, i12, i2, i3, l1, l11, l12, l2, l3 = [],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]
+
+        def mr_appends(val_tup, m, r):
+            if val_tup[1] == "Mass":
+                m.append(val_tup[0])
+
+                if self.config_parameters["mass_radius"] == "mrexo":
+                    r.append(pfm(val_tup[0], predict='radius', dataset='kepler')[0])
+
+                elif self.config_parameters["mass_radius"] == "otegi":
+                    r.append(self.otegi_mr(val_tup[0], 'radius'))
+
+            elif val_tup[1] == "Radius":
+                r.append(val_tup[0])
+
+                if self.config_parameters["mass_radius"] == "mrexo":
+                    m.append(pfm(val_tup[0], predict='mass', dataset='kepler')[0])
+
+                elif self.config_parameters["mass_radius"] == "otegi":
+                    m.append(self.otegi_mr(val_tup[0], 'mass'))
+
+            return m, r
 
         for i in range(len(target)):
             if target[i][2] not in self.config_parameters["removed"]:
                 if math.cos(target[i][0]*math.pi/180) * self.K3(target[i][2], Ms) / (Rs*const.R_sun.cgs.value) <= 1:
                     p1.append(target[i][2])
-                    r1.append(target[i][1])
                     i1.append(target[i][0])
                     l1.append(names[i])
+                    m1, ri = mr_appends(target[i][1], m1, r1)
 
                 else:
                     p12.append(target[i][2])
-                    r12.append(target[i][1])
                     i12.append(target[i][0])
                     l12.append(names[i])
+                    m12, r12 = mr_appends(target[i][1], m12, r12)
 
         if len(self.config_parameters["additional"][0]) > 0:
             for i in self.config_parameters["additional"]:
                 p11.append(i[2])
-                r11.append(i[1])
                 i11.append(i[0])
                 l11.append(i[3])
+                m11, r11 = mr_appends(i[1], m11, r11)
 
         if len(self.config_parameters["unconfirmed"][0]) > 0:
             for i in self.config_parameters["unconfirmed"]:
                 p3.append(i[2])
-                r3.append(i[1])
                 i3.append(i[0])
                 l3.append(i[3])
+                m3, r3 = mr_appends(i[1], m3, r3)
 
         if len(self.config_parameters["removed"]) > 0:
             for i in range(len(self.config_parameters["removed"])):
                 p2 = [target[j][2] for j in range(len(target)) if target[j][2] == self.config_parameters["removed"][i]]
-                r2 = [target[j][1] for j in range(len(target)) if target[j][2] == self.config_parameters["removed"][i]]
                 i2 = [target[j][0] for j in range(len(target)) if target[j][2] == self.config_parameters["removed"][i]]
                 l2 = [names[j] for j in range(len(target)) if target[j][2] == self.config_parameters["removed"][i]]
 
+                for j in target:
+                    if j[2] == self.config_parameters["removed"][i]:
+                        m2, r2 = mr_appends(j[1], m2, r2)
+
         fig, ax = plt.subplots(figsize=(12, 8))
         hands = []
-        labs = [(r"$\tau$ Ceti" if system == "tau Ceti" else system) + " DYNAMITE Predictions"]
+        labs = [(r"$\tau$ Ceti" if system == "tau Ceti" else system) +  " Predictions - " + (r"$\bf{Period}$ $\bf{Ratios}$" if self.config_parameters["period"] == "epos" else r"$\bf{Clustered}$ $\bf{Periods}$")]
         ul = 0
 
         if self.config_parameters["ind_P"] == "linear_zoom":
@@ -517,17 +542,11 @@ class dynamite_plots:
             if self.config_parameters["plt_PDFs"] == "True":
                 h2 = plt.plot(P, PP, color=color_scheme[1], linewidth=3)
                 hands.append(h2[0])
-                labs.append("Probability Distribution Function")
+                labs.append("Probability Density Function")
 
             ul = np.amax(n)*1.5
-            plt.xlim(0, 5*max(per))
-            plt.ylim(0, ul)
-
-            if self.config_parameters["period"] == "epos":
-                plt_savename = system.replace(" ", "") + "_P_linear_zoom_epos.png"
-
-            elif self.config_parameters["period"] == "syssim":
-                plt_savename = system.replace(" ", "") + "_P_linear_zoom_syssim.png"
+            xlim = (0.5, 5*max(per) if 5*max(per) < 730 else 730)
+            plt_savename = system.replace(" ", "") + "_P_linear_zoom_" + self.config_parameters["period"] + "_" + self.config_parameters["mass_radius"] + ("_" + self.config_parameters["otegi_rho"] if self.config_parameters["mass_radius"] == "otegi" else "") + " .png"
 
         elif self.config_parameters["ind_P"] == "linear":
             Pb = list(P)
@@ -538,16 +557,11 @@ class dynamite_plots:
             if self.config_parameters["plt_PDFs"] == "True":
                 h2 = plt.plot(P, PP, color=color_scheme[1], linewidth=3)
                 hands.append(h2[0])
-                labs.append("Probability Distribution Function")
+                labs.append("Probability Density Function")
 
             ul = np.amax(n)*1.5
-            plt.ylim(0, ul)
-
-            if self.config_parameters["period"] == "epos":
-                plt_savename = system.replace(" ", "") + "_P_linear_epos.png"
-
-            elif self.config_parameters["period"] == "syssim":
-                plt_savename = system.replace(" ", "") + "_P_linear_syssim.png"
+            xlim = [0.5 if min(np.hstack([p1, p11, p12, p2, p3])) > 0.5 else min(np.hstack([p1, p11, p12, p2, p3])) - 0.1, 730]
+            plt_savename = system.replace(" ", "") + "_P_linear_" + self.config_parameters["period"] + "_" + self.config_parameters["mass_radius"] + ("_" + self.config_parameters["otegi_rho"] if self.config_parameters["mass_radius"] == "otegi" else "") + ".png"
 
         elif self.config_parameters["ind_P"] == "log":
             bins = np.hstack(np.array([np.arange(0.5, 100, 0.1), np.arange(100,731,1)]))
@@ -561,18 +575,12 @@ class dynamite_plots:
             if self.config_parameters["plt_PDFs"] == "True":
                 h2 = plt.plot(bins, PPl, color=color_scheme[1], linewidth=3)
                 hands.append(h2[0])
-                labs.append("Probability Distribution Function")
+                labs.append("Probability Density Function")
 
             ul = np.amax(hist_norm)*1.5e-5
             plt.xscale("Log")
-            plt.xlim(0.5 if min(np.hstack([p1, p11, p12, p2, p3])) > 0.5 else min(np.hstack([p1, p11, p12, p2, p3])) - 0.1, 730)
-            plt.ylim(0, ul)
-
-            if self.config_parameters["period"] == "epos":
-                plt_savename = system.replace(" ", "") + "_P_log_epos.png"
-
-            elif self.config_parameters["period"] == "syssim":
-                plt_savename = system.replace(" ", "") + "_P_log_syssim.png"
+            xlim = [0.5 if min(np.hstack([p1, p11, p12, p2, p3])) > 0.5 else min(np.hstack([p1, p11, p12, p2, p3])) - 0.1, 730]
+            plt_savename = system.replace(" ", "") + "_P_log_" + self.config_parameters["period"] + "_" + self.config_parameters["mass_radius"] + ("_" + self.config_parameters["otegi_rho"] if self.config_parameters["mass_radius"] == "otegi" else "") + ".png"
 
         annots = []
 
@@ -580,31 +588,31 @@ class dynamite_plots:
             h3 = plt.scatter(p1, np.ones(len(p1))*ul/10, c=color_scheme[2], edgecolors="k", s=[r1[i]*200 for i in range(len(r1))], linewidth=2, zorder=2)
             hands.append(h3)
             labs.append("Known transiting planets" if len(p1) > 1 else "Known transiting planet")
-            annots = self.plot_annots(annots, p1, ul, l1)
+            annots = self.plot_annots(annots, p1, ul, l1, xlim, ("log" if self.config_parameters["ind_P"] == "log" else "linear"))
 
         if len(p11) > 0:
             h4 = plt.scatter(p11, np.ones(len(p11))*ul/10, c=color_scheme[3], edgecolors="k", marker="s", s=[r11[i]*200 for i in range(len(r11))], linewidth=2, zorder=2)
             hands.append(h4)
             labs.append("Additional inserted planets" if len(p11) > 1 else "Additional inserted planet")
-            annots = self.plot_annots(annots, p11, ul, l11)
+            annots = self.plot_annots(annots, p11, ul, l11, xlim, ("log" if self.config_parameters["ind_P"] == "log" else "linear"))
 
         if len(p12) > 0:
             h5 = plt.scatter(p12, np.ones(len(p12))*ul/10, c=color_scheme[2], edgecolors="k", marker="^", s=[r12[i]*200 for i in range(len(r12))], linewidth=2, zorder=2)
             hands.append(h5)
             labs.append("Known non-transiting planets" if len(p12) > 1 else "Known non-transiting planet")
-            annots = self.plot_annots(annots, p12, ul, l12)
+            annots = self.plot_annots(annots, p12, ul, l12, xlim, ("log" if self.config_parameters["ind_P"] == "log" else "linear"))
 
         if len(p2) > 0:
             h6 = plt.scatter(p2, np.ones(len(p2))*ul/10, c=color_scheme[4], edgecolors="k", marker="X", s=[r2[i]*200 for i in range(len(r2))], linewidth=2, zorder=2)
             hands.append(h6)
             labs.append("Known planets removed from system" if len(p2) > 1 else "Known planet removed from system")
-            annots = self.plot_annots(annots, p2, ul, l2)
+            annots = self.plot_annots(annots, p2, ul, l2, xlim, ("log" if self.config_parameters["ind_P"] == "log" else "linear"))
 
         if len(p3) > 0:
             h7 = plt.scatter(p3, np.ones(len(p3))*ul/10, c=color_scheme[5], edgecolors="k", marker='d', s=[r3[i]*200 for i in range(len(r3))], linewidth=2, zorder=2)
             hands.append(h7)
             labs.append("Unconfirmed planet candidates" if len(p3) > 1 else "Unconfirmed planet candidate")
-            annots = self.plot_annots(annots, p3, ul, l3)
+            annots = self.plot_annots(annots, p3, ul, l3, xlim, ("log" if self.config_parameters["ind_P"] == "log" else "linear"))
 
         s_eff_sun = [1.014, 0.3438]
         coeff = [[8.1774e-5, 1.7063e-9, -4.3241e-12, -6.6462e-16], [5.8942e-5, 1.6558e-9, -3.0045e-12, -5.2983e-16]]
@@ -624,15 +632,20 @@ class dynamite_plots:
         plt.annotate("Habitable\nZone", (np.mean(vl), ul*0.75), textcoords="offset points", xytext=(-7, 0), ha="center", weight='bold', fontsize=13)
         plt.xlabel("Period (days)", fontsize=24)
         plt.ylabel("Relative Likelihood", fontsize=24)
-        plt.ylim(0, np.amax(hist_norm)*1.5e-5)
-        plt.legend(hands, labs, fontsize=15, ncol=2, markerscale=0.75)
+        lgnd = plt.legend(hands, labs, loc=9, fontsize=15, ncol=2, markerscale=0.75)
+
+        for i in lgnd.legendHandles:
+            i._sizes = [200]
+
         ax.tick_params(labelsize=18)
         ax.ticklabel_format(axis='y', style='sci', scilimits=(0,0))
+        plt.xlim(xlim[0], xlim[1])
+        plt.ylim(0, ul)
         tx = ax.yaxis.get_offset_text()
         tx.set_fontsize(20)
         tx.set_position((-0.1,1.05))
         ax.xaxis.set_major_formatter(mticker.ScalarFormatter())
-        fig.suptitle((r"$\tau$ Ceti" if system == "tau Ceti" else r"$\alpha$ Centauri" if system == "alpha Centauri" else system) + (" Period Ratio" if self.config_parameters["period"] == "epos" else " Clustered Periods") + " Relative Likelihood", fontsize=30)
+        fig.suptitle((r"$\tau$ Ceti" if system == "tau Ceti" else system) + " Period Relative Likelihood", fontsize=30)
         plt.savefig(plt_savename)
 
         if self.config_parameters["show_plots"] == "True":
@@ -645,66 +658,126 @@ class dynamite_plots:
         Rk = np.array(Rk)
         Rb = list(R)
         Rb.append(float(self.config_parameters["radmax"]) + 0.01)
-        n, _, h1 = plt.hist(Rk, bins=Rb, weights=np.ones(len(Rk))*100 / len(Rk), color=color_scheme[0])
+
+        if self.config_parameters["use_mass"] == "True":
+            self.ppr = PPR((self, None))
+
+            if self.config_parameters["mass_radius"] == "mrexo":
+                Mk = self.ppr.create_processes("mrexo_masses", (Rk,), -len(Rk), self.process_data)
+                Mb1 = sorted(self.ppr.create_processes("mrexo_masses", (Rb,), -len(Rb), self.process_data))
+                Mb = np.arange(Mb1[0], Mb1[-1], 0.25)
+
+            elif self.config_parameters["mass_radius"] == "otegi":
+                Mk = [self.otegi_mr(Rk[i], 'mass') for i in range(len(Rk))]
+                Mb1 = sorted([self.otegi_mr(Rb[i], 'mass') for i in range(len(Rb))])
+                Mb = np.arange(Mb1[0], Mb1[-1], 0.5)
+
+            n, _, h1 = plt.hist(Mk, bins=Mb, weights=np.ones(len(Mk))*10 / len(Mk), color=color_scheme[0])
+            plt.xlabel(r"Mass ($M_{\oplus}$)", fontsize=30)
+
+        else:
+            n, _, h1 = plt.hist(Rk, bins=Rb, weights=np.ones(len(Rk))*100 / len(Rk), color=color_scheme[0])
+            plt.xlabel(r"Radius ($R_{\oplus}$)", fontsize=30)
+
+        ul = 1.5*np.amax(n)
 
         if self.config_parameters["ind_R"] == "linear_zoom":
-            plt_savename = system.replace(" ", "") + "_R_linear_zoom.png"
+            plt_savename = system.replace(" ", "") + "_" + ("R" if self.config_parameters["use_mass"] == "False" else "M") + "_linear_zoom" + ("_Rearth" if self.config_parameters["show_Rearth"] == "True" else "") + "_" + self.config_parameters["mass_radius"] + ("_" + self.config_parameters["otegi_rho"] if self.config_parameters["mass_radius"] == "otegi" else "") + ".png"
 
             if self.config_parameters["show_Rearth"] == "True":
-                plt.xlim(0.75 if min(np.hstack([r1, r11, r12, r2, r3])) > 1 else min(np.hstack([r1, r11, r12, r2, r3])) - 0.25, math.ceil(max(np.hstack([r1, r11, r12, r2, r3]))))
+                xlim = [0.75 if min(np.hstack([r1, r11, r12, r2, r3])) > 1 else min(np.hstack([r1, r11, r12, r2, r3])) - 0.25, math.ceil(max(np.hstack([r1, r11, r12, r2, r3])))]
 
             else:
-                plt.xlim(math.floor(min(np.hstack([r1, r11, r12, r2, r3]))), math.ceil(max(np.hstack([r1, r11, r12, r2, r3]))))
+                xlim = [math.floor(min(np.hstack([r1, r11, r12, r2, r3]))), math.ceil(max(np.hstack([r1, r11, r12, r2, r3])))]
 
         elif self.config_parameters["ind_R"] == "linear":
-            plt_savename = system.replace(" ", "") + "_R_linear.png"
+            plt_savename = system.replace(" ", "") + "_" + ("R" if self.config_parameters["use_mass"] == "False" else "M") + "_linear_" + self.config_parameters["mass_radius"] + ("_" + self.config_parameters["otegi_rho"] if self.config_parameters["mass_radius"] == "otegi" else "") + ".png"
+            ullim = np.where(n > 0.01*ul)[0]
+            lims = [Rb[ullim[0]], Rb[ullim[-1]]] if self.config_parameters["use_mass"] == "False" else [Mb[ullim[0]], Mb[ullim[-1]]]
+            xlim = (min(lims[0], min(np.hstack([r1, r11, r12, r2, r3]))) - 0.25, max(lims[1], max(np.hstack([r1, r11, r12, r2, r3]))) + 0.25)
 
         hands = [h1[0]]
-        labs = [(r"$\tau$ Ceti" if system == "tau Ceti" else system) + " DYNAMITE Predictions"]
-        ul = 1.5*np.amax(n)
+        labs = [(r"$\tau$ Ceti" if system == "tau Ceti" else system) + " Predictions - " + (r"$\bf{NP}$" if self.config_parameters["mass_radius"] == "mrexo" else "\"" + r"$\bf{Rocky}$" + "\"" if self.config_parameters["mass_radius"] == "otegi" and self.config_parameters["otegi_rho"] == "rocky" else "\"" + r"$\bf{Volatile}$" + "\"")]
         annots = []
 
         if self.config_parameters["plt_PDFs"] == "True":
-            h2 = plt.plot(R, PR, color=color_scheme[1], linewidth=3)
+            if self.config_parameters["use_mass"] == "True":
+                M = Mb1[:-1]
+                h2 = plt.plot(M, PR, color=color_scheme[1], linewidth=3)
+
+            else:
+                h2 = plt.plot(R, PR, color=color_scheme[1], linewidth=3)
+
             hands.append(h2[0])
-            labs.append("Probability Distribution Function")
+            labs.append("Probability Density Function")
 
         if len(r1) > 0:
-            h3 = plt.scatter(r1, np.ones(len(r1))*ul/10, c=color_scheme[2], edgecolors="k", s=200, linewidth=2, zorder=2)
+            if self.config_parameters["use_mass"] == "False":
+                h3 = plt.scatter(r1, np.ones(len(r1))*ul/10, c=color_scheme[2], edgecolors="k", s=200, linewidth=2, zorder=2)
+                annots = self.plot_annots(annots, r1, ul, l1, xlim)
+
+            else:
+                h3 = plt.scatter(m1, np.ones(len(m1))*ul/10, c=color_scheme[2], edgecolors="k", s=200, linewidth=2, zorder=2)
+                annots = self.plot_annots(annots, m1, ul, l1, xlim)
+
             hands.append(h3)
-            labs.append("Known planets in system" if len(p1) > 1 else "Known planet in system")
-            annots = self.plot_annots(annots, r1, ul, l1)
+            labs.append("Known transiting planets" if len(p1) > 1 else "Known transiting planet")
 
         if len(r11) > 0:
-            h4 = plt.scatter(r11, np.ones(len(r11))*ul/10, c=color_scheme[3], marker="s", edgecolors="k", s=200, linewidth=2, zorder=2)
+            if self.config_parameters["use_mass"] == "False":
+                h4 = plt.scatter(r11, np.ones(len(r11))*ul/10, c=color_scheme[3], marker="s", edgecolors="k", s=200, linewidth=2, zorder=2)
+                annots = self.plot_annots(annots, r11, ul, l11, xlim)
+
+            else:
+                h4 = plt.scatter(m11, np.ones(len(m11))*ul/10, c=color_scheme[3], marker="s", edgecolors="k", s=200, linewidth=2, zorder=2)
+                annots = self.plot_annots(annots, m11, ul, l11, xlim)
+
             hands.append(h4)
             labs.append("Additional inserted planets" if len(p11) > 1 else "Additional inserted planet")
-            annots = self.plot_annots(annots, r11, ul, l11)
 
         if len(r12) > 0:
-            h5 = plt.scatter(r12, np.ones(len(r12))*ul/10, c=color_scheme[2], marker="^", edgecolors="k", s=200, linewidth=2, zorder=2)
+            if self.config_parameters["use_mass"] == "False":
+                h5 = plt.scatter(r12, np.ones(len(r12))*ul/10, c=color_scheme[2], marker="^", edgecolors="k", s=200, linewidth=2, zorder=2)
+                annots = self.plot_annots(annots, r12, ul, l12, xlim)
+
+            else:
+                h5 = plt.scatter(m12, np.ones(len(m12))*ul/10, c=color_scheme[2], marker="^", edgecolors="k", s=200, linewidth=2, zorder=2)
+                annots = self.plot_annots(annots, m12, ul, l12, xlim)
+
             hands.append(h5)
             labs.append("Known non-transiting planets" if len(r12) > 1 else "Known non-transiting planet")
-            annots = self.plot_annots(annots, r12, ul, l12)
 
         if len(r2) > 0:
-            h6 = plt.scatter(r2, np.ones(len(r2))*ul/10, c=color_scheme[4], marker="X", s=200, edgecolors="k", linewidth=2, zorder=2)
+            if self.config_parameters["use_mass"] == "False":
+                h6 = plt.scatter(r2, np.ones(len(r2))*ul/10, c=color_scheme[4], marker="X", s=200, edgecolors="k", linewidth=2, zorder=2)
+                annots = self.plot_annots(annots, r2, ul, l2, xlim)
+
+            else:
+                h6 = plt.scatter(m2, np.ones(len(m2))*ul/10, c=color_scheme[4], marker="X", s=200, edgecolors="k", linewidth=2, zorder=2)
+                annots = self.plot_annots(annots, m2, ul, l2, xlim)
+
             hands.append(h6)
             labs.append("Known planets removed from system" if len(r2) > 1 else "Known planet removed from system")
-            annots = self.plot_annots(annots, r2, ul, l2)
+
 
         if len(r3) > 0:
-            h7 = plt.scatter(r3, np.ones(len(r3))*ul/10, c=color_scheme[5], marker='d', s=200, edgecolors="k", linewidth=2, zorder=2)
+            if self.config_parameters["use_mass"] == "False":
+                h7 = plt.scatter(r3, np.ones(len(r3))*ul/10, c=color_scheme[5], marker='d', s=200, edgecolors="k", linewidth=2, zorder=2)
+                annots = self.plot_annots(annots, r3, ul, l3, xlim)
+
+            else:
+                h7 = plt.scatter(m3, np.ones(len(m3))*ul/10, c=color_scheme[5], marker='d', s=200, edgecolors="k", linewidth=2, zorder=2)
+                annots = self.plot_annots(annots, m3, ul, l3, xlim)
+
             hands.append(h7)
             labs.append("Unconfirmed planet candidates" if len(r3) > 1 else "Unconfirmed planet candidate")
-            annots = self.plot_annots(annots, r3, ul, l3)
 
+        plt.xlim(xlim[0], xlim[1])
         plt.ylim(0,ul)
-        plt.xlabel(r"Radius ($R_{\oplus}$)", fontsize=24)
-        plt.ylabel("Relative Likelihood", fontsize=24)
-        plt.legend(hands, labs, fontsize=15, ncol=2)
-        ax.tick_params(labelsize=18)
-        fig.suptitle((r"$\tau$ Ceti" if system == "tau Ceti" else system) + " Planet Radius Relative Likelihood", fontsize=30)
+        plt.ylabel("Relative Likelihood", fontsize=32)
+        plt.legend(hands, labs, loc=9, fontsize=17, ncol=2)
+        ax.tick_params(labelsize=24)
+        fig.suptitle((r"$\tau$ Ceti" if system == "tau Ceti" else system) + " Planet " + ("Radius " if self.config_parameters["use_mass"] == "False" else "Mass ") + "Relative Likelihood", fontsize=30)
         plt.savefig(plt_savename)
 
         if self.config_parameters["show_plots"] == "True":
@@ -717,58 +790,61 @@ class dynamite_plots:
 
         if self.config_parameters["ind_i"] == "full":
             ik = np.array(ik)
-            plt_savename = system.replace(" ", "") + "_inc_full.png"
+            plt_savename = system.replace(" ", "") + "_inc_full_" + self.config_parameters["mass_radius"] + ("_" + self.config_parameters["otegi_rho"] if self.config_parameters["mass_radius"] == "otegi" else "") + ".png"
 
-        elif self.config_paramters["ind_i"] == "truncated":
+        elif self.config_parameters["ind_i"] == "truncated":
             ik = np.array([ik[j] if ik[j] < 90 else 180-ik[j] for j in range(len(ik))])     # toggle for allowing inclinations to be greater than 90 degrees or truncated back to 0-90 range
-            plt_savename = system.replace(" ", "") + "_inc_trunc.png"
+            plt_savename = system.replace(" ", "") + "_inc_trunc_" + self.config_parameters["mass_radius"] + ("_" + self.config_parameters["otegi_rho"] if self.config_parameters["mass_radius"] == "otegi" else "") + ".png"
 
         n, _, h1 = plt.hist(ik, bins=np.linspace(0, 180.5, 362), weights=np.ones(len(ik)) / (len(ik)), color=color_scheme[0])
         hands = [h1[0]]
         labs = [(r"$\tau$ Ceti" if system == "tau Ceti" else system) + " DYNAMITE Predictions"]
         ul = 1.5*np.amax(n)
         annots = []
+        xlim = [math.floor(min(np.hstack([i1, i11, i12, i2, i3]))) - 10, math.ceil(max(np.hstack([i1, i11, i12, i2, i3]))) + 10]
+        #xlim = [0, 71]
 
         if self.config_parameters["plt_PDFs"] == "True":
             h2 = plt.plot(inc, Pi, color=color_scheme[1], linewidth=3)
             hands.append(h2[0])
-            labs.append("Probability Distribution Function")
+            labs.append("Probability Density Function")
 
         if len(i1) > 0:
             h3 = plt.scatter(i1, np.ones(len(i1))*ul/10, c=color_scheme[2], edgecolors="k", s=200, linewidth=2, zorder=2)
             hands.append(h3)
-            labs.append("Known planets in system" if len(p1) > 1 else "Known planet in system")
-            annots = self.plot_annots(annots, i1, ul, l1)
+            labs.append("Known transiting planets" if len(p1) > 1 else "Known transiting planet")
+            annots = self.plot_annots(annots, i1, ul, l1, xlim)
 
         if len(i11) > 0:
             h4 = plt.scatter(i11, np.ones(len(i11))*ul/10, c=color_scheme[3], marker="s", edgecolors="k", s=200, linewidth=2, zorder=2)
             hands.append(h4)
             labs.append("Additional inserted planets" if len(p11) > 1 else "Additional inserted planet")
-            annots = self.plot_annots(annots, i11, ul, l11)
+            annots = self.plot_annots(annots, i11, ul, l11, xlim)
 
         if len(i12) > 0:
             h5 = plt.scatter(i12, np.ones(len(i12))*ul/10, c=color_scheme[2], marker="^", edgecolors="k", s=200, linewidth=2, zorder=2)
             hands.append(h5)
             labs.append("Known non-transiting planets" if len(i12) > 1 else "Known non-transiting planet")
-            annots = self.plot_annots(annots, i12, ul, l12)
+            annots = self.plot_annots(annots, i12, ul, l12, xlim)
 
         if len(i2) > 0:
             h6 = plt.scatter(i2, np.ones(len(i2))*ul/10, c=color_scheme[4], marker="X", s=200, edgecolors="k", linewidth=2, zorder=2)
             hands.append(h6)
             labs.append("Known planets removed from system" if len(i2) > 1 else "Known planet removed from system")
-            annots = self.plot_annots(annots, i2, ul, l2)
+            annots = self.plot_annots(annots, i2, ul, l2, xlim)
 
         if len(i3) > 0:
             h7 = plt.scatter(i3, np.ones(len(i3))*ul/10, c=color_scheme[5], marker='d', s=200, edgecolors="k", linewidth=2, zorder=2)
             hands.append(h7)
             labs.append("Unconfirmed planet candidates" if len(i3) > 1 else "Unconfirmed planet candidate")
-            annots = self.plot_annots(annots, i3, ul, l3)
+            annots = self.plot_annots(annots, i3, ul, l3, xlim)
 
-        plt.xlabel("Inclination (degrees)")
-        plt.ylabel("Relative Likelihood")
-        plt.xlim(math.floor(min(np.hstack([i1, i11, i12, i2, i3]))) - 10, math.ceil(max(np.hstack([i1, i11, i12, i2, i3]))) + 10)
+        plt.xlabel("Inclination (degrees)", fontsize=24)
+        plt.ylabel("Relative Likelihood", fontsize=24)
+        plt.xlim(xlim[0], xlim[1])
         plt.ylim(0, np.amax(n)*1.5)
-        plt.legend(hands, labs, fontsize=15, ncol=2)
+        ax.tick_params(labelsize=18)
+        plt.legend(hands, labs, loc=9, fontsize=15, ncol=2)
         fig.suptitle((r"$\tau$ Ceti" if system == "tau Ceti" else system) + " Inclination Relative Likelihood", fontsize=30)
         plt.savefig(plt_savename)
 
@@ -791,32 +867,75 @@ class dynamite_plots:
         for x in range(len(t)):
             for y in range(len(t[x])):
                 if isinstance(t[x][y], tuple):
-                    t[x][y] = locals()[t[x][y][0]](t[0],t[x][y][1])
+                    if isinstance(t[x][y][0], str):
+                        t[x][y] = locals()[t[x][y][0]](t[0],t[x][y][1])
 
         return t[0][0], t[0][2], t[0][4], np.array([t[i][:-1] for i in range(1, len(t))]), np.array([t[i][-1] for i in range(1, len(t))])
 
 
 
-    def plot_annots(self, annots, xl, ul, annot_l):
+    def plot_annots(self, annots, xl, ul, annot_l, xlim, scale="linear"):
         """Puts planet annotation labels on scatter plots"""
 
         for i in range(len(xl)):
             xy1 = [xl[i], ul/10 - ul/15]
 
-            if xy1 not in annots:
-                xy = plt.annotate(annot_l[i], (xl[i], ul/10), color="k", xytext=xy1, ha="center", weight='bold', fontsize=16)
-                annots.append(list(xy.xyann))
+            if scale == "linear":
+                overlap = [annots[j] for j in range(len(annots)) if abs(xy1[0] - annots[j][0]) < (xlim[1] - xlim[0])/35]
 
             else:
-                xy1 = [xl[i], ul/10 + ul/25]
+                overlap = [annots[j] for j in range(len(annots)) if xy1[0] / annots[j][0] < 1.2 and xy1[0] / annots[j][0] > 0.8]
 
-                while xy1 in annots:
-                    xy1[1] += ul/20
+            if len(overlap) == 1:
+                xy1[1] += (8*ul/75 if overlap[0][1] == ul/10 - ul/15 else 0)
 
-                xy = plt.annotate(annot_l[i], (xl[i], ul/10), color="k", xytext=xy1, ha="center", weight='bold', fontsize=16)
-                annots.append(list(xy.xyann))
+            elif len(overlap) > 1:
+                xy1[1] += 8*ul/75 + (len(overlap) - 1)*ul/20
+
+            if annot_l[i].find("PxP") != -1:
+                xy1[1] += 8*ul/75 + (len(overlap))*ul/20
+
+            xy = plt.annotate(annot_l[i], (xl[i], ul/10), color="k", xytext=xy1, ha="center", weight='bold', fontsize=24)
+            annots.append(list(xy.xyann))
 
         return annots
+
+
+
+    def otegi_mr(self, measurement, predict):
+        """Uses a power-law MR to predict mass in Earth values from radius in Earth values or vice versa"""
+
+        if predict == "radius":
+            R_r = 1.03*measurement**0.29
+            R_v = 0.7*measurement**0.63
+            
+            if measurement > 25 or (measurement > 5 and self.config_parameters["otegi_rho"] == "volatile"):
+                return R_v
+
+            return R_r
+
+        elif predict == "mass":
+            M_r = 0.9*measurement**3.45
+            M_v = 1.74*measurement**1.58
+
+            if M_r > 25 or (M_r > 5 and self.config_parameters["otegi_rho"] == "volatile"):
+                return M_v
+
+            return M_r
+
+
+
+    def mrexo_masses(self, Rk, i):
+        """Calculates masses from radius distribution using MRExo"""
+
+        return {i:pfm(Rk[i], predict='mass', dataset='kepler')[0]}
+
+
+
+    def process_data(self, data):
+        """Processes data for the multithreading component"""
+
+        return [data[k] for k in data]
 
 
 
@@ -835,13 +954,6 @@ class dynamite_plots:
         seconds_per_day = 86400
         
         return (4*math.pi**2*a**3/(const.G.cgs.value*(M*const.M_sun.cgs.value)))**0.5/seconds_per_day
-
-
-
-    def mr_predict(self, meas, value):
-        """Calls the mass-radius relationship prediction code"""
-
-        return pfm(measurement=meas, predict=value, dataset="kepler")[0]
 
 
 

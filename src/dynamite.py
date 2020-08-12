@@ -2,10 +2,10 @@
 ### Main File ###
 ### Jeremy Dietrich ###
 ### jdietrich1@email.arizona.edu ###
-### 2020 July 20 ###
-### Version 1.2 ###
-### Dietrich & Apai (2020), Astronomical Journal in press ###
-### http://arxiv.org/pdf/2007.06745.pdf ###
+### 2020 August 12 ###
+### Version 1.3 ###
+### Dietrich & Apai (2020), Astronomical Journal ###
+### https://doi.org/10.3847/1538-3881/aba61d ###
 
 import os
 import ast
@@ -41,13 +41,13 @@ class dynamite:
         for i in range(len(config_data)):
             self.config_parameters[config_data[i, 0]] = config_data[i, 1] if config_data[i, 1].find("[") == -1 else ast.literal_eval(config_data[i, 1])
 
-        targets_dict = dynamite_targets().get_targets(self.config_parameters["mode"], self.config_parameters["system"], self.config_parameters["radmax"], self.config_parameters["removed"])
+        targets_dict = dynamite_targets(self.config_parameters).get_targets(self.config_parameters["mode"], self.config_parameters["system"], self.config_parameters["radmax"], self.config_parameters["removed"])
 
         if len(targets_dict) == 0:
             print("Error: No targets selected!")
             exit()
        
-        ppr = PPR((self, None))
+        self.ppr = PPR((self, None))
 
         if self.config_parameters["saved"] == "False":
             if os.path.exists("table_" + self.config_parameters["mode"] + "_" + self.config_parameters["period"] + ".txt"):
@@ -62,8 +62,37 @@ class dynamite:
                         targ_rem.append(target[i])
 
                 if len(self.config_parameters["additional"][0]) > 0:
-                    for i in range(len(self.config_parameters["additional"])):
-                        targ_rem.append(self.config_parameters["additional"][i][:-1])
+                    for i in self.config_parameters["additional"]:
+                        x = []
+
+                        for j in range(len(i) - 1):
+                            if isinstance(i[j], tuple):
+                                if self.config_parameters["use_mass"] == "True":
+                                    x.append(self.mr_convert(i[j][0]))
+
+                                else:
+                                    x.append(i[j][0])
+
+                            else:
+                                x.append(i[j])
+
+                        targ_rem.append(x)
+
+                    for i in self.config_parameters["unconfirmed"]:
+                        x = []
+
+                        for j in range(len(i) - 1):
+                            if isinstance(i[j], tuple):
+                                if self.config_parameters["use_mass"] == "True":
+                                    x.append(self.mr_convert(i[j][0]))
+
+                                else:
+                                    x.append(i[j][0])
+
+                            else:
+                                x.append(i[j])
+
+                        targ_rem.append(x)
 
                 targ_rem = np.array(targ_rem)
                 target = targ_rem[targ_rem[:, 2].argsort()]
@@ -77,16 +106,19 @@ class dynamite:
                     if self.config_parameters["mode"] == "all":
                         targlist.append(tn)
 
-                    elif self.config_parameters["mode"] == "TESS" and tn.find("TOI") != -1:
+                    elif self.config_parameters["mode"] == "tess" and tn.find("TOI") != -1:
                         targlist.append(tn)
 
-                    elif self.config_parameters["mode"] == "Kepler" and (tn.find("Kepler") != -1 or tn.find("K2") != -1 or tn.find("KOI") != -1):
+                    elif self.config_parameters["mode"] == "kepler" and tn.find("Kepler") != -1:
+                        targlist.append(tn)
+
+                    elif self.config_parameters["mode"] == "k2" and tn.find("K2") != -1:
                         targlist.append(tn)
 
                     elif self.config_parameters["mode"] == "test" and tn.find("test 3") != -1:
                         targlist.append(tn)
 
-                Pk, P, PP, per, Rk, R, PR, ik, il, Pin, deltas, ratios, tdm, tdle, tdue, tpm, tple, tpue, targets, pers, rads = datavars = ppr.create_processes("mt_mc", (targets_dict, targlist), -len(targlist), self.process_data)
+                Pk, P, PP, per, Rk, R, PR, ik, il, Pin, deltas, ratios, tdm, tdle, tdue, tpm, tple, tpue, targets, pers, rads = datavars = self.ppr.create_processes("mt_mc", (targets_dict, targlist), -len(targlist), self.process_data)
 
                 np.savez("saved_data.npz", data=datavars)
 
@@ -110,8 +142,14 @@ class dynamite:
     def mt_mc(self, targets_dict, targlist, i):
         """Runs the Monte Carlo code on multiple threads"""
 
-        R_star, Rse, M_star, Mse, target, target_name = self.set_up(targets_dict, targlist[i])
-        target = target[target[:, 2].argsort()]
+        R_star, Rse, M_star, Mse, target, target_name = self.set_up(targets_dict, targlist[i])  
+
+        try:
+            target = target[target[:, 2].argsort()]
+
+        except IndexError:
+            print("ERROR IN DICT ON TARGET", target_name)
+
         data = self.run_monte_carlo(R_star, Rse, M_star, Mse, target, target_name) + ([target[i][2] for i in range(len(target))], [target[i][1] for i in range(len(target))])
 
         return {i:data}
@@ -136,9 +174,28 @@ class dynamite:
         for x in range(len(t)):
             for y in range(len(t[x])):
                 if isinstance(t[x][y], tuple):
-                    t[x][y] = locals()[t[x][y][0]](t[0],t[x][y][1])
+                    if isinstance(t[x][y][0], str):
+                        t[x][y] = locals()[t[x][y][0]](t[0],t[x][y][1])
+
+                    else:
+                        if t[x][y][1] == "Mass":
+                            t[x][y] = self.mr_convert(t[x][y][0])
+
+                        elif t[x][y][1] == "Radius":
+                            t[x][y] = t[x][y][0]
 
         return t[0][0], t[0][1], t[0][2], t[0][3], np.array([t[i][:-1] for i in range(1, len(t))]), target
+
+
+    def mr_convert(self, meas):
+        """Runs conversion from mass to radius"""
+
+        if self.config_parameters["mass_radius"] == "mrexo":
+            return pfm(meas, predict="radius", dataset="kepler")[0]
+
+        elif self.config_parameters["mass_radius"] == "otegi":
+            return self.otegi_mr(meas, "radius")
+
 
 
 
@@ -207,32 +264,15 @@ class dynamite:
         ibs = []
         fib = []
         incn = []
-        ppr = PPR((self, None))
 
         for case in [[False] + list(t) for t in list(itertools.product([False,True], repeat=len(inc)-1))]:
             incn.append([180-inc[i] if case[i] else inc[i] for i in range(0, len(inc))])
 
-        ibs, fib = ppr.create_processes("inc_test", (il, incn, rylgh), -len(il), self.process_inc_data)
-        """
-        data = ppr.create_processes("inc_test", (il, incn, rylgh), -len(il))
+        ibs, fib = self.ppr.create_processes("inc_test", (il, incn, rylgh), -len(il), self.process_inc_data)
+        ib1 = ibs[np.where(fib == max(fib))[0][0]]
 
-        for i in data:
-            for j in range(len(data[i])):
-                ibs.append(data[i][0][j])
-                fib.append(data[i][1][j])
-
-        
-        for j in range(len(il)):
-
-            for k in range(len(incn)):
-                test = 0
-
-                for m in range(len(incn[k])):
-                    test += spst.rayleigh.pdf(abs(incn[k][m]-il[j]), rylgh)
-
-                #ibs.append(il[j])
-                #fib.append(test)
-        """
+        if ib1 > 90:
+            ib1 = 180 - ib1
 
         ib = ibs[np.where(fib == max(fib))[0][0]]
 
@@ -246,17 +286,17 @@ class dynamite:
             finew = finew*0.62
 
             for j in range(len(il)):
-                fi[j] = np.sin(il[j]*math.pi/180)*76/300
+                fi[j] = np.sin(il[j]*math.pi/180)*19/75
 
-            fi = fi*76/(300*np.trapz(fi, il))
+            fi = fi*19/(75*np.trapz(fi, il))
 
         elif len(inc) == 3:
             finew = finew*0.81
 
             for j in range(len(il)):
-                fi[j] = np.sin(il[j]*math.pi/180)*38/300
+                fi[j] = np.sin(il[j]*math.pi/180)*19/150
 
-            fi = fi*38/(300*np.trapz(fi, il))
+            fi = fi*19/(150*np.trapz(fi, il))
 
         i_ib = np.where(np.isclose(il,ib))[0][0]
 
@@ -265,6 +305,7 @@ class dynamite:
 
         cdfi = np.array([1 - math.exp(-(inew[j])**2/(2*(rylgh)**2)) for j in range(len(inew))])
         Pinc = fi/2
+
         print(datetime.now(), "Running Monte Carlo for", target_name)
         Pk = []
         Rk = []
@@ -273,6 +314,42 @@ class dynamite:
         for k in range(int(self.config_parameters["MC_chain"])):
             for j in range(len(PP)):
                 if np.random.rand() < PP[j]:
+                    """
+                    ib = ib1 + np.random.normal(0, 10, 1)
+
+                    if ib > 180:
+                        ib = 360 - ib
+
+                    if ib < 0:
+                        ib = -ib
+
+                    inew = np.linspace(0, 10, 101)
+                    finew = spst.rayleigh.pdf(inew + ib, ib, rylgh)
+
+                    if len(inc) == 2:
+                        finew = finew*0.62
+
+                        for j in range(len(il)):
+                            fi[j] = np.sin(il[j]*math.pi/180)*19/75
+
+                        fi = fi*19/(75*np.trapz(fi, il))
+
+                    elif len(inc) == 3:
+                        finew = finew*0.81
+
+                        for j in range(len(il)):
+                            fi[j] = np.sin(il[j]*math.pi/180)*19/150
+
+                        fi = fi*19/(150*np.trapz(fi, il))
+
+                    i_ib = np.where(abs(il - ib) < 0.1)[0][0]
+
+                    for j in range(len(inew)):
+                        fi[i_ib + j] += finew[j]
+
+                    cdfi = np.array([1 - math.exp(-(inew[j])**2/(2*(rylgh)**2)) for j in range(len(inew))])
+                    Pinc = fi/2
+                    """
                     Pk.append(P[j])
                     RR = np.random.rand()
                     Rk.append(R[np.where(RR - cdfR < 0)[0][0]])
@@ -296,9 +373,9 @@ class dynamite:
         if self.config_parameters["period"] == "epos":
             PPi, _ = self.epos_pers(p0, per, rad, Pis, M_star)
 
-            if self.config_parameters["mode"] == "TESS":
-                low_gap_P = ["TOI 561", "TOI 431", "TOI 1238", "TOI 732", "TOI 696", "TOI 175", "TOI 663", "TOI 1469", "TOI 1260", "TOI 270", "TOI 396", "TOI 836", "TOI 411", "TOI 1269", "TOI 1453", "TOI 714", "TOI 1749", "TOI 125", "TOI 1438", "TOI 119", "TOI 763", "TOI 1136", "TOI 1064", "TOI 266", "TOI 178", "TOI 776", "TOI 1339", "TOI 214", "TOI 700", "TOI 1266", "TOI 553", "TOI 699", "TOI 1277"]
-                interior = ["TOI 282"]
+            if self.config_parameters["mode"] == "tess":
+                low_gap_P = ["TOI 561", "TOI 431", "TOI 1238", "TOI 732", "TOI 696", "TOI 175", "TOI 663", "TOI 1469", "TOI 2096", "TOI 1260", "TOI 270", "TOI 396", "TOI 836", "TOI 411", "TOI 1130", "TOI 1269", "TOI 1453", "TOI 714", "TOI 1749", "TOI 125", "TOI 1445", "TOI 1438", "TOI 119", "TOI 763", "TOI 2084", "TOI 1136", "TOI 1803", "TOI 1064", "TOI 266", "TOI 178", "TOI 776", "TOI 1339", "TOI 214", "TOI 700", "TOI 1266", "TOI 1812", "TOI 553", "TOI 699", "TOI 1277"]
+                interior = ["TOI 2095", "TOI 282"]
         
                 if target_name in low_gap_P or target_name in interior:
                     PPz = PPi
@@ -318,13 +395,17 @@ class dynamite:
             Pm = Pis[np.where(PPi == np.amax(PPi))[0][0]]
             PPm = np.amax(PPi)
 
-        Ple = Pm - Pis[np.where((Pis < Pm) & (PPi < 0.606*PPm))][-1]
+        if len(Pis[np.where((Pis < Pm) & (PPi < 0.606*PPm))]) > 0:
+            Ple = Pm - Pis[np.where((Pis < Pm) & (PPi < 0.606*PPm))][-1]
+
+        else:
+            Ple = 0.606*Pm
 
         if len(Pis[np.where((Pis > Pm) & (PPi < 0.606*PPm))]) > 0:
             Pue = Pis[np.where((Pis > Pm) & (PPi < 0.606*PPm))][0] - Pm
 
         else:
-            Pue = 0.606*Pm
+            Pue = Pm/0.606
 
         Rm = np.percentile(Rk, 50)
         Rle = Rm - np.percentile(Rk, 16)
@@ -415,7 +496,11 @@ class dynamite:
         m = np.zeros(len(per))
 
         for k in range(len(per)):
-            m[k] = self.mr_predict(rad[k], 'Mass')
+            if self.config_parameters["mass_radius"] == "mrexo":
+                m[k] = pfm(measurement=rad[k], predict='mass', dataset='kepler')[0]
+
+            elif self.config_parameters["mass_radius"] == "otegi":
+                m[k] = self.otegi_mr(rad[k], "mass")
 
         for i in range(len(P)):
             for k in range(len(per)):
@@ -541,7 +626,11 @@ class dynamite:
         m = np.zeros(len(per))
 
         for k in range(len(per)):
-            m[k] = self.mr_predict(rad[k], 'Mass')
+            if self.config_parameters["mass_radius"] == "mrexo":
+                m[k] = pfm(measurement=rad[k], predict='mass', dataset='kepler')[0]
+
+            elif self.config_parameters["mass_radius"] == "otegi":
+                m[k] = self.otegi_mr(rad[k], "mass")
 
         for i in range(len(P)):
             for k in range(len(per)):
@@ -694,6 +783,29 @@ class dynamite:
 
 
 
+    def otegi_mr(self, measurement, predict):
+        """Uses a power-law MR to predict mass in Earth values from radius in Earth values or vice versa"""
+
+        if predict == "radius":
+            R_r = 1.03*measurement**0.29
+            R_v = 0.7*measurement**0.63
+            
+            if measurement > 25 or (measurement > 5 and self.config_parameters["otegi_rho"] == "volatile"):
+                return R_v
+
+            return R_r
+
+        elif predict == "mass":
+            M_r = 0.9*measurement**3.45
+            M_v = 1.74*measurement**1.58
+
+            if M_r > 25 or (M_r > 5 and self.config_parameters["otegi_rho"] == "volatile"):
+                return M_v
+
+            return M_r
+
+
+
     def K3(self, P, M):
         """Calculates semi-major axis in cm using period in days and mass in solar masses"""
 
@@ -703,16 +815,9 @@ class dynamite:
 
 
 
-    def mr_predict(self, meas, value):
-        """Calls the mass-radius relationship prediction code"""
-
-        return pfm(measurement=meas, predict=value, dataset="kepler")[0]
-
-
-
 if __name__ == '__main__':
     if len(sys.argv) > 1:
-        dynamite(sys.argv[1])
+        dynamite(cfname=sys.argv[1])
 
     else:
         dynamite()
