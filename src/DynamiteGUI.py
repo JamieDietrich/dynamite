@@ -2,15 +2,17 @@
 ### GUI ###
 ### Jeremy Dietrich ###
 ### jdietrich1@email.arizona.edu ###
-### 2020 July 20 ###
-### Version 1.2 ###
-### Dietrich & Apai (2020), Astronomical Journal in press ###
-### http://arxiv.org/pdf/2007.06745.pdf ###
+### 2020 August 12 ###
+### Version 1.3 ###
+### Dietrich & Apai (2020), Astronomical Journal ###
+### https://doi.org/10.3847/1538-3881/aba61d ###
 
 import os
 import sys
 import ast
+import time
 import atexit
+import socket
 import threading
 import subprocess
 import scipy as sp
@@ -28,21 +30,24 @@ class CreateToolTip(object):
         self.root = root
         self.widget = widget
         self.tw = None
-        try:   self.text = tooltips[[k for k,v in config_entries.items() if v == (widget if widget1 == None else widget1)][0]]
-        except:self.text = "No tooltip entry found in config file"
+        if config_entries != None:
+            try:   self.text = tooltips[[k for k,v in config_entries.items() if v == (widget if widget1 == None else widget1)][0]]
+            except:self.text = "No tooltip entry found in config file"
+        else:
+            self.text = tooltips
         self.widget.bind("<ButtonPress-3>", self.enter)
         self.widget.bind("<Leave>", self.hidetip)
         self.widget.bind("<ButtonPress>", self.hidetip)
         
     def enter(self, event = None):
         if self.tw == None:
-            self.widget.after(7000 if len(self.text) > 150 else 5000 if len(self.text) > 100 else 3000, self.hidetip)
+            self.widget.after(7000 if len(self.text) > 150 else 7000 if len(self.text) > 100 else 5000, self.hidetip)
             self.showtip()
 
     def showtip(self, event = None):
         x, y, _cx, _cy = self.widget.bbox("insert")
         x += self.widget.winfo_rootx() + 25
-        y += self.widget.winfo_rooty() + 20
+        y += self.widget.winfo_rooty() + 30
         self.tw = Tkinter.Toplevel(self.root)
         self.tw.wm_overrideredirect(True)
         self.tw.wm_geometry("+%d+%d" % (x, y))
@@ -60,6 +65,8 @@ class DynamiteGUI:
         self.config_entries = {}
         self.run_editors = {}
         self.plot_editors = {}
+        self.py2csv_editors = {}
+        self.csv2py_editors = {}
         self.root = Tkinter.Tk()
                 
         if (len(sys.argv)  >=  2):
@@ -135,7 +142,7 @@ class DynamiteGUI:
         self.mode_box.bind('<<ComboboxSelected>>', self.set_plot_save_false)
         self.mode_box.configure(state = 'readonly')
         
-        self.system_box = ttk.Combobox(self.root, width = 12, height = 20, justify = Tkconstants.RIGHT)
+        self.system_box = ttk.Combobox(self.root, width = 16, height = 20, justify = Tkconstants.RIGHT)
         self.system_box["values"] = self.system_values
         self.system_box.current(0)
         self.config_entries["system"] = self.system_box
@@ -156,7 +163,7 @@ class DynamiteGUI:
         self.radius_box.bind('<<ComboboxSelected>>', self.set_plot_save_false)
         self.radius_box.configure(state = 'readonly')
         
-        self.radtype_box = ttk.Combobox(self.root, width = 10, justify = Tkconstants.RIGHT)
+        self.radtype_box = ttk.Combobox(self.root, width = 11, justify = Tkconstants.RIGHT)
         self.radtype_box["values"] = self.radtype_values
         self.radtype_box.current(1)
         self.config_entries["radtype"] = self.radtype_box
@@ -261,21 +268,21 @@ class DynamiteGUI:
         self.use_mass_box.bind('<<ComboboxSelected>>')
         self.use_mass_box.configure(state = 'readonly')
                 
-        self.ind_p_box = ttk.Combobox(self.root, width = 10, justify = Tkconstants.RIGHT)
+        self.ind_p_box = ttk.Combobox(self.root, width = 11, justify = Tkconstants.RIGHT)
         self.ind_p_box["values"] = self.ind_p_values
         self.ind_p_box.current(2)
         self.config_entries["ind_P"] = self.ind_p_box
         self.ind_p_box.bind('<<ComboboxSelected>>')
         self.ind_p_box.configure(state = 'readonly')
         
-        self.ind_r_box = ttk.Combobox(self.root, width = 10, justify = Tkconstants.RIGHT)
+        self.ind_r_box = ttk.Combobox(self.root, width = 11, justify = Tkconstants.RIGHT)
         self.ind_r_box["values"] = self.ind_r_values
         self.ind_r_box.current(1)
         self.config_entries["ind_R"] = self.ind_r_box
         self.ind_r_box.bind('<<ComboboxSelected>>')
         self.ind_r_box.configure(state = 'readonly')
         
-        self.ind_i_box = ttk.Combobox(self.root, width = 10, justify = Tkconstants.RIGHT)
+        self.ind_i_box = ttk.Combobox(self.root, width = 11, justify = Tkconstants.RIGHT)
         self.ind_i_box["values"] = self.ind_i_values
         self.ind_i_box.current(0)
         self.config_entries["ind_i"] = self.ind_i_box
@@ -286,9 +293,11 @@ class DynamiteGUI:
         self.check_valid_entries_list = [self.additional, self.unconfirmed, self.removed, self.plot_colors]
         
         row = 0
+        self.root.grid_rowconfigure(row,weight=1)
         Tkinter.Label(self.root, text = "V 1", font = ("Helvetica", 7)).grid(row = row, column = 4, sticky = 'EN')
-        Tkinter.Label(self.root, text = "PREDICTION PARAMETERS").grid(row = row, column = 1, sticky = 'E', padx = 60, pady = 5, columnspan = 2)
+        Tkinter.Label(self.root, text = "PREDICTION PARAMETERS").grid(row = row, column = 1, sticky = 'EW', padx = 0, pady = 5, columnspan = 3)
         row += 1
+        self.root.grid_rowconfigure(row,weight=1)
         Tkinter.Label(self.root, text = "MC Chain").grid(row = row, column = 0, padx = 5, sticky = 'W', pady = 5)
         self.mc_chain_text_box = Tkinter.Entry(self.root, textvariable = self.mc_chain, width = 10, validate = "key", validatecommand = vcmd, justify ='center')
         self.mc_chain_text_box.grid(row = row, column = 0, padx = 0, sticky = 'E')
@@ -298,34 +307,39 @@ class DynamiteGUI:
         self.system_box.grid(row = row, column = 2, padx = 0, sticky = 'E')
         Tkinter.Label(self.root, text = "Period").grid(row = row, column = 3, padx = 10, sticky = 'W')
         self.period_box.grid(row = row, column = 3, padx = 20, sticky = 'E')
+        Tkinter.Label(self.root, text = "Otegi Rho").grid(row = row, column = 4, padx = 0, sticky ='W')
+        self.otegi_rho_box.grid(row = row, column = 4, padx = 5, sticky = 'E')
         row += 1
+        self.root.grid_rowconfigure(row,weight=1)
         Tkinter.Label(self.root, text = "Radius").grid(row = row, column = 0, padx = 5, sticky = 'W', pady = 5)
         self.radius_box.grid(row = row, column = 0, padx = 0, sticky = 'E')
-        Tkinter.Label(self.root, text = "Rad Type").grid(row = row, column = 1, padx = 10, sticky ='W')
+        Tkinter.Label(self.root, text = "Rad Type").grid(row = row, column = 1, padx = 0, sticky ='W')
         self.radtype_box.grid(row = row, column = 1, padx = 0, sticky = 'E')
         Tkinter.Label(self.root, text = "Rad Min").grid(row = row, column = 2, sticky = 'W', padx = 10)
-        self.radmin_text_box = Tkinter.Entry(self.root, textvariable = self.radmin, width = 8, validate = "key", validatecommand = vcmd, justify ='center')
+        self.radmin_text_box = Tkinter.Entry(self.root, textvariable = self.radmin, width = 7, validate = "key", validatecommand = vcmd, justify ='center')
         self.radmin_text_box.grid(row = row, column = 2, padx = 20, sticky = 'E')
         Tkinter.Label(self.root, text = "Rad Max").grid(row = row, column = 3, sticky = 'W', padx = 10)
-        self.radmax_text_box = Tkinter.Entry(self.root, textvariable = self.radmax, width = 8, validate = "key", validatecommand = vcmd, justify ='center')        
+        self.radmax_text_box = Tkinter.Entry(self.root, textvariable = self.radmax, width = 7, validate = "key", validatecommand = vcmd, justify ='center')        
         self.radmax_text_box.grid(row = row, column = 3, padx = 20, sticky = 'E')
+        Tkinter.Label(self.root, text = "Mass Radius").grid(row = row, column = 4, padx = 0, sticky = 'W')
+        self.mass_radius_box.grid(row = row, column = 4, padx = 5, sticky = 'E')
         row += 1
-        Tkinter.Label(self.root, text = "Mass Radius").grid(row = row, column = 0, padx = 5, sticky = 'W', pady = 5)
-        self.mass_radius_box.grid(row = row, column = 0, padx = 0, sticky = 'E')
-        Tkinter.Label(self.root, text = "Otegi Rho").grid(row = row, column = 1, padx = 10, sticky ='W')
-        self.otegi_rho_box.grid(row = row, column = 1, padx = 0, sticky = 'E')
+        self.root.grid_rowconfigure(row,weight=1)
+        Tkinter.Label(self.root, text = "PLOTTING PARAMETERS").grid(row = row, column = 1, sticky = 'EW', padx = 0, pady = 5, columnspan = 3)
         row += 1
-        Tkinter.Label(self.root, text = "PLOTTING PARAMETERS").grid(row = row, column = 1, sticky = 'E', padx = 60, pady = 5, columnspan = 2)
-        row += 1
+        self.root.grid_rowconfigure(row,weight=1)
         Tkinter.Label(self.root, text = "Create Plots").grid(row = row, column = 0, padx = 5, sticky = 'W', pady = 5)
         self.plot_box.grid(row = row, column = 0, padx = 10, sticky = 'E')
         Tkinter.Label(self.root, text = "Show Plots").grid(row = row, column = 1, padx = 0, sticky = 'W')
         self.show_plots_box.grid(row = row, column = 1, padx = 0, sticky = 'E')
-        Tkinter.Label(self.root, text = "Plot P R").grid(row = row, column = 2, sticky = 'W', padx = 10)
+        Tkinter.Label(self.root, text = "Plot P vs R").grid(row = row, column = 2, sticky = 'W', padx = 10)
         self.plot_p_r_box.grid(row = row, column = 2, padx = 0, sticky = 'E')
         Tkinter.Label(self.root, text = "Use Saved Data").grid(row = row, column = 3, padx = 5, sticky = 'W')
         self.save_plots_box.grid(row = row, column = 3, padx = 0, sticky = 'E')
+        Tkinter.Label(self.root, text = "IND P").grid(row = row, column = 4, sticky = 'W', padx = 5)
+        self.ind_p_box.grid(row = row, column = 4, padx = 5, sticky = 'E')
         row += 1
+        self.root.grid_rowconfigure(row,weight=1)
         Tkinter.Label(self.root, text = "Plot P Scale").grid(row = row, column = 0, padx = 5, sticky = 'W', pady = 5)
         self.plot_p_scale_box.grid(row = row, column = 0, padx = 10, sticky = 'E')
         Tkinter.Label(self.root, text = "Plot TD-TP").grid(row = row, column = 1, padx = 10, sticky = 'W')
@@ -334,7 +348,10 @@ class DynamiteGUI:
         self.plot_deltas_box.grid(row = row, column = 2, padx =  0, sticky = 'E')
         Tkinter.Label(self.root, text = "Plot Ratios").grid(row = row, column = 3, sticky = 'W', padx = 10)
         self.plot_ratios_box.grid(row = row, column = 3, padx = 0, sticky = 'E')
+        Tkinter.Label(self.root, text = "IND R").grid(row = row, column = 4, padx = 5, sticky = 'W')
+        self.ind_r_box.grid(row = row, column = 4, padx = 5, sticky = 'E')
         row += 1
+        self.root.grid_rowconfigure(row,weight=1)
         Tkinter.Label(self.root, text = "Plot Hist").grid(row = row, column = 0, padx = 5, sticky = 'W', pady =5)
         self.plot_hist_box.grid(row = row, column = 0, padx = 10, sticky = 'E')
         Tkinter.Label(self.root, text = "Plot PDF").grid(row = row, column = 1, padx = 10, sticky = 'W')
@@ -343,40 +360,58 @@ class DynamiteGUI:
         self.show_rearth_box.grid(row = row, column = 2, padx =0, sticky = 'E')
         Tkinter.Label(self.root, text = "Use Mass").grid(row = row, column = 3, padx = 10, sticky = 'W')
         self.use_mass_box.grid(row = row, column = 3, padx =0, sticky = 'E')
+        Tkinter.Label(self.root, text = "IND I").grid(row = row, column = 4, padx = 5, sticky = 'W')
+        self.ind_i_box.grid(row = row, column = 4, padx = 5, sticky = 'E')
         row += 1
-        Tkinter.Label(self.root, text = "IND P").grid(row = row, column = 0, sticky = 'W', padx = 5, pady = 5)
-        self.ind_p_box.grid(row = row, column = 0, padx = 10, sticky = 'E')
-        Tkinter.Label(self.root, text = "IND R").grid(row = row, column = 1, padx = 10, sticky = 'W')
-        self.ind_r_box.grid(row = row, column = 1, padx = 0, sticky = 'E')
-        Tkinter.Label(self.root, text = "IND I").grid(row = row, column = 2, padx = 10, sticky = 'W')
-        self.ind_i_box.grid(row = row, column = 2, padx = 0, sticky = 'E')
+        self.root.grid_rowconfigure(row,weight=1)
+        Tkinter.Label(self.root, text = "Plot Colors").grid(row = row, column = 0, sticky = 'E', padx = 15, pady = 5)
+        self.plot_colors_text_box = Tkinter.Entry(self.root, textvariable = self.plot_colors, width = 90, justify ='left')
+        self.plot_colors_text_box.grid(row = row, column = 1, padx = 5, sticky = 'EW',columnspan = 4)
         row += 1
-        Tkinter.Label(self.root, text = "Plot Colors").grid(row = row, column = 0, sticky = 'W', padx = 5, pady = 5)
-        self.plot_colors_text_box = Tkinter.Entry(self.root, textvariable = self.plot_colors, width = 70, justify ='left')
-        self.plot_colors_text_box.grid(row = row, column = 0, padx = 40, sticky = 'E',columnspan = 4)
+        self.root.grid_rowconfigure(row,weight=1)
+        Tkinter.Label(self.root, text = "SYSTEM ARCHITECTURE PARAMETERS").grid(row = row, column = 1, sticky = 'EW', padx = 120, pady = 5, columnspan = 3)
         row += 1
-        Tkinter.Label(self.root, text = "SYSTEM ARCHITECTURE PARAMETERS").grid(row = row, column = 1, sticky = 'E', padx = 0, pady = 5, columnspan = 2)
+        self.root.grid_rowconfigure(row,weight=1)
+        Tkinter.Label(self.root, text = "Additional Planets").grid(row = row, column = 0, sticky = 'E', padx = 15, pady = 5)
+        self.additional_text_box = Tkinter.Entry(self.root, textvariable = self.additional, width = 90, justify ='left')
+        self.additional_text_box.grid(row = row, column = 1, padx = 5, sticky = 'EW', columnspan = 4)
         row += 1
-        Tkinter.Label(self.root, text = "Additional Planets").grid(row = row, column = 0, sticky = 'W', padx = 5, pady = 5)
-        self.additional_text_box = Tkinter.Entry(self.root, textvariable = self.additional, width = 74, justify ='left')
-        self.additional_text_box.grid(row = row, column = 0, padx = 5, sticky = 'E', columnspan = 5)
+        self.root.grid_rowconfigure(row,weight=1)
+        Tkinter.Label(self.root, text = "Unconfirmed Planets").grid(row = row, column = 0, sticky = 'E', padx = 15, pady = 5)
+        self.unconfirmed_text_box = Tkinter.Entry(self.root, textvariable = self.unconfirmed, width = 90, justify ='left')
+        self.unconfirmed_text_box.grid(row = row, column = 1, padx = 5, sticky = 'EW', columnspan = 4)
         row += 1
-        Tkinter.Label(self.root, text = "Unconfirmed Planets").grid(row = row, column = 0, sticky = 'W', padx = 5, pady = 5)
-        self.unconfirmed_text_box = Tkinter.Entry(self.root, textvariable = self.unconfirmed, width = 74, justify ='left')
-        self.unconfirmed_text_box.grid(row = row, column = 0, padx = 5, sticky = 'E', columnspan = 5)
+        self.root.grid_rowconfigure(row,weight=1)
+        Tkinter.Label(self.root, text = "Removed Planets").grid(row = row, column = 0, sticky = 'E', padx = 15, pady = 5)
+        self.removed_text_box = Tkinter.Entry(self.root, textvariable = self.removed, width = 90, justify ='left')
+        self.removed_text_box.grid(row = row, column = 1, padx = 5, sticky = 'EW',columnspan = 4)
         row += 1
-        Tkinter.Label(self.root, text = "Removed Planets").grid(row = row, column = 0, sticky = 'W', padx = 5, pady = 5)
-        self.removed_text_box = Tkinter.Entry(self.root, textvariable = self.removed, width = 74, justify ='left')
-        self.removed_text_box.grid(row = row, column = 0, padx = 5, sticky = 'E',columnspan = 5)
+        self.root.grid_rowconfigure(row,weight=1)
+        self.run_button = Tkinter.Button(self.root, text =' Run Dynamite', command = self.run_dynamite)
+        self.run_button.grid(row = row, column = 0, padx = 10, pady = 0, sticky = 'W')     
+        self.plot_button = Tkinter.Button(self.root, text = 'Run Plots Only', command = self.plot_dynamite)
+        self.plot_button.grid(row = row, column = 1, padx = 0, sticky = 'W')
+        self.py2csv_button = Tkinter.Button(self.root, text = 'PY2CSV', command = self.run_py2csv)
+        self.py2csv_button.grid(row = row, column = 2, padx = 0, sticky = 'W')
+        self.csv2py_button = Tkinter.Button(self.root, text = 'CSV2PY', command = self.run_csv2py)
+        self.csv2py_button.grid(row = row, column = 2, padx = 0, sticky ='E')
+        self.load_button = Tkinter.Button(self.root, text = 'Load New Config', command = self.load_config_file)
+        self.load_button.grid(row = row, column = 3, padx = 0, sticky = 'E')
+        self.edit_button = Tkinter.Button(self.root, text = 'Edit Config File', command = lambda: self.display_editor(self.root))
+        self.edit_button.grid(row = row, column = 4, padx = 10, sticky = 'E')
         row += 1
-        Tkinter.Button(self.root, text =' Run Dynamite', command = self.run_dynamite).grid(row = row, column = 0, padx = 30, pady = 5)
-        Tkinter.Button(self.root, text = 'Run Plots Only', command = self.plot_dynamite).grid(row = row, column = 1, padx = 30)
-        Tkinter.Button(self.root, text = 'Load New Config', command = self.load_config_file).grid(row = row, column = 2, padx = 30)
-        Tkinter.Button(self.root, text = 'Edit Config File', command = lambda: self.display_editor(self.root)).grid(row = row, column = 3, padx = 30)
-        Tkinter.Button(self.root, text = 'Exit', command = self.exit_program).grid(row = row, column = 4, padx = 10)
-                
+        self.root.grid_rowconfigure(row, weight=1)
+        self.exit_button = Tkinter.Button(self.root, text = 'Exit', command = self.exit_program)
+        self.exit_button.grid(row = row, column = 2, padx = 0)
+        
+        self.root.grid_columnconfigure(0,weight=1)
+        self.root.grid_columnconfigure(1,weight=1)
+        self.root.grid_columnconfigure(2,weight=1)
+        self.root.grid_columnconfigure(3,weight=1)
+        self.root.grid_columnconfigure(4,weight=1)
+        
         self.setup_widget_values()
-        self.root.resizable(0, 0)
+        self.root.protocol("WM_DELETE_WINDOW", self.exit_program)
         self.root.mainloop()
     
     def set_plot_save_false(self, *args):
@@ -386,8 +421,7 @@ class DynamiteGUI:
         """check that entries are valid lists"""
         for l in self.check_valid_entries_list:
             if not self.validate_entry(l.get()):
-                tkMB.showerror(title="INVALID ENTRY RUN ABORTED", message= "Invalid Entry for " + self.find_config_key(l) + " -> " +l.get() )
-                return False
+                return tkMB.askyesno(title="POSSIBLE INVALID ENTRY", message= "Possible Invalid Entry for " + self.find_config_key(l) + " -> " + l.get() + "\nDo you want to Continue?" )
         return True    
     
     def run_dynamite(self):
@@ -398,13 +432,14 @@ class DynamiteGUI:
         if self.run_entries_validator():
             if self.check_valid_entries():
                 self.save_config_data()
+                self.send_kill_signal()
                 if len(self.run_editors) > 0:
                     if (tkMB.askyesno("Close Output Window(s)", "Do you want to close previous RUN output window(s)?")):
                         for e in self.run_editors:
                             e.destroy()
                         self.run_editors = {}
                 self.editors = self.run_editors
-                thread = threading.Thread(target=self.execute_program, args=("DYNAMITE", "dynamite.py"))
+                thread = threading.Thread(target=self.execute_program, args=("DYNAMITE", "dynamite.py " + self.config_file))
                 thread.daemon = True
                 thread.start()
             return
@@ -420,21 +455,48 @@ class DynamiteGUI:
         if self.config_file == None:
             tkMB.showerror("Missing Config File", "Cannot PLOT Dynamite")
             return
-        if self.show_plots_box.get() == 'False':
-            tkMB.showerror("CANNOT RUN PLOTS", "Show Plots is set to False")
+        if self.save_plots_box.get() == 'False':
+            tkMB.showerror("CANNOT RUN PLOTS", "Use Saved Data is set to False")
             return
         if self.plot_entries_validator():
             if self.check_valid_entries():
                 self.save_config_data()
+                self.send_kill_signal()
                 if len(self.plot_editors) > 0:
                     if (tkMB.askyesno("Close Output Window(s)", "Do you want to close previous PLOT output window(s)?")):
                         for e in self.plot_editors:
                             e.destroy()
                         self.plot_editors = {}
                 self.editors = self.plot_editors
-                thread = threading.Thread(target=self.execute_program, args=("DYNAMITE PLOTS", "dynamite_plots.py"))
+                thread = threading.Thread(target=self.execute_program, args=("DYNAMITE PLOTS", "dynamite_plots.py " + self.config_file))
                 thread.daemon = True
                 thread.start()
+        return
+
+    def run_py2csv(self):
+        """run py2csv program"""
+        if len(self.py2csv_editors) > 0:
+            if (tkMB.askyesno("Close Output Window(s)", "Do you want to close previous PY2CSV output window(s)?")):
+                for e in self.py2csv_editors:
+                    e.destroy()
+        self.py2csv_editors = {}
+        self.editors = self.py2csv_editors
+        thread = threading.Thread(target=self.execute_program, args = ("PY2CSV", "dynamite_targets_dict.py dynamite_targets.py dynamite_targets.csv"))
+        thread.daemon = True
+        thread.start()
+        return
+
+    def run_csv2py(self):
+        """run csv2py program"""
+        if len(self.csv2py_editors) > 0:
+            if (tkMB.askyesno("Close Output Window(s)", "Do you want to close previous CSV2PY output window(s)?")):
+                for e in self.csv2py_editors:
+                    e.destroy()
+        self.csv2py_editors = {}
+        self.editors = self.csv2py_editors
+        thread = threading.Thread(target=self.execute_program, args = ("CSV2PY", "dynamite_targets_dict.py dynamite_targets.csv dynamite_targets.py"))
+        thread.daemon = True
+        thread.start()
         return
 
     def plot_entries_validator(self):
@@ -466,7 +528,7 @@ class DynamiteGUI:
        
     def validate_key(self, value, text):
         """Validates that the keystrokes for the text boxes are allowed."""
-        self.save_plots_box.current(1)    
+        self.save_plots_box.current(1)
         if (text in '0123456789.'):
             try:
                 if (len(value) > 0):
@@ -488,58 +550,79 @@ class DynamiteGUI:
             pass
         return False  
                
-    def execute_program(self, title, program):
+    def execute_program(self, title, command):
         """execute program"""
         editor = Tkinter.Toplevel(self.root)
         editor.bind('<ButtonRelease-3>', self.clicker, add='')
-        text_pad = ScrolledText.ScrolledText(editor, width=140, height=40)
+        text_pad = ScrolledText.ScrolledText(editor, width=100, height=40)
         editor.wm_title(title + "  -->  RUNNING")
-        editor.protocol("WM_DELETE_WINDOW", lambda:self.close_editor_window(editor))
+        editor.protocol("WM_DELETE_WINDOW", lambda:self.close_editor_window(editor, title))
         text_pad.pack(fill=Tkinter.BOTH, expand=True)
         try:
-            p = subprocess.Popen("python -u " + program + " " + self.config_file, shell=True, cwd=".", stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            start_time = time.time()
+            p = subprocess.Popen("python -u " + command, shell=True, cwd=".", stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
             atexit.register(p.terminate)
             self.editors[editor] = p
-            while self.root.winfo_exists() and editor in self.editors and self.editors[editor] != None:
-                out = p.stdout.readline()
-                if len(out) == 0:
-                    break
-                try:
-                    text_pad.insert(Tkconstants.END, out)
-                    text_pad.see(Tkconstants.END)
-                except:
-                    pass
-                p.poll()
+            log_file = 'log_file.txt'
+            if os.path.exists(log_file):
+                log_file = 'log_file1.txt'
+                if os.path.exists(log_file):
+                    log_file = 'log_file.txt'
+            with open(log_file, "w") as lfile:
+                while self.root.winfo_exists() and editor in self.editors and self.editors[editor] != None:
+                    out = p.stdout.readline()
+                    if len(out) == 0:
+                        break
+                    try:
+                        text_pad.insert(Tkconstants.END, out[0:2000])
+                        if len(out) > 2000: 
+                            text_pad.insert(Tkconstants.END, "\n\n!!!!OUTPUT TOO LARGE FOR DISPLAY. SEE FULL OUTPUT IN LOG_FILE.TXT!!!!\n\n")
+                        text_pad.see(Tkconstants.END)
+                        lfile.write(out.decode() + '\n')
+                    except: pass
+                    p.poll()
             self.editors[editor] = None
             editor.wm_title(title + "  -->  COMPLETED")
-            print("Program " + program + " has Completed")
+            message = "Program " + command + " has Completed in " + time.strftime('%H:%M:%S', time.gmtime(time.time() - start_time))
+            text_pad.insert(Tkconstants.END, message)
+            print(message)
         except:
-            self.kill_processes(editor)
+            self.kill_processes(editor, title)
    
-    def close_editor_window(self, editor):
+    def close_editor_window(self, editor, title):
         """Close process window and kill processes"""
-        p = self.editors[editor]
-        if p == None:
+        try:
+            p = self.editors[editor]
+            if p == None:
+                editor.destroy()
+                del self.editors[editor]
+            else:
+                if (tkMB.askyesno("RUNNING JOBS", "Do you want to terminate running jobs? This may take time!!!!")):
+                    self.kill_processes(editor, title)
+        except:
             editor.destroy()
-            del self.editors[editor]
-        else:
-            if (tkMB.askyesno("RUNNING JOBS", "Do you want to terminate running jobs?")):
-                self.kill_processes(editor)
-    
-    def kill_processes(self, editor):
+            
+    def kill_processes(self, editor, title):
         """kill processes"""
+        self.send_kill_signal()
         p = self.editors[editor]
         if p == None:
             return
         try:
-            open("stop_PPR_stop","w").close()
             p.terminate()
             p.kill()
-            os.kill(p.pid, 0)
         except Exception as e:
             print(e)
         self.editors[editor] = None
-                  
+        editor.wm_title(title + "  -->  TERMINATED")
+    
+    def send_kill_signal(self):
+        try:
+            kill_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            kill_socket.connect(("127.0.0.1", 12345))
+            kill_socket.close()
+        except: pass
+                          
     def load_config_data(self, filename):
         """Loads config file."""
         try:
@@ -628,6 +711,13 @@ class DynamiteGUI:
         CreateToolTip(self.additional_text_box, self.root, self.tooltips, self.config_entries, self.additional)
         CreateToolTip(self.unconfirmed_text_box, self.root, self.tooltips, self.config_entries, self.unconfirmed)
         CreateToolTip(self.removed_text_box, self.root, self.tooltips, self.config_entries, self.removed)
+        CreateToolTip(self.run_button, self.root, "Executes the dynamite.py script", None)
+        CreateToolTip(self.plot_button, self.root, "Executes the dynamite_plots.py script", None)
+        CreateToolTip(self.load_button, self.root, "Loads a new dynamite config file into the GUI", None)
+        CreateToolTip(self.edit_button, self.root, "Displays an editor for the currently loaded dynamite config file", None)
+        CreateToolTip(self.py2csv_button, self.root, "Does a conversion from dynamite_targets.py \n to dynamite_targets.csv", None)
+        CreateToolTip(self.csv2py_button, self.root, "Does a conversion from dynamite_targets.csv \n to dynamite_targets.py.new", None)
+        CreateToolTip(self.exit_button, self.root, "Exits the GUI and stops all python sub processes", None)
         
     def find_selected_item(self, item,  values):
         """Find selected combo box entry"""
@@ -708,7 +798,8 @@ class DynamiteGUI:
             return None
                        
     def exit_program(self):
-        """Exits program."""  
+        """Exits program.""" 
+        self.send_kill_signal()
         sys.exit()
     
     def load_config_file(self):
@@ -753,27 +844,39 @@ class DynamiteGUI:
         filemenu.add_command(label = "Save", command = lambda: self.save_command(editor, text_pad))
         filemenu.add_command(label = "Exit", command = lambda: self.exit_command(editor, text_pad))
         menu.add_cascade(label = "File", menu = filemenu)
+        editmenu = Tkinter.Menu(None, tearoff =0, takefocus = False) 
+        editmenu.add_command(label = 'Cut', command = (lambda: self.click_cut(editor))) 
+        editmenu.add_command(label = 'Copy', command = (lambda: self.click_copy(editor))) 
+        editmenu.add_command(label = 'Paste', command = (lambda: self.click_paste(editor))) 
+        editmenu.add_command(label = 'Select All', command = (lambda: self.click_select_all(editor))) 
+        menu.add_cascade(label = "Edit", menu = editmenu)
         text_pad.pack(fill=ScrolledText.BOTH, side= ScrolledText.LEFT, expand=True)
         file_handler = open(self.config_file)
         self.contents = file_handler.read().replace('\r\n', '\n')
         text_pad.insert('1.0', self.contents)
         file_handler.close()
-        
+        text_pad.focus_set()
+
+    def click_copy(self, e, apnd = False): 
+        e.event_generate('<Control-c>')
+
+    def click_cut(self, e):
+        e.event_generate('<Control-x>') 
+
+    def click_paste(self,e):
+        e.event_generate('<Control-v>')
+
+    def click_select_all(self,e):
+        e.event_generate('<Control-a>')
+       
     def clicker(self, e):
         """Shows events on right-mouse clicks for editor."""
-        def click_copy(e, apnd = False): 
-            e.widget.event_generate('<Control-c>')
-
-        def click_cut(e):
-            e.widget.event_generate('<Control-x>') 
-
-        def click_paste(e):
-            e.widget.event_generate('<Control-v>')
-
         rmenu = Tkinter.Menu(None, tearoff = 0, takefocus = False) 
-        rmenu.add_command(label = 'Cut', command = (lambda: click_cut(e))) 
-        rmenu.add_command(label = 'Copy', command = (lambda: click_copy(e))) 
-        rmenu.add_command(label = 'Paste', command = (lambda: click_paste(e))) 
+        rmenu.add_command(label = 'Cut', command = (lambda: self.click_cut(e.widget))) 
+        rmenu.add_command(label = 'Copy', command = (lambda: self.click_copy(e.widget))) 
+        rmenu.add_command(label = 'Paste', command = (lambda: self.click_paste(e.widget))) 
+        rmenu.add_command(label = 'Select All', command = (lambda: self.click_select_all(e.widget))) 
         rmenu.tk_popup(e.x_root + 40, e.y_root + 10, entry = "0")
-        
-DynamiteGUI()
+
+if __name__ == '__main__':      
+    DynamiteGUI()

@@ -22,14 +22,14 @@
 
 MC_chain::10000
 mode::single
-system::Kepler-154
-period::epos
+system::tau Ceti
+period::syssim
 radius::syssim
 radtype::clustered
 radmin::0.1
-radmax::10
+radmax::5
 mass_radius::otegi
-otegi_rho::rocky
+otegi_rho::volatile
 
 ## PLOTTING PARAMETERS ##
 
@@ -73,6 +73,6 @@ ind_i::full
 # unconfirmed: the parameters of the unconfirmed candidate(s) - must be list of lists, with each inner list having the parameters in order [inclination, planet radius/mass, period]; mode must be single
 # removed: the parameters of the planet or planets you want to remove - must be a list of the periods for the planets to remove, as those are unique identifiers; mode must be single
 
-additional::[[]]
-unconfirmed::[[]]
+additional::[[35, (3.3, "Mass"), 468, "PxP-4"]]
+unconfirmed::[[35, (3.49, "Mass"), 14, "b"], [35, (5.4, "Mass"), 35.4, "c"], [35, (6.28, "Mass"), 94.1, "d"]]
 removed::[]
