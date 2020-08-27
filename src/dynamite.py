@@ -4,8 +4,8 @@
 ### jdietrich1@email.arizona.edu ###
 ### 2020 August 12 ###
 ### Version 1.3 ###
-### Dietrich & Apai (2020), Astronomical Journal ###
-### https://doi.org/10.3847/1538-3881/aba61d ###
+### Dietrich & Apai (2020), AJ, 160, 107D ###
+### https://iopscience.iop.org/article/10.3847/1538-3881/aba61d ###
 
 import os
 import ast
@@ -78,21 +78,22 @@ class dynamite:
 
                         targ_rem.append(x)
 
-                    for i in self.config_parameters["unconfirmed"]:
-                        x = []
+                    if self.config_parameters["add_unconfirmed"] == "True":
+                        for i in self.config_parameters["unconfirmed"]:
+                            x = []
 
-                        for j in range(len(i) - 1):
-                            if isinstance(i[j], tuple):
-                                if self.config_parameters["use_mass"] == "True":
-                                    x.append(self.mr_convert(i[j][0]))
+                            for j in range(len(i) - 1):
+                                if isinstance(i[j], tuple):
+                                    if self.config_parameters["use_mass"] == "True":
+                                        x.append(self.mr_convert(i[j][0]))
+
+                                    else:
+                                        x.append(i[j][0])
 
                                 else:
-                                    x.append(i[j][0])
+                                    x.append(i[j])
 
-                            else:
-                                x.append(i[j])
-
-                        targ_rem.append(x)
+                            targ_rem.append(x)
 
                 targ_rem = np.array(targ_rem)
                 target = targ_rem[targ_rem[:, 2].argsort()]

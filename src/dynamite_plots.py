@@ -4,8 +4,8 @@
 ### jdietrich1@email.arizona.edu ###
 ### 2020 August 12 ###
 ### Version 1.3 ###
-### Dietrich & Apai (2020), Astronomical Journal ###
-### https://doi.org/10.3847/1538-3881/aba61d ###
+### Dietrich & Apai (2020), AJ, 160, 107D ###
+### https://iopscience.iop.org/article/10.3847/1538-3881/aba61d ###
 
 import ast
 import sys
@@ -464,7 +464,6 @@ class dynamite_plots:
 
         print(datetime.now(), "Creating Histograms for", system)
 
-        self.config_parameters["removed"]
         color_scheme = ["#" + self.config_parameters["plt_colors"][i] for i in range(len(self.config_parameters["plt_colors"]))]
         targets_dict = dynamite_targets(self.config_parameters).get_targets(self.config_parameters["mode"], system, self.config_parameters["radmax"], self.config_parameters["removed"])
         Rs, Ms, Ts, target, names = self.set_up(targets_dict, system)
@@ -498,7 +497,7 @@ class dynamite_plots:
                     p1.append(target[i][2])
                     i1.append(target[i][0])
                     l1.append(names[i])
-                    m1, ri = mr_appends(target[i][1], m1, r1)
+                    m1, r1 = mr_appends(target[i][1], m1, r1)
 
                 else:
                     p12.append(target[i][2])
@@ -522,9 +521,9 @@ class dynamite_plots:
 
         if len(self.config_parameters["removed"]) > 0:
             for i in range(len(self.config_parameters["removed"])):
-                p2 = [target[j][2] for j in range(len(target)) if target[j][2] == self.config_parameters["removed"][i]]
-                i2 = [target[j][0] for j in range(len(target)) if target[j][2] == self.config_parameters["removed"][i]]
-                l2 = [names[j] for j in range(len(target)) if target[j][2] == self.config_parameters["removed"][i]]
+                p2.append([target[j][2] for j in range(len(target)) if target[j][2] == self.config_parameters["removed"][i]][0])
+                i2.append([target[j][0] for j in range(len(target)) if target[j][2] == self.config_parameters["removed"][i]][0])
+                l2.append([names[j] for j in range(len(target)) if target[j][2] == self.config_parameters["removed"][i]][0])
 
                 for j in target:
                     if j[2] == self.config_parameters["removed"][i]:
@@ -605,7 +604,7 @@ class dynamite_plots:
         if len(p2) > 0:
             h6 = plt.scatter(p2, np.ones(len(p2))*ul/10, c=color_scheme[4], edgecolors="k", marker="X", s=[r2[i]*200 for i in range(len(r2))], linewidth=2, zorder=2)
             hands.append(h6)
-            labs.append("Known planets removed from system" if len(p2) > 1 else "Known planet removed from system")
+            labs.append("Known planets removed" if len(p2) > 1 else "Known planet removed")
             annots = self.plot_annots(annots, p2, ul, l2, xlim, ("log" if self.config_parameters["ind_P"] == "log" else "linear"))
 
         if len(p3) > 0:
@@ -876,6 +875,7 @@ class dynamite_plots:
 
     def plot_annots(self, annots, xl, ul, annot_l, xlim, scale="linear"):
         """Puts planet annotation labels on scatter plots"""
+
 
         for i in range(len(xl)):
             xy1 = [xl[i], ul/10 - ul/15]

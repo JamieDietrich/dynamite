@@ -4,8 +4,8 @@
 ### jdietrich1@email.arizona.edu ###
 ### 2020 August 12 ###
 ### Version 1.3 ###
-### Dietrich & Apai (2020), Astronomical Journal ###
-### https://doi.org/10.3847/1538-3881/aba61d ###
+### Dietrich & Apai (2020), AJ, 160, 107D ###
+### https://iopscience.iop.org/article/10.3847/1538-3881/aba61d ###
 
 ## PREDICTION PARAMETERS ##
 
@@ -28,8 +28,8 @@ radius::syssim
 radtype::clustered
 radmin::0.1
 radmax::10
-mass_radius::otegi
-otegi_rho::rocky
+mass_radius::mrexo
+otegi_rho::volatile
 
 ## PLOTTING PARAMETERS ##
 
@@ -52,7 +52,7 @@ otegi_rho::rocky
 
 plot::True
 show_plots::False
-saved::True
+saved::False
 plt_P_R::False
 plt_P_scale::log
 plt_tdtp::False
@@ -72,7 +72,9 @@ ind_i::full
 # additional: the parameters of the planet(s) you want to add - must be list of lists, with each inner list having the parameters in order [inclination, planet radius/mass, period]; mode must be single
 # unconfirmed: the parameters of the unconfirmed candidate(s) - must be list of lists, with each inner list having the parameters in order [inclination, planet radius/mass, period]; mode must be single
 # removed: the parameters of the planet or planets you want to remove - must be a list of the periods for the planets to remove, as those are unique identifiers; mode must be single
+# add_uncorfirmed: whether or not to add the unconfirmed planets into the DYNAMITE analysis - True/False
 
 additional::[[]]
 unconfirmed::[[]]
-removed::[]
+removed::[12.161, 17.667]
+add_unconfirmed::False
