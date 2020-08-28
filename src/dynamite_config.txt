@@ -22,8 +22,8 @@
 
 MC_chain::10000
 mode::single
-system::Kepler-154
-period::epos
+system::TOI 174
+period::syssim
 radius::syssim
 radtype::clustered
 radmin::0.1
@@ -72,7 +72,7 @@ ind_i::full
 # additional: the parameters of the planet(s) you want to add - must be list of lists, with each inner list having the parameters in order [inclination, planet radius/mass, period]; mode must be single
 # unconfirmed: the parameters of the unconfirmed candidate(s) - must be list of lists, with each inner list having the parameters in order [inclination, planet radius/mass, period]; mode must be single
 # removed: the parameters of the planet or planets you want to remove - must be a list of the periods for the planets to remove, as those are unique identifiers; mode must be single
-# add_uncorfirmed: whether or not to add the unconfirmed planets into the DYNAMITE analysis - True/False
+# add_unconfirmed: whether or not to add the unconfirmed planets into the DYNAMITE analysis - True/False
 
 additional::[[]]
 unconfirmed::[[]]
