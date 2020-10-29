@@ -142,7 +142,7 @@ class DynamiteGUI:
         self.mode_box.bind('<<ComboboxSelected>>', self.set_plot_save_false)
         self.mode_box.configure(state = 'readonly')
         
-        self.system_box = ttk.Combobox(self.root, width = 16, height = 20, justify = Tkconstants.RIGHT)
+        self.system_box = ttk.Combobox(self.root, width = 18, height = 20, justify = Tkconstants.RIGHT)
         self.system_box["values"] = self.system_values
         self.system_box.current(0)
         self.config_entries["system"] = self.system_box
