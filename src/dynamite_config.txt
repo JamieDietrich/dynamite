@@ -20,16 +20,16 @@
 # mass_radius: which mass-radius relationship to use - mrexo/otegi; mrexo for non-parametric model from Ning et al. (2018) and Kanodia et al. (2019), otegi for power-law model from Otegi et al. (2020)
 # otegi_rho: whether to use volatile or rocky formulae for 5 M_earth < M < 25 M_earth - rocky/volatile; only used if mass_radius is otegi
 
-MC_chain::10000
+MC_chain::100000
 mode::single
-system::TOI 174
-period::syssim
+system::Inner Solar System
+period::epos
 radius::syssim
 radtype::clustered
 radmin::0.1
-radmax::10
-mass_radius::mrexo
-otegi_rho::volatile
+radmax::5
+mass_radius::otegi
+otegi_rho::rocky
 
 ## PLOTTING PARAMETERS ##
 
@@ -76,5 +76,5 @@ ind_i::full
 
 additional::[[]]
 unconfirmed::[[]]
-removed::[12.161, 17.667]
+removed::[]
 add_unconfirmed::False

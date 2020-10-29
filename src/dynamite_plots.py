@@ -26,6 +26,16 @@ class dynamite_plots:
     def __init__(self, Pk=[], P=[], PP=[], per=[], Rk=[], R=[], PR=[], ik=[], inc=[], Pi=[], deltas=[], ratios=[], tdm=[], tdle=[], tdue=[], tpm=[], tple=[], tpue=[], targets=[], pers=[], rads=[], cfname="dynamite_config.txt"):
         """Sets up plotting routines"""
 
+        self.seconds_per_day = 86400
+        self.G = const.G.cgs.value
+        self.sigma_sb = const.sigma_sb.cgs.value
+        self.au = const.au.cgs.value
+        self.M_sun = const.M_sun.cgs.value
+        self.R_sun = const.R_sun.cgs.value
+        self.L_sun = const.L_sun.cgs.value
+        self.M_earth = const.M_earth.cgs.value
+        self.R_earth = const.R_earth.cgs.value
+
         self.config_parameters = {}
 
         try:
@@ -493,7 +503,7 @@ class dynamite_plots:
 
         for i in range(len(target)):
             if target[i][2] not in self.config_parameters["removed"]:
-                if math.cos(target[i][0]*math.pi/180) * self.K3(target[i][2], Ms) / (Rs*const.R_sun.cgs.value) <= 1:
+                if math.cos(target[i][0]*math.pi/180) * self.K3(target[i][2], Ms) / (Rs*self.R_sun) <= 1:
                     p1.append(target[i][2])
                     i1.append(target[i][0])
                     l1.append(names[i])
@@ -567,7 +577,7 @@ class dynamite_plots:
             widths = (bins[1:] - bins[:-1])
             hist, _ = np.histogram(Pk, bins=bins)
             hist_norm = hist/widths
-            h1 = plt.bar(bins[:-1], hist_norm/1e5, widths, color=color_scheme[0])
+            h1 = plt.bar(bins[:-1], hist_norm/len(Pk), widths, color=color_scheme[0])
             hands.append(h1)
             PPl = np.interp(bins, P, PP)
 
@@ -576,7 +586,7 @@ class dynamite_plots:
                 hands.append(h2[0])
                 labs.append("Probability Density Function")
 
-            ul = np.amax(hist_norm)*1.5e-5
+            ul = np.amax(hist_norm)*1.5/len(Pk)
             plt.xscale("Log")
             xlim = [0.5 if min(np.hstack([p1, p11, p12, p2, p3])) > 0.5 else min(np.hstack([p1, p11, p12, p2, p3])) - 0.1, 730]
             plt_savename = system.replace(" ", "") + "_P_log_" + self.config_parameters["period"] + "_" + self.config_parameters["mass_radius"] + ("_" + self.config_parameters["otegi_rho"] if self.config_parameters["mass_radius"] == "otegi" else "") + ".png"
@@ -616,7 +626,7 @@ class dynamite_plots:
         s_eff_sun = [1.014, 0.3438]
         coeff = [[8.1774e-5, 1.7063e-9, -4.3241e-12, -6.6462e-16], [5.8942e-5, 1.6558e-9, -3.0045e-12, -5.2983e-16]]
         T_eff = Ts - 5780
-        L_eff = 4*math.pi*(Rs*const.R_sun.cgs.value)**2*const.sigma_sb.cgs.value*Ts**4/const.L_sun.cgs.value
+        L_eff = 4*math.pi*(Rs*self.R_sun)**2*self.sigma_sb*Ts**4/self.L_sun
         s_eff = np.zeros(len(s_eff_sun))
         d = np.zeros(len(s_eff))
         vl = np.zeros(len(s_eff))
@@ -624,14 +634,14 @@ class dynamite_plots:
         for i in range(len(s_eff_sun)):
             s_eff[i] = s_eff_sun[i] + sum([coeff[i][j-1]*T_eff**j for j in range(1, 5)])
             d[i] = (L_eff/s_eff[i])**0.5
-            vl[i] = self.K3_inv(d[i]*const.au.cgs.value, Ms)
+            vl[i] = self.K3_inv(d[i], Ms)
             plt.axvline(vl[i], color=color_scheme[6])
 
         plt.axvspan(min(vl), max(vl), color=color_scheme[6], alpha=0.5)
-        plt.annotate("Habitable\nZone", (np.mean(vl), ul*0.75), textcoords="offset points", xytext=(-7, 0), ha="center", weight='bold', fontsize=13)
+        plt.annotate("Habitable\nZone", (min(vl)*math.sqrt(max(vl)/min(vl)), ul*0.75), textcoords="offset points", xytext=(-5, 0), ha="center", weight='bold', fontsize=11)
         plt.xlabel("Period (days)", fontsize=24)
         plt.ylabel("Relative Likelihood", fontsize=24)
-        lgnd = plt.legend(hands, labs, loc=9, fontsize=15, ncol=2, markerscale=0.75)
+        lgnd = plt.legend(hands, labs, loc=9, fontsize=14, ncol=2, markerscale=0.75)
 
         for i in lgnd.legendHandles:
             i._sizes = [200]
@@ -774,7 +784,7 @@ class dynamite_plots:
         plt.xlim(xlim[0], xlim[1])
         plt.ylim(0,ul)
         plt.ylabel("Relative Likelihood", fontsize=32)
-        plt.legend(hands, labs, loc=9, fontsize=17, ncol=2)
+        plt.legend(hands, labs, loc=9, fontsize=14, ncol=2)
         ax.tick_params(labelsize=24)
         fig.suptitle((r"$\tau$ Ceti" if system == "tau Ceti" else system) + " Planet " + ("Radius " if self.config_parameters["use_mass"] == "False" else "Mass ") + "Relative Likelihood", fontsize=30)
         plt.savefig(plt_savename)
@@ -843,7 +853,7 @@ class dynamite_plots:
         plt.xlim(xlim[0], xlim[1])
         plt.ylim(0, np.amax(n)*1.5)
         ax.tick_params(labelsize=18)
-        plt.legend(hands, labs, loc=9, fontsize=15, ncol=2)
+        plt.legend(hands, labs, loc=9, fontsize=14, ncol=2)
         fig.suptitle((r"$\tau$ Ceti" if system == "tau Ceti" else system) + " Inclination Relative Likelihood", fontsize=30)
         plt.savefig(plt_savename)
 
@@ -859,7 +869,7 @@ class dynamite_plots:
         """Sets up target"""
 
         def get_arccos(star_pars, planet_pars):
-            return round(np.arccos(planet_pars[0]/(self.K3(planet_pars[1], star_pars[2])/(star_pars[0]*const.R_sun.cgs.value)))*180/math.pi, 3)
+            return round(np.arccos(planet_pars[0]/(self.K3(planet_pars[1], star_pars[2])/(star_pars[0]*self.R_sun)))*180/math.pi, 3)
            
         t = list(targets_dict[target])
 
@@ -941,19 +951,15 @@ class dynamite_plots:
 
     def K3(self, P, M):
         """Calculates semi-major axis in cm using period in days and mass in solar masses"""
-
-        seconds_per_day = 86400
         
-        return (const.G.cgs.value*(M*const.M_sun.cgs.value)*(P*seconds_per_day)**2/(4*math.pi**2))**(1/3)
+        return (self.G*(M*self.M_sun)*(P*self.seconds_per_day)**2/(4*math.pi**2))**(1/3)
 
 
 
     def K3_inv(self, a, M):
-        """Calculates period in days using semi-major axis in cm and mass in solar masses"""
-
-        seconds_per_day = 86400
+        """Calculates period in days using semi-major axis in au and mass in solar masses"""
         
-        return (4*math.pi**2*a**3/(const.G.cgs.value*(M*const.M_sun.cgs.value)))**0.5/seconds_per_day
+        return (4*math.pi**2*(a*self.au)**3/(self.G*(M*self.M_sun)))**0.5/self.seconds_per_day
 
 
 
