@@ -2,10 +2,10 @@
 ### Targets Dictionary-CSV Conversion ###
 ### Jeremy Dietrich ###
 ### jdietrich1@email.arizona.edu ###
-### 2020 August 12 ###
-### Version 1.3 ###
-### Dietrich & Apai (2020), Astronomical Journal ###
-### https://doi.org/10.3847/1538-3881/aba61d ###
+### 2020 October 28 ###
+### Version 1.4 ###
+### Dietrich & Apai (2020), AJ, 160, 107D ###
+### https://iopscience.iop.org/article/10.3847/1538-3881/aba61d ###
 
 import re
 import sys
@@ -25,7 +25,7 @@ class dynamite_targets_dict:
             self.targets_to_csv(infile, outfile)
             print("Complete PY2CSV for", infile, "to", outfile)
         else:
-            print('Input files must consist of a python targets file and a tragets csv file!')
+            print('Input files must consist of a python targets file and a targets csv file!')
 
     def targets_to_csv(self, py_filename, csv_filename):
         """Targets dict to csv file"""
@@ -83,6 +83,10 @@ class dynamite_targets_dict:
                             value, _, comments = csv_lines[row].partition("#")
                             current_row += ' [' + value.rstrip().replace('"', '')[6:-1].lstrip().replace("),(", "), (") + '],'
                             row += 1
+                        try:
+                            comments = comments
+                        except:
+                            comments = []
                         current_row = current_row.replace('"','').replace("', ", ", ").replace(", ' ",", ").replace("', (", ", (").replace("',(", "', (").replace(",(", ", (")
                         pyfile.write(' '*7 + current_row[1: -1] + ")," + (" #" + comments.replace('"','').rstrip() if len(comments) > 0 else "") + '\n')
                 elif line.strip() == '}':

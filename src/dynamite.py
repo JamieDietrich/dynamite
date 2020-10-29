@@ -2,8 +2,8 @@
 ### Main File ###
 ### Jeremy Dietrich ###
 ### jdietrich1@email.arizona.edu ###
-### 2020 August 12 ###
-### Version 1.3 ###
+### 2020 October 28 ###
+### Version 1.4 ###
 ### Dietrich & Apai (2020), AJ, 160, 107D ###
 ### https://iopscience.iop.org/article/10.3847/1538-3881/aba61d ###
 
@@ -11,7 +11,6 @@ import os
 import ast
 import sys
 import math
-import rebound
 import itertools
 import numpy as np
 from PPR import PPR

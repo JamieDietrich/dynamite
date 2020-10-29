@@ -2,8 +2,8 @@
 ### GUI ###
 ### Jeremy Dietrich ###
 ### jdietrich1@email.arizona.edu ###
-### 2020 August 12 ###
-### Version 1.3 ###
+### 2020 October 28 ###
+### Version 1.4 ###
 ### Dietrich & Apai (2020), Astronomical Journal ###
 ### https://doi.org/10.3847/1538-3881/aba61d ###
 
@@ -18,6 +18,7 @@ import subprocess
 import scipy as sp
 from tkinter import ttk
 import tkinter as Tkinter
+import dynamite_targets_editor
 from tkinter import filedialog as tkFD
 from tkinter import messagebox as tkMB
 import tkinter.scrolledtext as ScrolledText
@@ -65,8 +66,6 @@ class DynamiteGUI:
         self.config_entries = {}
         self.run_editors = {}
         self.plot_editors = {}
-        self.py2csv_editors = {}
-        self.csv2py_editors = {}
         self.root = Tkinter.Tk()
                 
         if (len(sys.argv)  >=  2):
@@ -103,6 +102,7 @@ class DynamiteGUI:
         self.plot_pdf_values = [True, False]
         self.show_rearth_values = [True, False]
         self.use_mass_values = [True, False]
+        self.add_unconfirmed_values = [True, False]
         self.ind_p_values = ["linear_zoom", "linear", "log"]
         self.ind_r_values = ["linear_zoom", "linear"]
         self.ind_i_values = ["full", "truncated"]
@@ -289,12 +289,19 @@ class DynamiteGUI:
         self.ind_i_box.bind('<<ComboboxSelected>>')
         self.ind_i_box.configure(state = 'readonly')
         
+        self.add_unconfirmed_box = ttk.Combobox(self.root, width = 6, justify = Tkconstants.RIGHT)
+        self.add_unconfirmed_box["values"] = self.add_unconfirmed_values
+        self.add_unconfirmed_box.current(0)
+        self.config_entries["add_unconfirmed"] = self.add_unconfirmed_box
+        self.add_unconfirmed_box.bind('<<ComboboxSelected>>')
+        self.add_unconfirmed_box.configure(state = 'readonly')
+        
         vcmd = (self.root.register(self.validate_key), '%P', '%S')
         self.check_valid_entries_list = [self.additional, self.unconfirmed, self.removed, self.plot_colors]
         
         row = 0
         self.root.grid_rowconfigure(row,weight=1)
-        Tkinter.Label(self.root, text = "V 1", font = ("Helvetica", 7)).grid(row = row, column = 4, sticky = 'EN')
+        Tkinter.Label(self.root, text = "V 1", font = ("Helvetica", 7)).grid(row = row, column = 5, sticky = 'EN')
         Tkinter.Label(self.root, text = "PREDICTION PARAMETERS").grid(row = row, column = 1, sticky = 'EW', padx = 0, pady = 5, columnspan = 3)
         row += 1
         self.root.grid_rowconfigure(row,weight=1)
@@ -377,6 +384,10 @@ class DynamiteGUI:
         self.additional_text_box.grid(row = row, column = 1, padx = 5, sticky = 'EW', columnspan = 4)
         row += 1
         self.root.grid_rowconfigure(row,weight=1)
+        Tkinter.Label(self.root, text = "Add Unconfirmed").grid(row = row, column = 0, padx = 15, pady = 5, sticky = 'E')
+        self.add_unconfirmed_box.grid(row = row, column = 1, padx = 5, sticky = 'W')
+        row += 1
+        self.root.grid_rowconfigure(row,weight=1)
         Tkinter.Label(self.root, text = "Unconfirmed Planets").grid(row = row, column = 0, sticky = 'E', padx = 15, pady = 5)
         self.unconfirmed_text_box = Tkinter.Entry(self.root, textvariable = self.unconfirmed, width = 90, justify ='left')
         self.unconfirmed_text_box.grid(row = row, column = 1, padx = 5, sticky = 'EW', columnspan = 4)
@@ -388,21 +399,18 @@ class DynamiteGUI:
         row += 1
         self.root.grid_rowconfigure(row,weight=1)
         self.run_button = Tkinter.Button(self.root, text =' Run Dynamite', command = self.run_dynamite)
-        self.run_button.grid(row = row, column = 0, padx = 10, pady = 0, sticky = 'W')     
+        self.run_button.grid(row = row, column = 0, padx = 10, pady = 5, sticky = 'W')     
         self.plot_button = Tkinter.Button(self.root, text = 'Run Plots Only', command = self.plot_dynamite)
         self.plot_button.grid(row = row, column = 1, padx = 0, sticky = 'W')
-        self.py2csv_button = Tkinter.Button(self.root, text = 'PY2CSV', command = self.run_py2csv)
-        self.py2csv_button.grid(row = row, column = 2, padx = 0, sticky = 'W')
-        self.csv2py_button = Tkinter.Button(self.root, text = 'CSV2PY', command = self.run_csv2py)
-        self.csv2py_button.grid(row = row, column = 2, padx = 0, sticky ='E')
+        self.targets_editor_button = Tkinter.Button(self.root, text = 'Targets Editor', command = self.run_targets_editor)
+        self.targets_editor_button.grid(row = row, column = 2, padx = 20, sticky = 'W')
         self.load_button = Tkinter.Button(self.root, text = 'Load New Config', command = self.load_config_file)
-        self.load_button.grid(row = row, column = 3, padx = 0, sticky = 'E')
+        self.load_button.grid(row = row, column = 3, padx = 0, sticky = 'W')
         self.edit_button = Tkinter.Button(self.root, text = 'Edit Config File', command = lambda: self.display_editor(self.root))
-        self.edit_button.grid(row = row, column = 4, padx = 10, sticky = 'E')
-        row += 1
+        self.edit_button.grid(row = row, column = 4, padx = 0, sticky = 'W')
         self.root.grid_rowconfigure(row, weight=1)
         self.exit_button = Tkinter.Button(self.root, text = 'Exit', command = self.exit_program)
-        self.exit_button.grid(row = row, column = 2, padx = 0)
+        self.exit_button.grid(row = row, column = 5, padx = 5)
         
         self.root.grid_columnconfigure(0,weight=1)
         self.root.grid_columnconfigure(1,weight=1)
@@ -473,31 +481,11 @@ class DynamiteGUI:
                 thread.start()
         return
 
-    def run_py2csv(self):
-        """run py2csv program"""
-        if len(self.py2csv_editors) > 0:
-            if (tkMB.askyesno("Close Output Window(s)", "Do you want to close previous PY2CSV output window(s)?")):
-                for e in self.py2csv_editors:
-                    e.destroy()
-        self.py2csv_editors = {}
-        self.editors = self.py2csv_editors
-        thread = threading.Thread(target=self.execute_program, args = ("PY2CSV", "dynamite_targets_dict.py dynamite_targets.py dynamite_targets.csv"))
+    def run_targets_editor(self):
+        """run targets editor program"""
+        thread = threading.Thread(target=dynamite_targets_editor.dynamite_targets_editor(self.root), args = ())
         thread.daemon = True
         thread.start()
-        return
-
-    def run_csv2py(self):
-        """run csv2py program"""
-        if len(self.csv2py_editors) > 0:
-            if (tkMB.askyesno("Close Output Window(s)", "Do you want to close previous CSV2PY output window(s)?")):
-                for e in self.csv2py_editors:
-                    e.destroy()
-        self.csv2py_editors = {}
-        self.editors = self.csv2py_editors
-        thread = threading.Thread(target=self.execute_program, args = ("CSV2PY", "dynamite_targets_dict.py dynamite_targets.csv dynamite_targets.py"))
-        thread.daemon = True
-        thread.start()
-        return
 
     def plot_entries_validator(self):
         """valid plot entries"""
@@ -682,6 +670,7 @@ class DynamiteGUI:
         self.ind_p_box.current(self.find_selected_item(self.find_config_key(self.ind_p_box), self.ind_p_values))
         self.ind_r_box.current(self.find_selected_item(self.find_config_key(self.ind_r_box), self.ind_r_values))
         self.ind_i_box.current(self.find_selected_item(self.find_config_key(self.ind_i_box), self.ind_i_values))
+        self.add_unconfirmed_box.current(self.find_selected_item(self.find_config_key(self.add_unconfirmed_box), self.add_unconfirmed_values))
         CreateToolTip(self.mc_chain_text_box, self.root, self.tooltips, self.config_entries, self.mc_chain)
         CreateToolTip(self.mode_box, self.root, self.tooltips, self.config_entries)
         CreateToolTip(self.system_box, self.root, self.tooltips, self.config_entries)
@@ -707,6 +696,7 @@ class DynamiteGUI:
         CreateToolTip(self.ind_p_box, self.root, self.tooltips, self.config_entries)
         CreateToolTip(self.ind_r_box, self.root, self.tooltips, self.config_entries)
         CreateToolTip(self.ind_i_box, self.root, self.tooltips, self.config_entries)
+        CreateToolTip(self.add_unconfirmed_box, self.root, self.tooltips, self.config_entries)
         CreateToolTip(self.plot_colors_text_box, self.root, self.tooltips, self.config_entries, self.plot_colors)
         CreateToolTip(self.additional_text_box, self.root, self.tooltips, self.config_entries, self.additional)
         CreateToolTip(self.unconfirmed_text_box, self.root, self.tooltips, self.config_entries, self.unconfirmed)
@@ -715,8 +705,7 @@ class DynamiteGUI:
         CreateToolTip(self.plot_button, self.root, "Executes the dynamite_plots.py script", None)
         CreateToolTip(self.load_button, self.root, "Loads a new dynamite config file into the GUI", None)
         CreateToolTip(self.edit_button, self.root, "Displays an editor for the currently loaded dynamite config file", None)
-        CreateToolTip(self.py2csv_button, self.root, "Does a conversion from dynamite_targets.py \n to dynamite_targets.csv", None)
-        CreateToolTip(self.csv2py_button, self.root, "Does a conversion from dynamite_targets.csv \n to dynamite_targets.py.new", None)
+        CreateToolTip(self.targets_editor_button, self.root, "Displays an editor for the targets dictionary in dynamite_targets.py", None)
         CreateToolTip(self.exit_button, self.root, "Exits the GUI and stops all python sub processes", None)
         
     def find_selected_item(self, item,  values):
