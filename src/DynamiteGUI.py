@@ -705,7 +705,7 @@ class DynamiteGUI:
         CreateToolTip(self.plot_button, self.root, "Executes the dynamite_plots.py script", None)
         CreateToolTip(self.load_button, self.root, "Loads a new dynamite config file into the GUI", None)
         CreateToolTip(self.edit_button, self.root, "Displays an editor for the currently loaded dynamite config file", None)
-        CreateToolTip(self.targets_editor_button, self.root, "Displays an editor for the targets dictionary in dynamite_targets.py", None)
+        #CreateToolTip(self.targets_editor_button, self.root, "Displays an editor for the targets dictionary in dynamite_targets.py", None)
         CreateToolTip(self.exit_button, self.root, "Exits the GUI and stops all python sub processes", None)
         
     def find_selected_item(self, item,  values):
