@@ -57,7 +57,7 @@ class PPR(object):
                 kill_socket.close()
                 if self.child_conn == None: return
             except:
-                print("Remote Terminate not possible because socket is already in use or has an error") 
+                print("WARNING: Remote Terminate not possible because socket is already in use") 
                 return
         self.parent_conn.close()
         self.child_conn.close()
@@ -89,7 +89,8 @@ class PPR(object):
                 thread.daemon = True
                 thread.start()
                 self.child_conn.send(parent_conn)
-        except: pass
+        except Exception as e:
+            print(e)
         
     def create_processes_jobs(self, c_conn, pool):
         with c_conn:
@@ -100,6 +101,8 @@ class PPR(object):
         try:
             return (getattr(instance(), func)(*args) if func != None else instance(*args))
         except:
+            try:socket.socket(socket.AF_INET, socket.SOCK_STREAM).connect(("127.0.0.1", 12345))
+            except: pass
             print(traceback.format_exc())
         finally:
             sys.stdout.flush()

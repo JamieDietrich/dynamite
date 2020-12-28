@@ -25,8 +25,17 @@ from mrexo import predict_from_measurement as pfm
 
 class dynamite:
 
-    def __init__(self, cfname="dynamite_config.txt"):
+    def __init__(self, merged_data=None):
         """Runs the script"""
+
+        cfname = "dynamite_config.txt"
+        self.node_number = 1
+
+        if len(sys.argv) >= 2:
+            cfname = sys.argv[1]
+
+        if len(sys.argv) == 3:
+            self.node_number = int(sys.argv[2])
 
         self.seconds_per_day = 86400
         self.G = const.G.cgs.value
@@ -35,9 +44,6 @@ class dynamite:
         self.R_sun = const.R_sun.cgs.value
         self.M_earth = const.M_earth.cgs.value
         self.R_earth = const.R_earth.cgs.value
-
-        print(datetime.now(), "Initiating DYNAMITE")
-        np.random.seed(1)
 
         self.config_parameters = {}
 
@@ -51,16 +57,41 @@ class dynamite:
         for i in range(len(config_data)):
             self.config_parameters[config_data[i, 0]] = config_data[i, 1] if config_data[i, 1].find("[") == -1 else ast.literal_eval(config_data[i, 1])
 
+        if merged_data != None:
+            nn = len(merged_data[-3])/4
+            self.write_bf_pred_file(merged_data[0], merged_data[4], merged_data[7], merged_data[-2][0:int(len(merged_data[-2])/nn)], merged_data[-1][0:int(len(merged_data[-1])/nn)], merged_data[-4][0], merged_data[-3][0:4], True)
+            return
+
+        print(datetime.now(), "Initiating DYNAMITE")
+
+        try:
+            self.num_of_nodes = int(os.environ.get('SLURM_JOB_NUM_NODES'))
+
+        except:
+            self.num_of_nodes = 1
+ 
+        interations = int(self.config_parameters["MC_chain"])
+        self.interation_list = [interations // self.num_of_nodes + (1 if x < interations % self.num_of_nodes else 0) for x in range(self.num_of_nodes)]
+        self.seed_start = 0
+
+        for node in range(self.node_number - 1):
+            self.seed_start += self.interation_list[node]
+
         targets_dict = dynamite_targets(self.config_parameters).get_targets(self.config_parameters["mode"], self.config_parameters["system"], self.config_parameters["radmax"], self.config_parameters["removed"])
 
         if len(targets_dict) == 0:
             print("Error: No targets selected!")
             exit()
 
-        if self.config_parameters["saved"] == "False":
-            if os.path.exists("table_" + self.config_parameters["mode"] + "_" + self.config_parameters["period"] + ".txt"):
-                os.remove("table_" + self.config_parameters["mode"] + "_" + self.config_parameters["period"] + ".txt")
+        try:
+            processes = int(os.environ.get('SLURM_CPUS_PER_TASK'))
 
+        except:
+            processes = None
+
+        self.ppr = PPR((self, None), processes)
+
+        if self.config_parameters["saved"] == "False":
             if self.config_parameters["mode"] == "single":
                 R_star, Rse, M_star, Mse, target, target_name = self.set_up(targets_dict, self.config_parameters["system"])
                 targ_rem = []
@@ -106,7 +137,12 @@ class dynamite:
                 targ_rem = np.array(targ_rem)
                 target = targ_rem[targ_rem[:, 2].argsort()]
                 data = self.run_monte_carlo(R_star, Rse, M_star, Mse, target, target_name) + ([target[i][2] for i in range(len(target))], [target[i][1] for i in range(len(target))])
-                np.savez("saved_data.npz", data=data)
+
+                if self.num_of_nodes == 1:
+                    np.savez("saved_data.npz", data=data)
+
+                else:
+                    np.savez("saved_data_" + str(self.node_number) + ".npz", data=data)
 
             else:
                 targlist = []
@@ -127,20 +163,24 @@ class dynamite:
                     elif self.config_parameters["mode"] == "test" and tn.find("test 3") != -1:
                         targlist.append(tn)
 
-                Pk, P, PP, per, Rk, R, PR, ik, il, Pin, deltas, ratios, tdm, tdle, tdue, tpm, tple, tpue, targets, pers, rads = datavars = PPR((self, None)).create_processes("mt_mc", (targets_dict, targlist), -len(targlist), self.process_data)
+                Pk, P, PP, per, Rk, R, PR, ik, il, Pin, deltas, ratios, tdm, tdle, tdue, tpm, tple, tpue, targets, starvs, pers, rads = datavars = self.ppr.create_processes("mt_mc", (targets_dict, targlist), -len(targlist), self.process_data)
 
-                np.savez("saved_data.npz", data=datavars)
+                if self.num_of_nodes == 1:
+                    np.savez("saved_data.npz", data=datavars)
+
+                else:
+                    np.savez("saved_data_" + str(self.node_number) + ".npz", data=datavars)
 
         elif self.config_parameters["saved"] == "True":
             with np.load("saved_data.npz", allow_pickle=True) as data:
-                Pk, P, PP, per, Rk, R, PR, ik, il, Pinc, deltas, ratios, tdm, tdle, tdue, tpm, tple, tpue, targets, pers, rads = data["data"]
+                Pk, P, PP, per, Rk, R, PR, ik, il, Pinc, deltas, ratios, tdm, tdle, tdue, tpm, tple, tpue, targets, starvs, pers, rads = data["data"]
 
         if self.config_parameters["plot"] == "True":
             if self.config_parameters["saved"] == "False" and self.config_parameters["mode"] == "single":
-                Pk, P, PP, per, Rk, R, PR, ik, il, Pinc, deltas, ratios, tdm, tdle, tdue, tpm, tple, tpue, targets, pers, rads = data
+                Pk, P, PP, per, Rk, R, PR, ik, il, Pinc, deltas, ratios, tdm, tdle, tdue, tpm, tple, tpue, targets, starvs, pers, rads = data
 
             elif self.config_parameters["saved"] == "False" and self.config_parameters["mode"] != "single":
-                Pk, P, PP, per, Rk, R, PR, ik, il, Pinc, deltas, ratios, tdm, tdle, tdue, tpm, tple, tpue, targets, pers, rads = datavars
+                Pk, P, PP, per, Rk, R, PR, ik, il, Pinc, deltas, ratios, tdm, tdle, tdue, tpm, tple, tpue, targets, starvs, pers, rads = datavars
 
             print(datetime.now(), "Creating Plots")
             plots = dynamite_plots(Pk, P, PP, per, Rk, R, PR, ik, il, Pinc, deltas, ratios, tdm, tdle, tdue, tpm, tple, tpue, targets, pers, rads, cfname)
@@ -319,43 +359,36 @@ class dynamite:
             PP, deltas, cdfP = self.syssim_pers(per, rad, P, M_star)
 
         print(datetime.now(), "Running Monte Carlo for", target_name)
-        Pk = np.zeros(int(self.config_parameters["MC_chain"]))
-        Rk = np.zeros(int(self.config_parameters["MC_chain"]))
-        ek = np.zeros(int(self.config_parameters["MC_chain"]))
-        ik = np.zeros(int(self.config_parameters["MC_chain"]))
+        Pk = np.zeros(int(self.interation_list[self.node_number - 1]))
+        Rk = np.zeros(len(Pk))
+        ek = np.zeros(len(Pk))
+        ik = np.zeros(len(Pk))
         ecc = np.zeros(len(per))
         GMfp213 = (self.G*M_star*self.M_sun/(4*math.pi**2))**(1/3)
+        star_values = [R_star, Rse, M_star, Mse]
 
         Pk, Rk, ek, ik = self.ppr.create_processes("mc_test", (P, R, inew, ib, cdfP, cdfR, cdfi, per, rad, inc, ecc, GMfp213, M_star), -len(Pk), self.process_mc_data)
 
-        print(datetime.now(), "Calculating Best Fit Predictions for", target_name)
+        tdm, tdle, tdue, tpm, tpue, tple, target_values = self.write_bf_pred_file(Pk, Rk, ik, per, rad, target_name, star_values, (True if self.num_of_nodes == 1 else False))
 
+        return Pk, P, PP, per, Rk, R, PR, ik, il, Pinc, deltas, ratios, tdm, tdle, tdue, tpm, tpue, tple, target_values, star_values
+
+
+    def write_bf_pred_file(self, Pk, Rk, ik, per, rad, target_name, star_values, write):
+        """Writes out the best-fit prediction file."""
+
+        R_star, Rse, M_star, Mse = star_values
+        print(datetime.now(), "Calculating Best Fit Predictions for", target_name)
         Pis = np.hstack(np.array([np.arange(0.5, 1.001, 0.001), np.arange(1.01, 10.01, 0.01), np.arange(10.1, 100.1, 0.1), np.arange(101,731,1)]))
 
         if self.config_parameters["period"] == "epos":
-            PPi, _, _ = self.epos_pers(p0, per, rad, Pis, M_star)
-
-            if self.config_parameters["mode"] == "tess":
-                low_gap_P = ["TOI 561", "TOI 431", "TOI 1238", "TOI 732", "TOI 696", "TOI 175", "TOI 663", "TOI 1469", "TOI 2096", "TOI 1260", "TOI 270", "TOI 396", "TOI 836", "TOI 411", "TOI 1130", "TOI 1269", "TOI 1453", "TOI 714", "TOI 1749", "TOI 125", "TOI 1445", "TOI 1438", "TOI 119", "TOI 763", "TOI 2084", "TOI 1136", "TOI 1803", "TOI 1064", "TOI 266", "TOI 178", "TOI 776", "TOI 1339", "TOI 214", "TOI 700", "TOI 1266", "TOI 1812", "TOI 553", "TOI 699", "TOI 1277"]
-                interior = ["TOI 2095", "TOI 282"]
-        
-                if target_name in low_gap_P or target_name in interior:
-                    PPz = PPi
-
-                else:
-                    Pz = np.where(PPi == 0)[0]
-                    PPz = PPi[Pz[1]:Pz[-1]]
-
-            else:
-                PPz = PPi
-
-            Pm = Pis[np.where(PPi == np.amax(PPz))[0][0]]
-            PPm = np.amax(PPz)
+            PPi, _, _ = self.epos_pers(min(per), per, rad, Pis, M_star)
 
         elif self.config_parameters["period"] == "syssim":
             PPi, _ = self.syssim_pers(per, rad, Pis, M_star)
-            Pm = Pis[np.where(PPi == np.amax(PPi))[0][0]]
-            PPm = np.amax(PPi)
+
+        Pm = Pis[np.where(PPi == np.amax(PPi))[0][0]]
+        PPm = np.amax(PPi)
 
         if len(Pis[np.where((Pis < Pm) & (PPi < 0.606*PPm))]) > 0:
             Ple = Pm - Pis[np.where((Pis < Pm) & (PPi < 0.606*PPm))][-1]
@@ -385,10 +418,10 @@ class dynamite:
             if math.cos(ik[j]*math.pi/180) < (R_star*self.R_sun + Rm*self.R_earth)/self.K3(Pm, M_star):
                 ntrans += 1
 
-            if math.cos(ik[j]*math.pi/180) < ((R_star - Rse)*self.R_sun + (Rm - Rle)*self.R_earth)/self.K3(Pm, (M_star + Mse)):
+            if math.cos(ik[j]*math.pi/180) < ((R_star - Rse)*self.R_sun + (Rm - Rle)*self.R_earth)/self.K3(Pue, (M_star + Mse)):
                 ntl += 1
 
-            if math.cos(ik[j]*math.pi/180) < ((R_star + Rse)*self.R_sun + (Rm + Rue)*self.R_earth)/self.K3(Pm, (M_star - Mse)):
+            if math.cos(ik[j]*math.pi/180) < ((R_star + Rse)*self.R_sun + (Rm + Rue)*self.R_earth)/self.K3(Ple, (M_star - Mse)):
                 ntu += 1
 
         print(datetime.now(), "Writing out Best Values for", target_name)
@@ -409,18 +442,19 @@ class dynamite:
         tple = round(tple, 3)
         target_values = [target_name, Pm, Ple, Pue, Rm, Rle, Rue]
 
-        f = open("table_" + self.config_parameters["mode"] + "_" + self.config_parameters["period"] + ".txt", "a+")
-        f.write(target_name + " & $" + str(Pm) + "^{" + str(Pue) + "}_{" + str(Ple) + "}$ & $" + str(Rm) + "^{" + str(Rue) + "}_{" + str(Rle) + "}$ & $" + str(R_star) + "\pm" + str(Rse) + "$ & $" + str(tdm) + "^{" + str(tdue) + "}_{" + str(tdle) + "}$ & $" + str(tpm) + "^{" + str(tpue) + "}_{" + str(tple) + "}$ \\\\\n")
-        f.close()
+        if write:
+            f = open("table_" + self.config_parameters["mode"] + "_" + self.config_parameters["period"] + ".txt", "w")
+            f.write(target_name + " & $" + str(Pm) + "^{" + str(Pue) + "}_{" + str(Ple) + "}$ & $" + str(Rm) + "^{" + str(Rue) + "}_{" + str(Rle) + "}$ & $" + str(R_star) + "\pm" + str(Rse) + "$ & $" + str(tdm) + "^{" + str(tdue) + "}_{" + str(tdle) + "}$ & $" + str(tpm) + "^{" + str(tpue) + "}_{" + str(tple) + "}$ \\\\\n")
+            f.close()
 
-        return Pk, P, PP, per, Rk, R, PR, ik, il, Pinc, deltas, ratios, tdm, tdle, tdue, tpm, tpue, tple, target_values
+        return tdm, tdle, tdue, tpm, tpue, tple, target_values
 
 
 
     def mc_test(self, P, R, inew, ib, cdfP, cdfR, cdfi, per, rad, inc, ecc, GMfp213, M_star, k):
         """Runs MC in multi-threading."""
 
-        np.random.seed(k)
+        np.random.seed(self.seed_start + k)
         add_iter = False
         Pmc = P[np.where(np.random.rand() - cdfP < 0)[0][0]]
         Rmc = R[np.where(np.random.rand() - cdfR < 0)[0][0]]
@@ -462,6 +496,8 @@ class dynamite:
             add_iter = True
 
         else:
+            add_iter = False
+            """
             stable = True
             sim = rebound.Simulation()
             sim.units = ('day', 'au', 'Msun')
@@ -490,7 +526,7 @@ class dynamite:
                 sim.integrate(per[0]*5000*(it+1)/3)
                 l = sim.calculate_orbits()
 
-                for j in range(len(l)):
+                for j in range(1, len(l)):
                     try:
                         amd[j, it] = M_star*(m[j]*self.M_earth/self.M_sun)/(M_star + m[j]*self.M_earth/self.M_sun)*self.M_sun*math.sqrt(self.G*self.M_sun*(m[j]*self.M_earth/self.M_sun)*l[j].a*self.au)*(1-math.sqrt(1-l[j].e**2)*math.cos(l[j].inc*math.pi/180)) 
 
@@ -498,15 +534,34 @@ class dynamite:
                         stable = False
 
                         if j < mind:
-                            ps = "PLANET " + str(j+1)
+                            ps = "PLANET " + str(j)
 
                         elif j > mind:
-                            ps = "PLANET " + str(j)
+                            ps = "PLANET " + str(j-1)
 
                         else:
                             ps = "INJECTED PLANET"
 
-                        print("SYSTEM ITERATION " + str(k) + ":", ps, "EJECTED - EXITING INTEGRATION")
+                        print("SYSTEM ITERATION " + str(self.seed_start + k) + ":", ps, "EJECTED - EXITING INTEGRATION")
+                        break
+
+                for j in range(1, len(l) - 1):
+                    if l[j].a*(1+l[j].e) >= l[j+1].a*(1-l[j+1].e):
+                        stable = False
+
+                        if j < mind:
+                            ps1 = "PLANET " + str(j)
+                            ps2 = ("PLANET " + str(j+1)) if j + 1 < mind else ("INJECTED PLANET")
+
+                        elif j > mind:
+                            ps1 = "PLANET " + str(j-1)
+                            ps2 = "PLANET " + str(j)
+
+                        else:
+                            ps1 = "INJECTED PLANET"
+                            ps2 = "PLANET " + str(j-1)
+
+                        print("SYSTEM ITERATION " + str(self.seed_start + k) + ":", ps1, "AND", ps2, "CROSSED ORBITS - EXITING INTEGRATION")
                         break
 
                 if stable == False:
@@ -533,7 +588,7 @@ class dynamite:
 
             if stable:
                 add_iter = True
-
+            """
         if add_iter:
             return {k:(Pmc, Rmc, emc, imc)}
 
@@ -921,8 +976,4 @@ class dynamite:
 
 
 if __name__ == '__main__':
-    if len(sys.argv) > 1:
-        dynamite(cfname=sys.argv[1])
-
-    else:
-        dynamite()
+    dynamite()
