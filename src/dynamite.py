@@ -11,7 +11,6 @@ import os
 import ast
 import sys
 import math
-import rebound
 import itertools
 import numpy as np
 from PPR import PPR
@@ -496,99 +495,110 @@ class dynamite:
             add_iter = True
 
         else:
-            add_iter = False
-            """
-            stable = True
-            sim = rebound.Simulation()
-            sim.units = ('day', 'au', 'Msun')
-            sim.integrator = "mercurius"
-            sim.add(m=M_star)
-            m = np.zeros(len(per) + 1)
+            use_rebound = ast.literal_eval(self.config_parameters["use_rebound"])
+
+            try:
+                import rebound
+
+            except:
+                use_rebound = False
+                print("WARNING: REBOUND not installed on this machine - not performing N body integration dynamical stability analysis")
+
+            if use_rebound:
+                stable = True
+                sim = rebound.Simulation()
+                sim.units = ('day', 'au', 'Msun')
+                sim.integrator = "mercurius"
+                sim.add(m=M_star)
+                m = np.zeros(len(per) + 1)
             
-            for p in range(len(per)):
-                if self.config_parameters["mass_radius"] == "mrexo":
-                    m[p] = pfm(measurement=rad[p], predict='mass', dataset='kepler')[0]
+                for p in range(len(per)):
+                    if self.config_parameters["mass_radius"] == "mrexo":
+                        m[p] = pfm(measurement=rad[p], predict='mass', dataset='kepler')[0]
 
-                elif self.config_parameters["mass_radius"] == "otegi": 
-                    m[p] = self.otegi_mr(rad[p], "mass")
+                    elif self.config_parameters["mass_radius"] == "otegi": 
+                        m[p] = self.otegi_mr(rad[p], "mass")
 
-                sim.add(m=m[p]*self.M_earth/self.M_sun, a=GMfp213*(per[p]*self.seconds_per_day)**(2/3)/self.au, e=ecc[p], inc=inc[p]*math.pi/180)
+                    sim.add(m=m[p]*self.M_earth/self.M_sun, a=GMfp213*(per[p]*self.seconds_per_day)**(2/3)/self.au, e=ecc[p], inc=inc[p]*math.pi/180)
 
-                if permc == per[p]:
-                    mind = p
+                    if permc == per[p]:
+                        mind = p
             
-            m[-1] = Mmc
-            sim.add(m=Mmc*self.M_earth/self.M_sun, a=GMfp213*(Pmc*self.seconds_per_day)**(2/3)/self.au, e=emc, inc=imc)
-            sim.dt = per[0]/40
-            amd = np.zeros((len(per) + 1, 3000))
+                m[-1] = Mmc
+                sim.add(m=Mmc*self.M_earth/self.M_sun, a=GMfp213*(Pmc*self.seconds_per_day)**(2/3)/self.au, e=emc, inc=imc)
+                sim.dt = per[0]/40
+                amd = np.zeros((len(per) + 1, 3000))
 
-            for it in range(3000):
-                sim.integrate(per[0]*5000*(it+1)/3)
-                l = sim.calculate_orbits()
+                for it in range(3000):
+                    sim.integrate(per[0]*5000*(it+1)/3)
+                    l = sim.calculate_orbits()
 
-                for j in range(1, len(l)):
-                    try:
-                        amd[j, it] = M_star*(m[j]*self.M_earth/self.M_sun)/(M_star + m[j]*self.M_earth/self.M_sun)*self.M_sun*math.sqrt(self.G*self.M_sun*(m[j]*self.M_earth/self.M_sun)*l[j].a*self.au)*(1-math.sqrt(1-l[j].e**2)*math.cos(l[j].inc*math.pi/180)) 
+                    for j in range(1, len(l)):
+                        try:
+                            amd[j, it] = M_star*(m[j]*self.M_earth/self.M_sun)/(M_star + m[j]*self.M_earth/self.M_sun)*self.M_sun*math.sqrt(self.G*self.M_sun*(m[j]*self.M_earth/self.M_sun)*l[j].a*self.au)*(1-math.sqrt(1-l[j].e**2)*math.cos(l[j].inc*math.pi/180)) 
 
-                    except ValueError:
-                        stable = False
+                        except ValueError:
+                            stable = False
 
-                        if j < mind:
-                            ps = "PLANET " + str(j)
+                            if j < mind:
+                                ps = "PLANET " + str(j)
 
-                        elif j > mind:
-                            ps = "PLANET " + str(j-1)
+                            elif j > mind:
+                                ps = "PLANET " + str(j-1)
 
-                        else:
-                            ps = "INJECTED PLANET"
+                            else:
+                                ps = "INJECTED PLANET"
 
-                        print("SYSTEM ITERATION " + str(self.seed_start + k) + ":", ps, "EJECTED - EXITING INTEGRATION")
+                            print("SYSTEM ITERATION " + str(self.seed_start + k) + ":", ps, "EJECTED - EXITING INTEGRATION")
+                            break
+
+                    for j in range(1, len(l) - 1):
+                        if l[j].a*(1+l[j].e) >= l[j+1].a*(1-l[j+1].e):
+                            stable = False
+
+                            if j < mind:
+                                ps1 = "PLANET " + str(j)
+                                ps2 = ("PLANET " + str(j+1)) if j + 1 < mind else ("INJECTED PLANET")
+
+                            elif j > mind:
+                                ps1 = "PLANET " + str(j-1)
+                                ps2 = "PLANET " + str(j)
+
+                            else:
+                                ps1 = "INJECTED PLANET"
+                                ps2 = "PLANET " + str(j-1)
+
+                            print("SYSTEM ITERATION " + str(self.seed_start + k) + ":", ps1, "AND", ps2, "CROSSED ORBITS - EXITING INTEGRATION")
+                            break
+
+                    if stable == False:
                         break
 
-                for j in range(1, len(l) - 1):
-                    if l[j].a*(1+l[j].e) >= l[j+1].a*(1-l[j+1].e):
-                        stable = False
+                if stable:
+                    for j in range(len(amd)):
+                        amdps = abs(np.fft.fft([amd[j,it] for it in range(len(amd[j]))]))**2
+                        mps = max(amdps)
 
-                        if j < mind:
-                            ps1 = "PLANET " + str(j)
-                            ps2 = ("PLANET " + str(j+1)) if j + 1 < mind else ("INJECTED PLANET")
+                        if sum([1 if amdps[it] > 0.05*mps else 0 for it in range(3000)]) > 0.01*len(amdps):
+                            stable = False
 
-                        elif j > mind:
-                            ps1 = "PLANET " + str(j-1)
-                            ps2 = "PLANET " + str(j)
+                            if j < mind:
+                                ps = "PLANET " + str(j+1)
 
-                        else:
-                            ps1 = "INJECTED PLANET"
-                            ps2 = "PLANET " + str(j-1)
+                            elif j > mind:
+                                ps = "PLANET " + str(j)
 
-                        print("SYSTEM ITERATION " + str(self.seed_start + k) + ":", ps1, "AND", ps2, "CROSSED ORBITS - EXITING INTEGRATION")
-                        break
+                            else:
+                                ps = "INJECTED PLANET"
 
-                if stable == False:
-                    break
+                            print("SYSTEM ITERATION " + str(k) + ":", ps, "UNSTABLE VIA SPECTRAL FRACTION")
 
-            if stable:
-                for j in range(len(amd)):
-                    amdps = abs(np.fft.fft([amd[j,it] for it in range(len(amd[j]))]))**2
-                    mps = max(amdps)
+                if stable:
+                    add_iter = True
 
-                    if sum([1 if amdps[it] > 0.05*mps else 0 for it in range(3000)]) > 0.01*len(amdps):
-                        stable = False
-
-                        if j < mind:
-                            ps = "PLANET " + str(j+1)
-
-                        elif j > mind:
-                            ps = "PLANET " + str(j)
-
-                        else:
-                            ps = "INJECTED PLANET"
-
-                        print("SYSTEM ITERATION " + str(k) + ":", ps, "UNSTABLE VIA SPECTRAL FRACTION")
-
-            if stable:
-                add_iter = True
-            """
+            else:
+                add_iter = False
+            
         if add_iter:
             return {k:(Pmc, Rmc, emc, imc)}
 

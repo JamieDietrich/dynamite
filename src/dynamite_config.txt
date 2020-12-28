@@ -11,18 +11,19 @@
 
 # MC_chain: length of Monte Carlo chain - currently 10000; has to be integer
 # mode: Run mode for DYNAMITE - currently accepts single/tess/kepler/all/test
-# system: Single system to run on - only used if mode is single
+# system: Single system to run on - system name; only used if mode is single
 # period: Probability distribution for planet periods - currently accepts epos/syssim
 # radius: Probability distribution for planet radii - currently accepts epos/syssim
 # radtype: planet radius function type - powerlaw/clustered, radius must be syssim
 # radmin: planet radius minimum - 0.5 for full Kepler popluation stats, 0.1 for reaching the smallest planets in TOI multi systems
 # radmax: planet radius maximum - 5 for Neptunes and below, 10 for full Kepler population stats, 15 for largest super-Jupiter planets in TOI multi systems
 # mass_radius: which mass-radius relationship to use - mrexo/otegi; mrexo for non-parametric model from Ning et al. (2018) and Kanodia et al. (2019), otegi for power-law model from Otegi et al. (2020)
-# otegi_rho: whether to use volatile or rocky formulae for 5 M_earth < M < 25 M_earth - rocky/volatile; only used if mass_radius is otegi
+# otegi_rho: whether to use volatile formula or rocky formula for 5 M_earth < M < 25 M_earth - rocky/volatile; only used if mass_radius is otegi
+# use_rebound: whether or not to use the REBOUND N-body integrations for dynamical stability analysis - True/False; REBOUND must be installed, adds multiple hours if not run on HPC clusters
 
-MC_chain::100000
+MC_chain::10000
 mode::single
-system::Inner Solar System
+system::TOI 561
 period::epos
 radius::syssim
 radtype::clustered
@@ -30,6 +31,7 @@ radmin::0.1
 radmax::5
 mass_radius::otegi
 otegi_rho::rocky
+use_rebound::True
 
 ## PLOTTING PARAMETERS ##
 
@@ -62,7 +64,7 @@ plt_indpars::True
 plt_PDFs::True
 plt_colors::["377eb8", "d95f02", "4daf4a", "984ea3", "e41a1c", "e6ab02", "3ca686"]
 show_Rearth::False
-use_mass::False
+use_mass::True
 ind_P::log
 ind_R::linear
 ind_i::full
@@ -75,6 +77,6 @@ ind_i::full
 # add_unconfirmed: whether or not to add the unconfirmed planets into the DYNAMITE analysis - True/False
 
 additional::[[]]
-unconfirmed::[[]]
+unconfirmed::[[75, (11, 'Mass'), 94.2, 'g']]
 removed::[]
-add_unconfirmed::False
+add_unconfirmed::True
