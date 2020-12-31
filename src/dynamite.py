@@ -361,7 +361,7 @@ class dynamite:
             PPm = np.amax(PPz)
 
         elif self.config_parameters["period"] == "syssim":
-            PPi, _ = self.syssim_pers(per, rad, Pis, M_star)
+            PPi, _, _ = self.syssim_pers(per, rad, Pis, M_star)
             Pm = Pis[np.where(PPi == np.amax(PPi))[0][0]]
             PPm = np.amax(PPi)
 
@@ -504,7 +504,7 @@ class dynamite:
 
 
 
-    def syssim_pers(self, per, rad, P, RR, M_star):
+    def syssim_pers(self, per, rad, P, M_star):
         """Generates probability of periods using clustered periods from He, Ford, and Ragozzine (2019)"""
 
         sigmap = 0.2
@@ -613,7 +613,6 @@ class dynamite:
 
         m2 = np.mean(m)
         GMfp213 = (self.G*M_star*self.M_sun/(4*math.pi**2))**(1/3)
-        Me3M13 = (self.M_earth/(3*M_star*self.M_sun))**(-1/3)
         dc = 8
         rats = [math.sqrt(per[k+1]/per[k]) for k in range(len(per) - 1)]
         k = 0
@@ -624,7 +623,7 @@ class dynamite:
 
             a1 = GMfp213*(P[i]*self.seconds_per_day if P[i] < per[k] else per[k]*self.seconds_per_day)**(2/3)
             a2 = GMfp213*(per[k]*self.seconds_per_day if P[i] < per[k] else P[i]*self.seconds_per_day)**(2/3)
-            fD[i] = 2*(a2 - a1)/(a2 + a1) * (m[k] + m2)*Me3M13
+            fD[i] = 2*(a2 - a1)/(a2 + a1) * ((m[k] + m2)*self.M_earth/(3*M_star*self.M_sun))**(-1/3)
 
             if fD[i] < dc:
                 fP[i] = 0
