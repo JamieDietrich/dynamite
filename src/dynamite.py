@@ -11,6 +11,7 @@ import os
 import ast
 import sys
 import math
+import socket
 import itertools
 import numpy as np
 from PPR import PPR
@@ -28,13 +29,9 @@ class dynamite:
         """Runs the script"""
 
         cfname = "dynamite_config.txt"
-        self.node_number = 1
 
-        if len(sys.argv) >= 2:
+        if len(sys.argv) == 2:
             cfname = sys.argv[1]
-
-        if len(sys.argv) == 3:
-            self.node_number = int(sys.argv[2])
 
         self.seconds_per_day = 86400
         self.G = const.G.cgs.value
@@ -57,16 +54,25 @@ class dynamite:
             self.config_parameters[config_data[i, 0]] = config_data[i, 1] if config_data[i, 1].find("[") == -1 else ast.literal_eval(config_data[i, 1])
 
         if merged_data != None:
-            nn = len(merged_data[-3])/4
-            self.write_bf_pred_file(merged_data[0], merged_data[4], merged_data[7], merged_data[-2][0:int(len(merged_data[-2])/nn)], merged_data[-1][0:int(len(merged_data[-1])/nn)], merged_data[-4][0], merged_data[-3][0:4], True)
+            self.write_bf_pred_file(merged_data[0], merged_data[4], merged_data[7], merged_data[-2], merged_data[-1], merged_data[-4][0], merged_data[-3], True)
+            
+            with np.load("saved_data.npz", allow_pickle=True) as data:
+                Pk, P, PP, Rk, R, PR, ik, il, Pinc, deltas, ratios, tdm, tdle, tdue, tpm, tple, tpue, targets, starvs, pers, rads = data["data"]
+
+            if self.config_parameters["plot"] == "True":
+                print(datetime.now(), "Creating Plots")
+                plots = dynamite_plots(Pk, P, PP, Rk, R, PR, ik, il, Pinc, deltas, ratios, tdm, tdle, tdue, tpm, tple, tpue, targets, pers, rads, cfname)
+
             return
 
-        print(datetime.now(), "Initiating DYNAMITE")
+        print(datetime.now(), "Initiating DYNAMITE on node", socket.gethostname())
 
         try:
-            self.num_of_nodes = int(os.environ.get('SLURM_JOB_NUM_NODES'))
+            self.node_number = int(os.environ.get('SLURM_ARRAY_TASK_ID'))
+            self.num_of_nodes = int(os.environ.get('SLURM_ARRAY_TASK_COUNT'))
 
         except:
+            self.node_number = 1
             self.num_of_nodes = 1
  
         interations = int(self.config_parameters["MC_chain"])
@@ -162,7 +168,7 @@ class dynamite:
                     elif self.config_parameters["mode"] == "test" and tn.find("test 3") != -1:
                         targlist.append(tn)
 
-                Pk, P, PP, per, Rk, R, PR, ik, il, Pin, deltas, ratios, tdm, tdle, tdue, tpm, tple, tpue, targets, starvs, pers, rads = datavars = self.ppr.create_processes("mt_mc", (targets_dict, targlist), -len(targlist), self.process_data)
+                Pk, P, PP, Rk, R, PR, ik, il, Pin, deltas, ratios, tdm, tdle, tdue, tpm, tple, tpue, targets, starvs, pers, rads = datavars = self.ppr.create_processes("mt_mc", (targets_dict, targlist), -len(targlist), self.process_data)
 
                 if self.num_of_nodes == 1:
                     np.savez("saved_data.npz", data=datavars)
@@ -172,17 +178,17 @@ class dynamite:
 
         elif self.config_parameters["saved"] == "True":
             with np.load("saved_data.npz", allow_pickle=True) as data:
-                Pk, P, PP, per, Rk, R, PR, ik, il, Pinc, deltas, ratios, tdm, tdle, tdue, tpm, tple, tpue, targets, starvs, pers, rads = data["data"]
+                Pk, P, PP, Rk, R, PR, ik, il, Pinc, deltas, ratios, tdm, tdle, tdue, tpm, tple, tpue, targets, starvs, pers, rads = data["data"]
 
         if self.config_parameters["plot"] == "True":
             if self.config_parameters["saved"] == "False" and self.config_parameters["mode"] == "single":
-                Pk, P, PP, per, Rk, R, PR, ik, il, Pinc, deltas, ratios, tdm, tdle, tdue, tpm, tple, tpue, targets, starvs, pers, rads = data
+                Pk, P, PP, Rk, R, PR, ik, il, Pinc, deltas, ratios, tdm, tdle, tdue, tpm, tple, tpue, targets, starvs, pers, rads = data
 
             elif self.config_parameters["saved"] == "False" and self.config_parameters["mode"] != "single":
-                Pk, P, PP, per, Rk, R, PR, ik, il, Pinc, deltas, ratios, tdm, tdle, tdue, tpm, tple, tpue, targets, starvs, pers, rads = datavars
+                Pk, P, PP, Rk, R, PR, ik, il, Pinc, deltas, ratios, tdm, tdle, tdue, tpm, tple, tpue, targets, starvs, pers, rads = datavars
 
             print(datetime.now(), "Creating Plots")
-            plots = dynamite_plots(Pk, P, PP, per, Rk, R, PR, ik, il, Pinc, deltas, ratios, tdm, tdle, tdue, tpm, tple, tpue, targets, pers, rads, cfname)
+            plots = dynamite_plots(Pk, P, PP, Rk, R, PR, ik, il, Pinc, deltas, ratios, tdm, tdle, tdue, tpm, tple, tpue, targets, pers, rads, cfname)
             print(datetime.now(), "Finishing DYNAMITE")
 
 
@@ -362,7 +368,8 @@ class dynamite:
         Rk = np.zeros(len(Pk))
         ek = np.zeros(len(Pk))
         ik = np.zeros(len(Pk))
-        ecc = np.zeros(len(per))
+        #ecc = np.zeros(len(per))
+        ecc = [0, 0.062, 0.148, 0.138]
         GMfp213 = (self.G*M_star*self.M_sun/(4*math.pi**2))**(1/3)
         star_values = [R_star, Rse, M_star, Mse]
 
@@ -370,7 +377,7 @@ class dynamite:
 
         tdm, tdle, tdue, tpm, tpue, tple, target_values = self.write_bf_pred_file(Pk, Rk, ik, per, rad, target_name, star_values, (True if self.num_of_nodes == 1 else False))
 
-        return Pk, P, PP, per, Rk, R, PR, ik, il, Pinc, deltas, ratios, tdm, tdle, tdue, tpm, tpue, tple, target_values, star_values
+        return Pk, P, PP, Rk, R, PR, ik, il, Pinc, deltas, ratios, tdm, tdle, tdue, tpm, tpue, tple, target_values, star_values
 
 
     def write_bf_pred_file(self, Pk, Rk, ik, per, rad, target_name, star_values, write):
@@ -384,7 +391,7 @@ class dynamite:
             PPi, _, _ = self.epos_pers(min(per), per, rad, Pis, M_star)
 
         elif self.config_parameters["period"] == "syssim":
-            PPi, _ = self.syssim_pers(per, rad, Pis, M_star)
+            PPi, _, _ = self.syssim_pers(per, rad, Pis, M_star)
 
         Pm = Pis[np.where(PPi == np.amax(PPi))[0][0]]
         PPm = np.amax(PPi)
@@ -457,7 +464,7 @@ class dynamite:
         add_iter = False
         Pmc = P[np.where(np.random.rand() - cdfP < 0)[0][0]]
         Rmc = R[np.where(np.random.rand() - cdfR < 0)[0][0]]
-        emc = 0
+        emc = np.random.rand()*0.15
         ii = np.random.rand()
         iso = np.random.rand()
 
@@ -497,12 +504,13 @@ class dynamite:
         else:
             use_rebound = ast.literal_eval(self.config_parameters["use_rebound"])
 
-            try:
-                import rebound
+            if use_rebound:
+                try:
+                    import rebound
 
-            except:
-                use_rebound = False
-                print("WARNING: REBOUND not installed on this machine - not performing N body integration dynamical stability analysis")
+                except ImportError:
+                    use_rebound = False
+                    print("WARNING: REBOUND not installed on this machine - not performing N body integration dynamical stability analysis")
 
             if use_rebound:
                 stable = True
@@ -528,6 +536,7 @@ class dynamite:
                 sim.add(m=Mmc*self.M_earth/self.M_sun, a=GMfp213*(Pmc*self.seconds_per_day)**(2/3)/self.au, e=emc, inc=imc)
                 sim.dt = per[0]/40
                 amd = np.zeros((len(per) + 1, 3000))
+                Ms = M_star*self.M_sun
 
                 for it in range(3000):
                     sim.integrate(per[0]*5000*(it+1)/3)
@@ -535,7 +544,8 @@ class dynamite:
 
                     for j in range(1, len(l)):
                         try:
-                            amd[j, it] = M_star*(m[j]*self.M_earth/self.M_sun)/(M_star + m[j]*self.M_earth/self.M_sun)*self.M_sun*math.sqrt(self.G*self.M_sun*(m[j]*self.M_earth/self.M_sun)*l[j].a*self.au)*(1-math.sqrt(1-l[j].e**2)*math.cos(l[j].inc*math.pi/180)) 
+                            mp = m[j]*self.M_earth
+                            amd[j, it] = Ms*mp/(Ms + mp)*math.sqrt(self.G*(Ms*mp)*l[j].a*self.au)*(1-math.sqrt(1-l[j].e**2)*math.cos(l[j].inc*math.pi/180))
 
                         except ValueError:
                             stable = False
@@ -579,7 +589,7 @@ class dynamite:
                         amdps = abs(np.fft.fft([amd[j,it] for it in range(len(amd[j]))]))**2
                         mps = max(amdps)
 
-                        if sum([1 if amdps[it] > 0.05*mps else 0 for it in range(3000)]) > 0.01*len(amdps):
+                        if sum([1 if amdps[it] > 0.01*mps else 0 for it in range(3000)]) > 0.01*len(amdps):
                             stable = False
 
                             if j < mind:
@@ -602,8 +612,7 @@ class dynamite:
         if add_iter:
             return {k:(Pmc, Rmc, emc, imc)}
 
-        else:
-            return {k:None}
+        return {k:None}
 
 
     def process_mc_data(self, data):
@@ -687,7 +696,7 @@ class dynamite:
 
 
 
-    def syssim_pers(self, per, rad, P, RR, M_star):
+    def syssim_pers(self, per, rad, P, M_star):
         """Generates probability of periods using clustered periods from He, Ford, and Ragozzine (2019)"""
 
         sigmap = 0.2
@@ -796,7 +805,6 @@ class dynamite:
 
         m2 = np.mean(m)
         GMfp213 = (self.G*M_star*self.M_sun/(4*math.pi**2))**(1/3)
-        Me3M13 = (self.M_earth/(3*M_star*self.M_sun))**(-1/3)
         dc = 8
         rats = [math.sqrt(per[k+1]/per[k]) for k in range(len(per) - 1)]
         k = 0
@@ -807,7 +815,7 @@ class dynamite:
 
             a1 = GMfp213*(P[i]*self.seconds_per_day if P[i] < per[k] else per[k]*self.seconds_per_day)**(2/3)
             a2 = GMfp213*(per[k]*self.seconds_per_day if P[i] < per[k] else P[i]*self.seconds_per_day)**(2/3)
-            fD[i] = 2*(a2 - a1)/(a2 + a1) * (m[k] + m2)*Me3M13
+            fD[i] = 2*(a2 - a1)/(a2 + a1) * ((m[k] + m2)*self.M_earth/(3*M_star*self.M_sun))**(-1/3)
 
             #if fD[i] < dc:
                 #fP[i] = 0
@@ -823,7 +831,7 @@ class dynamite:
         for i in range(len(fP)):
             cdfP[i] = np.trapz(fP[:i + 1], P[:i + 1])/trap
 
-        return fP/trap, fDu
+        return fP/trap, fDu, cdfp
 
 
 
