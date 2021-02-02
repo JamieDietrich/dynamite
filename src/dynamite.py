@@ -631,6 +631,7 @@ class dynamite:
         Du = np.arange(0, max(fD) + 1)
         fDu = np.zeros(len(Du))
         trap = np.trapz(fP, P)
+        cdfp = np.zeros(len(fP))
 
         for i in range(len(fD)):
             j = int(fD[i])
@@ -639,7 +640,7 @@ class dynamite:
         for i in range(len(fP)):
             cdfP[i] = np.trapz(fP[:i + 1], P[:i + 1])/trap
 
-        return fP/trap, fDu
+        return fP/trap, fDu, cdfP
 
 
 
