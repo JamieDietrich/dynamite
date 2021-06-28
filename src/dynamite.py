@@ -174,7 +174,7 @@ class dynamite:
     def set_up(self, targets_dict, target):
         """Sets up target"""
 
-        def get_arccos(star_pars, planet_pars):
+        def get_arccos(star_pars, planet_pars):  # takes impact parameter and orbital period for transiting planets
 
             return round(np.arccos(planet_pars[0]/(((self.G*star_pars[2]*self.M_sun/(4*math*pi**2))**(1/3)*(planet_pars[1]*self.seconds_per_day)**(2/3))/(star_pars[0]*self.R_sun)))*180/math.pi, 3)
            
