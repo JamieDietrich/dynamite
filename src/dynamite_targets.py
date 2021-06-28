@@ -19,6 +19,7 @@ class dynamite_targets:
 
         # PARAMETER ORDER: ([STAR RADIUS, STAR RADIUS UNCERTAINTY, STAR MASS, STAR MASS UNCERTAINTY, STAR TEMPERATURE], [PLANET1 INCLINATION, PLANET1 RADIUS, PLANET1 PERIOD, PlANET1 NAME], ...)
         # PARAMETER UNITS: ([R_SUN, R_SUN, M_SUN, M_SUN, KELVIN], [DEGREES, R_EARTH, DAYS, N/A], ...)
+        # get_arccos parameters: (impact parameter, orbital period)
 
         self.targets = {
         'TOI 1798': ([0.785, 0.039, 0.874, 0.108, 5165], [('get_arccos', (0.5, 0.438)), (1.28, 'Radius'), 0.438, '02'], [('get_arccos', (0.09, 8.019)), (2.388, 'Radius'), 8.019, '01']),
