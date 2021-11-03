@@ -1,0 +1,87 @@
+### DYNAmical Multi-planet Injection TEster (DYNAMITE) ###
+### Configuration File ###
+### Jeremy Dietrich ###
+### jdietrich1@email.arizona.edu ###
+### 2021 November 3 ###
+### Version 2.0 ###
+### Dietrich & Apai (2020), AJ, 160, 107D ###
+### https://iopscience.iop.org/article/10.3847/1538-3881/aba61d ###
+
+## PREDICTION PARAMETERS ##
+
+# MC_chain: length of Monte Carlo chain - standard 100000; has to be integer
+# mode: Run mode for DYNAMITE - currently accepts single/tess/kepler/all/test
+# system: Single system to run on - system name; only used if mode is single
+# period: Probability distribution for planet periods - currently accepts epos/syssim
+# radius: Probability distribution for planet radii - currently accepts epos/syssim
+# radtype: planet radius function type - powerlaw/clustered, radius must be syssim
+# radmin: planet radius minimum - 0.5 for full Kepler popluation stats, 0.1 for reaching the smallest planets in TOI multi systems
+# radmax: planet radius maximum - 5 for Neptunes and below, 10 for full Kepler population stats, 15 for largest super-Jupiter planets in TOI multi systems; may be less accurate at higher radii
+# mass_radius: which mass-radius relationship to use - mrexo/otegi; mrexo for non-parametric model from Ning et al. (2018) and Kanodia et al. (2019), otegi for power-law model from Otegi et al. (2020)
+# otegi_rho: whether to use volatile formula or rocky formula for 5 M_earth < M < 25 M_earth - rocky/volatile; only used if mass_radius is otegi
+# inclination: Probability distribution for planet inclinations - currently accepts rayleigh_iso/syssim
+# eccentricity: Probability distribution for planet eccentricities - currently accepts rayleigh/syssim
+# stability: which stability model to run - currently accepts hill/spock/specfrac; if spock, SPOCK must be installed; if spock or specfrac, REBOUND must be installed; specfrac adds hours on HPC clusters
+
+MC_chain::100000
+mode::single
+system::HD 20794 test 2
+period::epos
+radius::syssim
+radtype::clustered
+radmin::0.1
+radmax::15
+mass_radius::otegi
+otegi_rho::volatile
+inclination::syssim
+eccentricity::syssim
+stability::hill
+
+## PLOTTING PARAMETERS ##
+
+# plot: run plotting code - True/False; must have at least one individual plotting parameter below also True for any plot to output
+# show_plots: whether to show the plots after they've been saved - True/False
+# saved: use saved values instead of re-running DYNAMITE - True/False; switch to True when running plotting code only, switch to False when changing datasets and running main code
+# plt_P_R: plot the periods and radii of each system, as well as against each other - True/False; mode must not be single
+# plt_P_scale: the x-axis scale for the system vs period plot - linear/log; used only when plt_P_R is True, mode must not be single
+# plt_tdtp: plot the transit probability vs the transit depth for all systems - True/False; mode must not be single
+# plt_deltas: plot the injection probability compared to the separation stability criterion in terms of mutual Hill radii - True/False; mode must not be single
+# plt_ratios: plot the period ratios of successive pairs of planets across all systems - True/False; mode must not be single
+# plt_indpars: plot the histograms of the individual parameters of a system - True/False; mode must be single
+# plt_PDFs: plot the probability distribution functions of the system over the histograms - True/False; mode must be single
+# plt_colors: hex codes for different plotted elements over the histogram - list of hex code strings (WITHOUT HASH), order [predictions,pdf,known,additional,removed,unconfirmed]; mode must be single
+# show_Rearth: whether or not to show R_earth on the zoomed-in plots - True/False; mode must be single
+# use_mass: whether or not to translate planet radius into mass - True/False; mode must be single
+# ind_P: scale of the x-axis for the individual system period plot - linear_zoom/linear/log; mode must be single
+# ind_R: scale of the x-axis for the individual system planet radius plot - linear_zoom/linear; mode must be single
+# ind_i: scale of the x-axis for the individual system inclination plot - full/truncated; mode must be single
+
+plot::True
+show_plots::True
+saved::False
+plt_P_R::False
+plt_P_scale::log
+plt_tdtp::False
+plt_deltas::False
+plt_ratios::False
+plt_indpars::True
+plt_PDFs::False
+plt_colors::["377eb8", "d95f02", "148d39", "984ea3", "e41a1c", "e6ab02", "d3d3d3"]
+show_Rearth::False
+use_mass::False
+ind_P::log
+ind_R::linear
+ind_i::full
+
+## SYSTEM ARCHITECTURE PARAMETERS ##
+
+# additional: the parameters of the planet(s) you want to add - must be list of lists, with each inner list having the parameters in order [inclination, planet radius/mass, period]; mode must be single
+# unconfirmed: the parameters of the unconfirmed candidate(s) - must be list of lists, with each inner list having the parameters in order [inclination, planet radius/mass, period]; mode must be single
+# removed: the parameters of the planet or planets you want to remove - must be a list of the periods for the planets to remove, as those are unique identifiers; mode must be single
+# add_unconfirmed: whether or not to add the unconfirmed planets into the DYNAMITE analysis - True/False
+
+additional::[[]]
+unconfirmed::[[]]
+# ["?", (7.3, 'Mass'), 22.717, 'f'], ["?", (11, 'Mass'), 94.2, 'g']
+removed::[]
+add_unconfirmed::False
