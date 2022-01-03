@@ -20,8 +20,8 @@ from datetime import datetime
 import matplotlib.pyplot as plt
 import astropy.constants as const
 from scipy.signal import argrelextrema
-from dynamite_plots_dev import dynamite_plots
-from dynamite_targets_dev import dynamite_targets
+from dynamite_plots_v2 import dynamite_plots
+from dynamite_targets_v2 import dynamite_targets
 from mrexo import predict_from_measurement as pfm
 
 class dynamite:
@@ -116,7 +116,7 @@ class dynamite:
                         for j in range(len(i) - 1):
                             if isinstance(i[j], tuple):
                                 if self.config_parameters["use_mass"] == "True":
-                                    x.append(self.mr_convert(i[j][0]))
+                                    x.append(self.mr_convert(i[j][0], "radius"))
 
                                 else:
                                     x.append(i[j][0])
@@ -133,7 +133,7 @@ class dynamite:
                         for j in range(len(i) - 1):
                             if isinstance(i[j], tuple):
                                 if self.config_parameters["use_mass"] == "True":
-                                    x.append(self.mr_convert(i[j][0]))
+                                    x.append(self.mr_convert(i[j][0], "radius"))
 
                                 else:
                                     x.append(i[j][0])
@@ -239,7 +239,7 @@ class dynamite:
 
                     else:
                         if t[x][y][1] == "Mass":
-                            t[x][y] = float(self.mr_convert(t[x][y][0]))
+                            t[x][y] = float(self.mr_convert(t[x][y][0], "radius"))
 
                         elif t[x][y][1] == "Radius":
                             t[x][y] = t[x][y][0]
@@ -250,14 +250,14 @@ class dynamite:
         return t[0][0], t[0][1], t[0][2], t[0][3], list([t[i][:-1] for i in range(1, len(t))]), target
 
 
-    def mr_convert(self, meas):
-        """Runs conversion from mass to radius"""
+    def mr_convert(self, meas, pred):
+        """Runs conversion from mass to radius and vice versa"""
 
         if self.config_parameters["mass_radius"] == "mrexo":
-            return pfm(meas, predict="radius", dataset="kepler")[0]
+            return pfm(meas, predict=pred, dataset="kepler")[0]
 
         elif self.config_parameters["mass_radius"] == "otegi":
-            return self.otegi_mr(meas, "radius")
+            return self.otegi_mr(meas, pred)
 
 
 
@@ -314,10 +314,10 @@ class dynamite:
         print(datetime.now(), "Creating Period Distributions for", target_name)
 
         if self.config_parameters["period"] == "epos":
-            PP, deltas, cdfP = self.epos_pers(p0, per, rad, mas, ecc, P, PR, el, Pecc, cdfe, M_star, GMfp213)
+            PP, deltas, cdfP = self.epos_pers(p0, per, rad, ecc, P, PR, Pecc, cdfe, M_star, GMfp213)
 
         elif self.config_parameters["period"] == "syssim":
-            PP, deltas, cdfP = self.syssim_pers(per, rad, mas, P, PR, el, Pecc, cdfe, M_star, GMfp213)
+            PP, deltas, cdfP = self.syssim_pers(per, rad, ecc, P, PR, Pecc, cdfe, M_star, GMfp213)
 
         print(datetime.now(), "Running Monte Carlo for", target_name)
         Pk = []
@@ -331,7 +331,7 @@ class dynamite:
         r_reason = []
         star_values = [R_star, Rse, M_star, Mse]
 
-        stable, val, tim, _Pk, _Rk, _ek, _ik = self.ppr.create_processes("mc_test", (P, R, inew, ib, il, el, cdfP, cdfR, cdfi, cdfe, per, rad, mas, inc, ecc, GMfp213, M_star), -int(self.interation_list[self.node_number - 1]), self.process_mc_data)
+        stable, val, tim, _Pk, _Rk, _ek, _ik = self.ppr.create_processes("mc_test", (P, R, inew, ib, il, el, cdfP, cdfR, cdfi, cdfe, per, rad, inc, ecc, GMfp213, M_star), -int(self.interation_list[self.node_number - 1]), self.process_mc_data)
 
         for a in range(len(stable)):
             if stable[a] == "YES":
@@ -359,27 +359,32 @@ class dynamite:
             for a in range(len(Pk_r)):
                 f.write(r_reason[a] + "\t" + str(round(Pk_r[a], 1)) + "\t" + str(round(Rk_r[a], 2)) + "\t" + str(round(ek_r[a], 3)) + "\t" + str(round(ik_r[a], 1)) + "\n")
 
-        tdm, tdle, tdue, tpm, tpue, tple, target_values = self.write_bf_pred_file(GMfp213, Pk, Rk, ik, ek, per, rad, mas, ecc, Pecc, target_name, star_values, (True if self.num_of_nodes == 1 else False))
+        tdm, tdle, tdue, tpm, tpue, tple, target_values = self.write_bf_pred_file(GMfp213, Pk, Rk, ik, ek, per, rad, ecc, Pecc, target_name, star_values, (True if self.num_of_nodes == 1 else False))
 
         return Pk, P, PP, Rk, R, PR, ik, il, Pinc, ek, el, Pecc, deltas, ratios, tdm, tdle, tdue, tpm, tpue, tple, target_values, star_values
 
 
-    def write_bf_pred_file(self, GMfp213, Pk, Rk, ik, ek, per, rad, mas, ecc, Pecc, target_name, star_values, write):
+    def write_bf_pred_file(self, GMfp213, Pk, Rk, ik, ek, per, rad, ecc, Pecc, target_name, star_values, write):
         """Writes out the best-fit prediction file."""
 
         R_star, Rse, M_star, Mse = star_values
         cdfe = np.cumsum(Pecc)/np.sum(Pecc)
         print(datetime.now(), "Calculating Best Fit Predictions for", target_name)
-        Pis = np.hstack(np.array([np.arange(0.5, 1.001, 0.001), np.arange(1.01, 10.01, 0.01), np.arange(10.1, 100.1, 0.1), np.arange(101,1001,1), np.arange(1000,4350,10)]))
+
+        if target_name == "Inner Solar System":
+            Pis = np.hstack(np.array([np.arange(0.5, 1.001, 0.001), np.arange(1.01, 10.01, 0.01), np.arange(10.1, 100.1, 0.1), np.arange(101, 1001, 1), np.arange(1000, 4331, 10)]))
+
+        else:
+            Pis = np.hstack(np.array([np.arange(0.5, 1.001, 0.001), np.arange(1.01, 10.01, 0.01), np.arange(10.1, 100.1, 0.1), np.arange(101, 731, 1)]))
 
         if self.config_parameters["period"] == "epos":
-            PPi, _, _ = self.epos_pers(min(per), per, rad, mas, ecc, Pis, Pk, ek, Pecc, cdfe, M_star, GMfp213)
+            PPi, _, _ = self.epos_pers(min(per), per, rad, ecc, Pis, Rk, Pecc, cdfe, M_star, GMfp213)
 
         elif self.config_parameters["period"] == "syssim":
-            PPi, _, _ = self.syssim_pers(per, rad, mas, ecc, Pis, Pk, ek, Pecc, cdfe, M_star, GMfp213)
+            PPi, _, _ = self.syssim_pers(per, rad, ecc, Pis, Rk, Pecc, cdfe, M_star, GMfp213)
 
         Pmsi = argrelextrema(PPi, np.greater)[0]
-        Pms = [Pis[Pmsi[s]] for s in range(len(Pmsi)) if PPi[Pmsi[s]] > 0.1*np.amax(PPi)]
+        Pms = [Pis[Pmsi[s]] for s in range(len(Pmsi)) if PPi[Pmsi[s]] > 0.2*np.amax(PPi)]
         Pmes = np.zeros(len(Pms))
         Ples = np.zeros(len(Pms))
         Pues = np.zeros(len(Pms))
@@ -727,7 +732,7 @@ class dynamite:
 
 
 
-    def epos_pers(self, p0, per, rad, mas, ecc, P, PR, el, Pecc, cdfe, M_star, GMfp213):
+    def epos_pers(self, p0, per, rad, ecc, P, PR, Pecc, cdfe, M_star, GMfp213):
         """Generates probability of periods using dimensionless spacing in period ratios from EPOS (Mulders et al. 2018)"""
 
         fP = np.zeros(len(P))
@@ -775,11 +780,15 @@ class dynamite:
 
             a1 = GMfp213*(P[i]*self.seconds_per_day if P[i] < per[k] else per[k]*self.seconds_per_day)**(2/3)
             a2 = GMfp213*(per[k]*self.seconds_per_day if P[i] < per[k] else P[i]*self.seconds_per_day)**(2/3)
-            ev = ecc[k] if ecc[k] != "?" else el[np.where(np.random.rand() - cdfe < 0)[0][0]]
+            ev = ecc[k] if ecc[k] != "?" else np.median(Pecc)
             e1 = em if P[i] < per[k] else ev
             e2 = ev if P[i] < per[k] else em
-            m1 = mas[k] if mas[k] != "?" else self.mr_convert(rad[k], "mass")
+            m1 = self.mr_convert(rad[k], "mass")
             fD[i] = 2*(a2*(1 - e2) - a1*(1 + e1))/(a2 + a1) * ((m1 + m2)*self.M_earth/(3*M_star*self.M_sun))**(-1/3)
+
+            if fD[i] < 0:
+                fD[i] = 0
+
             fP[i] *= spst.norm.cdf(fD[i], loc=8)
 
         Du = np.arange(0, max(fD) + 1)
@@ -797,7 +806,7 @@ class dynamite:
 
 
 
-    def syssim_pers(self, per, rad, mas, ecc, P, PR, el, Pecc, cdfE, M_star, GMfp213):
+    def syssim_pers(self, per, rad, ecc, P, PR, Pecc, cdfE, M_star, GMfp213):
         """Generates probability of periods using clustered periods from He, Ford, and Ragozzine (2019)"""
 
         sigmap = 0.2
@@ -908,10 +917,10 @@ class dynamite:
 
             a1 = GMfp213*(P[i]*self.seconds_per_day if P[i] < per[k] else per[k]*self.seconds_per_day)**(2/3)
             a2 = GMfp213*(per[k]*self.seconds_per_day if P[i] < per[k] else P[i]*self.seconds_per_day)**(2/3)
-            ev = ecc[k] if ecc[k] != "?" else el[np.where(np.random.rand() - cdfe < 0)[0][0]]
+            ev = ecc[k] if ecc[k] != "?" else np.median(Pecc)
             e1 = em if P[i] < per[k] else ev
             e2 = ev if P[i] < per[k] else em
-            m1 = mas[k] if mas[k] != "?" else self.mr_convert(rad[k], "mass")
+            m1 = self.mr_convert(rad[k], "mass")
             fD[i] = 2*(a2*(1 - e2) - a1*(1 + e1))/(a2 + a1) * ((m1 + m2)*(self.M_earth/(3*M_star*self.M_sun)))**(-1/3)
             fP[i] *= spst.norm.cdf(fD[i], loc=8)
 
