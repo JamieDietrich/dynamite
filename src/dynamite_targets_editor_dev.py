@@ -2,8 +2,8 @@
 ### Targets Editor ###
 ### Jeremy Dietrich ###
 ### jdietrich1@email.arizona.edu ###
-### 2020 October 28 ###
-### Version 1.4 ###
+### 2022 January 3 ###
+### Version 2.0 ###
 ### Dietrich & Apai (2020), AJ, 160, 107D ###
 ### https://iopscience.iop.org/article/10.3847/1538-3881/aba61d ###
 
