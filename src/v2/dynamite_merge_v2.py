@@ -55,7 +55,8 @@ if 'data1' in locals():
     np.savez("saved_data.npz", data=data1)
     dynamite(merged_data=data1)
 
-    for i in range(glb):
-        os.remove("saved_data_" + str(i+1) + ".npz")
-        os.remove("rejected_values_" + str(i+1) + ".txt")
-        os.remove("unstable_times_" + str(i+1) + ".txt")
+    if len(sys.argv) == 1:
+        for i in range(glb):
+            os.remove("saved_data_" + str(i+1) + ".npz")
+            os.remove("rejected_values_" + str(i+1) + ".txt")
+            os.remove("unstable_times_" + str(i+1) + ".txt")
