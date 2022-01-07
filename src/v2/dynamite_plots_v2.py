@@ -80,6 +80,7 @@ class dynamite_plots:
             self.plot_ind_params(Pk, P, PP, Rk, R, PR, ik, inc, Pi, ek, ecc, Pe)
 
         print(datetime.now(), "Finishing Plots")
+        self.ppr.terminate_PPR()
 
 
 
