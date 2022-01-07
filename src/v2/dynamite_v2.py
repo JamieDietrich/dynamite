@@ -199,7 +199,7 @@ class dynamite:
             dynamite_plots(Pk, P, PP, Rk, R, PR, ik, il, Pinc, ek, el, Pecc, deltas, ratios, tdm, tdle, tdue, tpm, tple, tpue, targets, starvs, pers, rads, eccs, cfname)
             
         print(datetime.now(), "Finishing DYNAMITE")
-        ppr.terminate_PPR()
+        self.ppr.terminate_PPR()
 
 
 
