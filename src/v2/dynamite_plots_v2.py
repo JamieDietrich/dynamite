@@ -80,7 +80,6 @@ class dynamite_plots:
             self.plot_ind_params(Pk, P, PP, Rk, R, PR, ik, inc, Pi, ek, ecc, Pe)
 
         print(datetime.now(), "Finishing Plots")
-        self.ppr.terminate_PPR()
 
 
 
@@ -351,6 +350,8 @@ class dynamite_plots:
             Du, deltas = np.loadtxt("Deltas_" + self.config_parameters["mode"] + "_" + self.config_parameters["period"] + ".txt", delimiter="\t", unpack=True)
 
         plt.plot(Du, deltas)
+        plt.xlim(r"\Delta (Mutual Hill Radii)"
+        plt.ylim("Frequency")
         plt.savefig("Deltas_" + self.config_parameters["mode"] + "_" + self.config_parameters["period"] + ".png")
 
         if self.config_parameters["show_plots"] == "True":
@@ -1149,6 +1150,21 @@ class dynamite_plots:
         """Calculates period in days using semi-major axis in au and mass in solar masses"""
         
         return (4*math.pi**2*(a*self.au)**3/(self.G*(M*self.M_sun)))**0.5/self.seconds_per_day
+
+
+
+    def mr_convert(self, meas, pred):
+        """Runs conversion from mass to radius and vice versa"""
+
+        if self.config_parameters["mass_radius"] == "mrexo":
+            try:
+                return pfm(meas, predict=pred, dataset="kepler")[0]
+
+            except:
+                return 1e-10
+
+        elif self.config_parameters["mass_radius"] == "otegi":
+            return self.otegi_mr(meas, pred)
 
 
 
