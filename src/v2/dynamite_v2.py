@@ -59,11 +59,12 @@ class dynamite:
             self.config_parameters[config_data[i, 0]] = config_data[i, 1] if config_data[i, 1].find("[") == -1 else ast.literal_eval(config_data[i, 1])
 
         if merged_data != None:
-            if np.array(merged_data[-5]).ndim > 1:
-                for i in range(len(merged_data[-5])):
-                    self.write_bf_pred_file((self.G*merged_data[-4][i][2]*self.M_sun/(4*math.pi**2))**(1/3), merged_data[0][i], merged_data[3][i], merged_data[6][i], merged_data[9][i], merged_data[-3][i], merged_data[-2][i], merged_data[-1][i], merged_data[11][i], merged_data[-5][i][0], merged_data[-4][i], True)
+            try:
+                if len(merged_data[-5][0]) > 1:
+                    for i in range(len(merged_data[-5])):
+                        self.write_bf_pred_file((self.G*merged_data[-4][i][2]*self.M_sun/(4*math.pi**2))**(1/3), merged_data[0][i], merged_data[3][i], merged_data[6][i], merged_data[9][i], merged_data[-3][i], merged_data[-2][i], merged_data[-1][i], merged_data[11][i], merged_data[-5][i][0], merged_data[-4][i], True)
 
-            else:
+            except:
                 self.write_bf_pred_file((self.G*merged_data[-4][2]*self.M_sun/(4*math.pi**2))**(1/3), merged_data[0], merged_data[3], merged_data[6], merged_data[9], merged_data[-3], merged_data[-2], merged_data[-1], merged_data[11], merged_data[-5][0], merged_data[-4], True)
 
             with np.load("saved_data.npz", allow_pickle=True) as data:
@@ -189,11 +190,12 @@ class dynamite:
             with np.load("saved_data.npz", allow_pickle=True) as data:
                 Pk, P, PP, Rk, R, PR, ik, il, Pinc, ek, el, Pecc, deltas, ratios, tdm, tdle, tdue, tpm, tple, tpue, targets, starvs, pers, rads, eccs = data["data"]
 
-            if np.array(targets).ndim > 1:
-                for i in range(len(targets)):
-                    self.write_bf_pred_file((self.G*starvs[i][2]*self.M_sun/(4*math.pi**2))**(1/3), Pk[i], Rk[i], ik[i], ek[i], pers[i], rads[i], eccs[i], Pecc[i], targets[i][0], starvs[i], True)
+            try:
+                if len(targets[0]) > 1:
+                    for i in range(len(targets)):
+                        self.write_bf_pred_file((self.G*starvs[i][2]*self.M_sun/(4*math.pi**2))**(1/3), Pk[i], Rk[i], ik[i], ek[i], pers[i], rads[i], eccs[i], Pecc[i], targets[i][0], starvs[i], True)
 
-            else:
+            except:
                 self.write_bf_pred_file((self.G*starvs[2]*self.M_sun/(4*math.pi**2))**(1/3), Pk, Rk, ik, ek, pers, rads, eccs, Pecc, targets[0], starvs, True)
 
         if self.config_parameters["plot"] == "True":
@@ -1323,3 +1325,4 @@ class dynamite:
 
 if __name__ == '__main__':
     dynamite()
+
