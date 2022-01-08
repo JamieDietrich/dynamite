@@ -350,8 +350,8 @@ class dynamite_plots:
             Du, deltas = np.loadtxt("Deltas_" + self.config_parameters["mode"] + "_" + self.config_parameters["period"] + ".txt", delimiter="\t", unpack=True)
 
         plt.plot(Du, deltas)
-        plt.xlim(r"\Delta (Mutual Hill Radii)"
-        plt.ylim("Frequency")
+        plt.xlabel(r"$\Delta$ (Mutual Hill Radii)"
+        plt.ylabel("Frequency")
         plt.savefig("Deltas_" + self.config_parameters["mode"] + "_" + self.config_parameters["period"] + ".png")
 
         if self.config_parameters["show_plots"] == "True":
