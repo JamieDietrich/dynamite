@@ -2,7 +2,7 @@
 ### Configuration File ###
 ### Jeremy Dietrich ###
 ### jdietrich1@email.arizona.edu ###
-### 2022 January 7 ###
+### 2022 January 8 ###
 ### Version 2.0 ###
 ### Dietrich & Apai (2020), AJ, 160, 107D ###
 ### Dietrich & Apai (2021), AJ, 161, 17D ###
@@ -23,18 +23,19 @@
 # otegi_rho: whether to use volatile formula or rocky formula for 5 M_earth < M < 25 M_earth - rocky/volatile; only used if mass_radius is otegi
 # inclination: Probability distribution for planet inclinations - currently accepts rayleigh_iso/syssim
 # eccentricity: Probability distribution for planet eccentricities - currently accepts rayleigh/syssim
-# stability: which stability model to run - currently accepts hill/spock/specfrac; if spock, SPOCK must be installed; if spock or specfrac, REBOUND must be installed; specfrac adds hours on HPC clusters
+# stability: which stability model to run - currently accepts hill/spock/specfrac; if spock, SPOCK must be installed and must be on system of 3 planets or more;
+#            if spock or specfrac, REBOUND must be installed; specfrac adds hours on HPC clusters
 
-MC_chain::100000
+MC_chain::10000
 mode::test
-system::Kepler-289
-period::epos
+system::Kepler-305
+period::syssim
 radius::syssim
-radtype::clustered
+radtype::powerlaw
 radmin::0.1
 radmax::15
 mass_radius::otegi
-otegi_rho::rocky
+otegi_rho::volatile
 inclination::syssim
 eccentricity::syssim
 stability::hill
@@ -61,19 +62,19 @@ stability::hill
 plot::True
 show_plots::True
 saved::False
-plt_P_R::True
-plt_P_scale::log
-plt_tdtp::False
-plt_deltas::False
-plt_ratios::False
+plt_P_R::False
+plt_P_scale::linear
+plt_tdtp::True
+plt_deltas::True
+plt_ratios::True
 plt_indpars::False
 plt_PDFs::False
 plt_colors::["377eb8", "d95f02", "148d39", "984ea3", "e41a1c", "e6ab02", "d3d3d3"]
 show_Rearth::False
-use_mass::False
-ind_P::log
-ind_R::linear
-ind_i::full
+use_mass::True
+ind_P::linear_zoom
+ind_R::linear_zoom
+ind_i::truncated
 
 ## SYSTEM ARCHITECTURE PARAMETERS ##
 

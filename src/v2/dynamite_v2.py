@@ -2,7 +2,7 @@
 ### Main File ###
 ### Jeremy Dietrich ###
 ### jdietrich1@email.arizona.edu ###
-### 2022 January 7 ###
+### 2022 January 8 ###
 ### Version 2.0 ###
 ### Dietrich & Apai (2020), AJ, 160, 107D ###
 ### Dietrich & Apai (2021), AJ, 161, 17D ###
@@ -368,10 +368,10 @@ class dynamite:
                 ek_r.append(_ek[a])
                 ik_r.append(_ik[a])
 
-        print(len(Pk))
+        print("ACCEPTED INJECTIONS:", len(Pk))
 
         if self.config_parameters["stability"] == "spock":
-            print(np.mean(val), np.std(val), np.mean(tim)/per[0], np.std(tim)/per[0])
+            print("STABILITY THRESHOLD VALUE:", np.mean(val), "+/-", np.std(val), "TIME TO INSTABILITY", np.mean(tim)/per[0], "+/-", np.std(tim)/per[0])
 
         elif self.config_parameters["stability"] == "specfrac":
             np.savetxt("unstable_times.txt", tim)
@@ -840,7 +840,7 @@ class dynamite:
 
 
 
-    def syssim_pers(self, per, rad, ecc, P, R, PR, Pecc, cdfE, M_star, GMfp213):
+    def syssim_pers(self, per, rad, ecc, P, R, cdfR, Pecc, cdfE, M_star, GMfp213):
         """Generates probability of periods using clustered periods from He, Ford, and Ragozzine (2019)"""
 
         sigmap = 0.2
@@ -940,10 +940,10 @@ class dynamite:
             fP[i] = max(f)
 
         if len(R) == 1:
-            m2 = self.mr_convert(np.median(PR), "mass")
+            m2 = self.mr_convert(np.median(cdfR), "mass")
 
         else:
-            m2 = self.mr_convert(R[np.where(PR >= 0.5)[0][0]], "mass")
+            m2 = self.mr_convert(R[np.where(cdfR > 0.5)[0][0]], "mass")
 
         em = np.median(Pecc)
         dc = 8

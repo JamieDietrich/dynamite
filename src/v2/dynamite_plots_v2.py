@@ -2,7 +2,7 @@
 ### Plotting File ###
 ### Jeremy Dietrich ###
 ### jdietrich1@email.arizona.edu ###
-### 2022 January 7 ###
+### 2022 January 88 ###
 ### Version 2.0 ###
 ### Dietrich & Apai (2020), AJ, 160, 107D ###
 ### Dietrich & Apai (2021), AJ, 161, 17D ###
@@ -352,6 +352,7 @@ class dynamite_plots:
         plt.plot(Du, deltas)
         plt.xlabel(r"$\Delta$ (Mutual Hill Radii)")
         plt.ylabel("Frequency")
+        plt.title("Planet Pair Separation", fontsize=30)
         plt.savefig("Deltas_" + self.config_parameters["mode"] + "_" + self.config_parameters["period"] + ".png")
 
         if self.config_parameters["show_plots"] == "True":
@@ -771,7 +772,7 @@ class dynamite_plots:
                     xlim = [math.floor(min(rad)), math.ceil(max(rad))]
 
                 else:
-                    xlim = [math.floor(self.mr_convert(min(rad))), math.ceil(self.mr_convert(max(rad)))]
+                    xlim = [math.floor(self.mr_convert(min(rad), "mass")), math.ceil(self.mr_convert(max(rad), "mass"))]
 
         elif self.config_parameters["ind_R"] == "linear":
             plt_savename = system.replace(" ", "") + "_" + ("R" if self.config_parameters["use_mass"] == "False" else "M") + "_linear_" + self.config_parameters["mass_radius"] + ("_" + self.config_parameters["otegi_rho"] if self.config_parameters["mass_radius"] == "otegi" else "") + "_" + self.config_parameters["inclination"] + "_" + self.config_parameters["eccentricity"] + "_" + self.config_parameters["stability"] + ".png"
