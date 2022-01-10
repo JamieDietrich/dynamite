@@ -15,6 +15,7 @@ import ast
 import time
 import atexit
 import socket
+import platform
 import threading
 import subprocess
 import numpy as np
@@ -26,6 +27,8 @@ from tkinter import messagebox as tkMB
 import tkinter.scrolledtext as ScrolledText
 from tkinter import constants as Tkconstants
 from dynamite_targets_v2 import dynamite_targets
+
+PYTHON_COMMAND = "C:\python38\python -u " if platform.system() == 'Windows' else "python -u "
 
 class CreateToolTip(object):
     """Modified from https://stackoverflow.com/questions/3221956/how-do-i-display-tooltips-in-tkinter"""
@@ -74,7 +77,7 @@ class DynamiteGUI:
         if (len(sys.argv)  >=  2):
             self.load_config_data(sys.argv[1])
         else:
-            self.load_config_data("dynamite_config.txt")
+            self.load_config_data("dynamite_config_v2.txt")
             
         ttk.Style().map("TCombobox", fieldbackground = [('!readonly', '#FFFFFF'),('readonly', '#FFFFFF'),],)
         self.root.title("DYNAMITE ---> " + self.config_file + " (right-click on field for tooltips)")
@@ -148,7 +151,7 @@ class DynamiteGUI:
         self.mode_box.bind('<<ComboboxSelected>>', self.set_plot_save_false)
         self.mode_box.configure(state = 'readonly')
         
-        self.system_box = ttk.Combobox(self.root, width = 18, height = 20, justify = Tkconstants.RIGHT)
+        self.system_box = ttk.Combobox(self.root, width = 16, height = 20, justify = Tkconstants.RIGHT)
         self.system_box["values"] = self.system_values
         self.system_box.current(0)
         self.config_entries["system"] = self.system_box
@@ -169,7 +172,7 @@ class DynamiteGUI:
         self.radius_box.bind('<<ComboboxSelected>>', self.set_plot_save_false)
         self.radius_box.configure(state = 'readonly')
         
-        self.radtype_box = ttk.Combobox(self.root, width = 11, justify = Tkconstants.RIGHT)
+        self.radtype_box = ttk.Combobox(self.root, width = 10, justify = Tkconstants.RIGHT)
         self.radtype_box["values"] = self.radtype_values
         self.radtype_box.current(1)
         self.config_entries["radtype"] = self.radtype_box
@@ -190,14 +193,14 @@ class DynamiteGUI:
         self.otegi_rho_box.bind('<<ComboboxSelected>>', self.set_plot_save_false)
         self.otegi_rho_box.configure(state = 'readonly')
         
-        self.inclination_box = ttk.Combobox(self.root, width = 12, justify = Tkconstants.RIGHT)
+        self.inclination_box = ttk.Combobox(self.root, width = 10, justify = Tkconstants.RIGHT)
         self.inclination_box["values"] = self.inclination_values
         self.inclination_box.current(1)
         self.config_entries["inclination"] = self.inclination_box
         self.inclination_box.bind('<<ComboboxSelected>>', self.set_plot_save_false)
         self.inclination_box.configure(state = 'readonly')
         
-        self.eccentricity_box = ttk.Combobox(self.root, width = 8, justify = Tkconstants.RIGHT)
+        self.eccentricity_box = ttk.Combobox(self.root, width = 10, justify = Tkconstants.RIGHT)
         self.eccentricity_box["values"] = self.eccentricity_values
         self.eccentricity_box.current(1)
         self.config_entries["eccentricity"] = self.eccentricity_box
@@ -211,21 +214,21 @@ class DynamiteGUI:
         self.stability_box.bind('<<ComboboxSelected>>', self.set_plot_save_false)
         self.stability_box.configure(state = 'readonly')
                
-        self.plot_box = ttk.Combobox(self.root, width = 10, justify = Tkconstants.RIGHT)
+        self.plot_box = ttk.Combobox(self.root, width = 7, justify = Tkconstants.RIGHT)
         self.plot_box["values"] = self.plot_values
         self.plot_box.current(1)
         self.config_entries["plot"] = self.plot_box
         self.plot_box.bind('<<ComboboxSelected>>')
         self.plot_box.configure(state = 'readonly')
         
-        self.show_plots_box = ttk.Combobox(self.root, width = 10, justify = Tkconstants.RIGHT)
+        self.show_plots_box = ttk.Combobox(self.root, width = 7, justify = Tkconstants.RIGHT)
         self.show_plots_box["values"] = self.show_plots_values
         self.show_plots_box.current(1)
         self.config_entries["show_plots"] = self.show_plots_box
         self.show_plots_box.bind('<<ComboboxSelected>>')
         self.show_plots_box.configure(state = 'readonly')
         
-        self.save_plots_box = ttk.Combobox(self.root, width = 10, justify = Tkconstants.RIGHT)  
+        self.save_plots_box = ttk.Combobox(self.root, width = 7, justify = Tkconstants.RIGHT)  
         self.save_plots_box["values"] = self.save_plots_values
         self.save_plots_box.current(1)
         self.config_entries["saved"] = self.save_plots_box
@@ -295,21 +298,21 @@ class DynamiteGUI:
         self.use_mass_box.bind('<<ComboboxSelected>>')
         self.use_mass_box.configure(state = 'readonly')
                 
-        self.ind_p_box = ttk.Combobox(self.root, width = 11, justify = Tkconstants.RIGHT)
+        self.ind_p_box = ttk.Combobox(self.root, width = 10, justify = Tkconstants.RIGHT)
         self.ind_p_box["values"] = self.ind_p_values
         self.ind_p_box.current(2)
         self.config_entries["ind_P"] = self.ind_p_box
         self.ind_p_box.bind('<<ComboboxSelected>>')
         self.ind_p_box.configure(state = 'readonly')
         
-        self.ind_r_box = ttk.Combobox(self.root, width = 11, justify = Tkconstants.RIGHT)
+        self.ind_r_box = ttk.Combobox(self.root, width = 10, justify = Tkconstants.RIGHT)
         self.ind_r_box["values"] = self.ind_r_values
         self.ind_r_box.current(1)
         self.config_entries["ind_R"] = self.ind_r_box
         self.ind_r_box.bind('<<ComboboxSelected>>')
         self.ind_r_box.configure(state = 'readonly')
         
-        self.ind_i_box = ttk.Combobox(self.root, width = 11, justify = Tkconstants.RIGHT)
+        self.ind_i_box = ttk.Combobox(self.root, width = 10, justify = Tkconstants.RIGHT)
         self.ind_i_box["values"] = self.ind_i_values
         self.ind_i_box.current(0)
         self.config_entries["ind_i"] = self.ind_i_box
@@ -332,78 +335,78 @@ class DynamiteGUI:
         Tkinter.Label(self.root, text = "PREDICTION PARAMETERS").grid(row = row, column = 1, sticky = 'EW', padx = 0, pady = 5, columnspan = 3)
         row += 1
         self.root.grid_rowconfigure(row,weight=1)
-        Tkinter.Label(self.root, text = "MC Chain").grid(row = row, column = 0, padx = 5, sticky = 'W', pady = 5)
+        Tkinter.Label(self.root, text = "MC Chain").grid(row = row, column = 0, padx = 10, sticky = 'W', pady = 5)
         self.mc_chain_text_box = Tkinter.Entry(self.root, textvariable = self.mc_chain, width = 10, validate = "key", validatecommand = vcmd, justify ='center')
-        self.mc_chain_text_box.grid(row = row, column = 0, padx = 0, sticky = 'E')
+        self.mc_chain_text_box.grid(row = row, column = 0, padx = 10, sticky = 'E')
         Tkinter.Label(self.root, text = "Mode").grid(row = row, column = 1, padx = 10, sticky = 'W')
-        self.mode_box.grid(row = row, column = 1, padx = 0, sticky = 'E')
+        self.mode_box.grid(row = row, column = 1, padx = 10, sticky = 'E')
         Tkinter.Label(self.root, text = "System").grid(row = row, column = 2, padx = 10, sticky = 'W')
-        self.system_box.grid(row = row, column = 2, padx = 0, sticky = 'E')
+        self.system_box.grid(row = row, column = 2, padx = 10, sticky = 'E')
         Tkinter.Label(self.root, text = "Period").grid(row = row, column = 3, padx = 10, sticky = 'W')
-        self.period_box.grid(row = row, column = 3, padx = 20, sticky = 'E')
-        Tkinter.Label(self.root, text = "Mass Radius").grid(row = row, column = 4, padx = 0, sticky = 'W')
-        self.mass_radius_box.grid(row = row, column = 4, padx = 5, sticky = 'E')
+        self.period_box.grid(row = row, column = 3, padx = 10, sticky = 'E')
+        Tkinter.Label(self.root, text = "Mass Radius").grid(row = row, column = 4, padx = 10, sticky = 'W')
+        self.mass_radius_box.grid(row = row, column = 4, padx = 10, sticky = 'E')
         row += 1
         self.root.grid_rowconfigure(row,weight=1)        
-        Tkinter.Label(self.root, text = "Radius").grid(row = row, column = 0, padx = 5, sticky = 'W', pady = 5)
-        self.radius_box.grid(row = row, column = 0, padx = 0, sticky = 'E')
+        Tkinter.Label(self.root, text = "Radius").grid(row = row, column = 0, padx = 10, sticky = 'W', pady = 5)
+        self.radius_box.grid(row = row, column = 0, padx = 10, sticky = 'E')
         Tkinter.Label(self.root, text = "Rad Type").grid(row = row, column = 1, padx = 10, sticky ='W')
-        self.radtype_box.grid(row = row, column = 1, padx = 0, sticky = 'E')
+        self.radtype_box.grid(row = row, column = 1, padx = 10, sticky = 'E')
         Tkinter.Label(self.root, text = "Rad Min").grid(row = row, column = 2, sticky = 'W', padx = 10)
         self.radmin_text_box = Tkinter.Entry(self.root, textvariable = self.radmin, width = 7, validate = "key", validatecommand = vcmd, justify ='center')
-        self.radmin_text_box.grid(row = row, column = 2, padx = 0, sticky = 'E')
+        self.radmin_text_box.grid(row = row, column = 2, padx = 10, sticky = 'E')
         Tkinter.Label(self.root, text = "Rad Max").grid(row = row, column = 3, sticky = 'W', padx = 10)
         self.radmax_text_box = Tkinter.Entry(self.root, textvariable = self.radmax, width = 7, validate = "key", validatecommand = vcmd, justify ='center')        
-        self.radmax_text_box.grid(row = row, column = 3, padx = 20, sticky = 'E')
-        Tkinter.Label(self.root, text = "Otegi Rho").grid(row = row, column = 4, padx = 0, sticky ='W')
-        self.otegi_rho_box.grid(row = row, column = 4, padx = 5, sticky = 'E')
+        self.radmax_text_box.grid(row = row, column = 3, padx = 10, sticky = 'E')
+        Tkinter.Label(self.root, text = "Otegi Rho").grid(row = row, column = 4, padx = 10, sticky ='W')
+        self.otegi_rho_box.grid(row = row, column = 4, padx = 10, sticky = 'E')
         row += 1
         self.root.grid_rowconfigure(row,weight=1)
-        Tkinter.Label(self.root, text = "Inclination").grid(row = row, column = 0, padx = 5, sticky ='W', pady = 5)
-        self.inclination_box.grid(row = row, column = 0, padx = 0, sticky = 'E')
+        Tkinter.Label(self.root, text = "Inclination").grid(row = row, column = 0, padx = 10, sticky ='W', pady = 5)
+        self.inclination_box.grid(row = row, column = 0, padx = 10, sticky = 'E')
         Tkinter.Label(self.root, text = "Eccentricity").grid(row = row, column = 2, padx = 10, sticky ='W', pady = 5)
-        self.eccentricity_box.grid(row = row, column = 2, padx = 0, sticky = 'E')
-        Tkinter.Label(self.root, text = "Stability").grid(row = row, column = 4, padx = 0, sticky ='W', pady = 5)
-        self.stability_box.grid(row = row, column = 4, padx = 0, sticky = 'E')
+        self.eccentricity_box.grid(row = row, column = 2, padx = 10, sticky = 'E')
+        Tkinter.Label(self.root, text = "Stability").grid(row = row, column = 4, padx = 10, sticky ='W', pady = 5)
+        self.stability_box.grid(row = row, column = 4, padx = 10, sticky = 'E')
         row += 1
         self.root.grid_rowconfigure(row,weight=1)
         Tkinter.Label(self.root, text = "PLOTTING PARAMETERS").grid(row = row, column = 1, sticky = 'EW', padx = 0, pady = 5, columnspan = 3)
         row += 1
         self.root.grid_rowconfigure(row,weight=1)
-        Tkinter.Label(self.root, text = "Create Plots").grid(row = row, column = 0, padx = 5, sticky = 'W', pady = 5)
+        Tkinter.Label(self.root, text = "Create Plots").grid(row = row, column = 0, padx = 10, sticky = 'W', pady = 5)
         self.plot_box.grid(row = row, column = 0, padx = 10, sticky = 'E')
-        Tkinter.Label(self.root, text = "Show Plots").grid(row = row, column = 1, padx = 10, sticky = 'W')
-        self.show_plots_box.grid(row = row, column = 1, padx = 0, sticky = 'E')
-        Tkinter.Label(self.root, text = "Plot P vs R").grid(row = row, column = 2, sticky = 'W', padx = 10)
-        self.plot_p_r_box.grid(row = row, column = 2, padx = 0, sticky = 'E')
-        Tkinter.Label(self.root, text = "Use Saved Data").grid(row = row, column = 3, padx = 10, sticky = 'W')
-        self.save_plots_box.grid(row = row, column = 3, padx = 0, sticky = 'E')
-        Tkinter.Label(self.root, text = "IND P").grid(row = row, column = 4, sticky = 'W', padx = 5)
-        self.ind_p_box.grid(row = row, column = 4, padx = 5, sticky = 'E')
+        Tkinter.Label(self.root, text = "Plot P Scale").grid(row = row, column = 1, padx = 10, sticky = 'W', pady = 5)
+        self.plot_p_scale_box.grid(row = row, column = 1, padx = 10, sticky = 'E')
+        Tkinter.Label(self.root, text = "Plot TD-TP").grid(row = row, column = 2, padx = 10, sticky = 'W')
+        self.plot_tdtp_box.grid(row = row, column = 2, padx = 10, sticky = 'E')
+        Tkinter.Label(self.root, text = "Plot P vs R").grid(row = row, column = 3, sticky = 'W', padx = 10)
+        self.plot_p_r_box.grid(row = row, column = 3, padx = 10, sticky = 'E')
+        Tkinter.Label(self.root, text = "IND P").grid(row = row, column = 4, sticky = 'W', padx = 10)
+        self.ind_p_box.grid(row = row, column = 4, padx = 10, sticky = 'E')
         row += 1
         self.root.grid_rowconfigure(row,weight=1)
-        Tkinter.Label(self.root, text = "Plot P Scale").grid(row = row, column = 0, padx = 5, sticky = 'W', pady = 5)
-        self.plot_p_scale_box.grid(row = row, column = 0, padx = 10, sticky = 'E')
-        Tkinter.Label(self.root, text = "Plot TD-TP").grid(row = row, column = 1, padx = 10, sticky = 'W')
-        self.plot_tdtp_box.grid(row = row, column = 1, padx = 0, sticky = 'E')
+        Tkinter.Label(self.root, text = "Show Plots").grid(row = row, column = 0, padx = 10, sticky = 'W')
+        self.show_plots_box.grid(row = row, column = 0, padx = 10, sticky = 'E')
+        Tkinter.Label(self.root, text = "Plot Hist").grid(row = row, column = 1, padx = 10, sticky = 'W', pady =5)
+        self.plot_hist_box.grid(row = row, column = 1, padx = 10, sticky = 'E')
         Tkinter.Label(self.root, text = "Plot Deltas").grid(row = row, column = 2, padx = 10, sticky = 'W')
-        self.plot_deltas_box.grid(row = row, column = 2, padx =  0, sticky = 'E')
+        self.plot_deltas_box.grid(row = row, column = 2, padx =  10, sticky = 'E')
         Tkinter.Label(self.root, text = "Plot Ratios").grid(row = row, column = 3, sticky = 'W', padx = 10)
-        self.plot_ratios_box.grid(row = row, column = 3, padx = 0, sticky = 'E')
-        Tkinter.Label(self.root, text = "IND R").grid(row = row, column = 4, padx = 5, sticky = 'W')
-        self.ind_r_box.grid(row = row, column = 4, padx = 5, sticky = 'E')
+        self.plot_ratios_box.grid(row = row, column = 3, padx = 10, sticky = 'E')
+        Tkinter.Label(self.root, text = "IND R").grid(row = row, column = 4, padx = 10, sticky = 'W')
+        self.ind_r_box.grid(row = row, column = 4, padx = 10, sticky = 'E')
         row += 1
         self.root.grid_rowconfigure(row,weight=1)
-        Tkinter.Label(self.root, text = "Plot Hist").grid(row = row, column = 0, padx = 5, sticky = 'W', pady =5)
-        self.plot_hist_box.grid(row = row, column = 0, padx = 10, sticky = 'E')
+        Tkinter.Label(self.root, text = "Use Saved Data").grid(row = row, column = 0, padx = 10, sticky = 'W')
+        self.save_plots_box.grid(row = row, column = 0, padx = 10, sticky = 'E')
         Tkinter.Label(self.root, text = "Plot PDF").grid(row = row, column = 1, padx = 10, sticky = 'W')
-        self.plot_pdf_box.grid(row = row, column = 1, padx = 0, sticky = 'E')
+        self.plot_pdf_box.grid(row = row, column = 1, padx = 10, sticky = 'E')
         Tkinter.Label(self.root, text = "Show Rearth").grid(row = row, column = 2, padx = 10, sticky = 'W')
-        self.show_rearth_box.grid(row = row, column = 2, padx =0, sticky = 'E')
+        self.show_rearth_box.grid(row = row, column = 2, padx =10, sticky = 'E')
         Tkinter.Label(self.root, text = "Use Mass").grid(row = row, column = 3, padx = 10, sticky = 'W')
-        self.use_mass_box.grid(row = row, column = 3, padx =0, sticky = 'E')
-        Tkinter.Label(self.root, text = "IND I").grid(row = row, column = 4, padx = 5, sticky = 'W')
-        self.ind_i_box.grid(row = row, column = 4, padx = 5, sticky = 'E')
+        self.use_mass_box.grid(row = row, column = 3, padx =10, sticky = 'E')
+        Tkinter.Label(self.root, text = "IND I").grid(row = row, column = 4, padx = 10, sticky = 'W')
+        self.ind_i_box.grid(row = row, column = 4, padx = 10, sticky = 'E')
         row += 1
         self.root.grid_rowconfigure(row,weight=1)
         Tkinter.Label(self.root, text = "Plot Colors").grid(row = row, column = 0, sticky = 'E', padx = 15, pady = 5)
@@ -581,7 +584,7 @@ class DynamiteGUI:
         text_pad.pack(fill=Tkinter.BOTH, expand=True)
         try:
             start_time = time.time()
-            p = subprocess.Popen("python -u " + command, shell=True, cwd=".", stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            p = subprocess.Popen(PYTHON_COMMAND + command, shell=True, cwd=".", stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
             atexit.register(p.terminate)
             self.editors[editor] = p
             log_file = 'log_file.txt'

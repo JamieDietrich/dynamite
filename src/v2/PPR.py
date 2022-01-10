@@ -1,10 +1,9 @@
 # Python Process Runner
 # Author: Jerry Dietrich
-# 2021 December 20
+# 2022 January 7
 
 from multiprocessing.pool import Pool
 import multiprocessing
-import collections
 import threading
 import importlib
 import traceback
@@ -35,10 +34,9 @@ class NestablePool(Pool):
         super(NestablePool, self).__init__(*args, **kwargs)
 
 class PPR(object):
-    def __init__(self, instance_name, processes = None, remote_terminate = True, use_ordered_dict = False):
+    def __init__(self, instance_name, processes = None, remote_terminate = True):
         global PPR_instance
         if instance_name != None:
-            self.use_ordered_dict = use_ordered_dict
             if PPR_instance == None:
                 PPR_instance = self
                 self.pool_dict = {}
@@ -142,18 +140,14 @@ class PPR(object):
                 return p_conn.recv()
         if pool == None: pool = self.pool_dict['main']
         if size != None and size != 0 and not isinstance(function, list):
-            rslt = pool.map(self.run_functions,[(get_func(function), t) for t in self.process_begin_size_tuple(args, (0, size))])
+            results = pool.map(self.run_functions,[(get_func(function), t) for t in self.process_begin_size_tuple(args, (0, size))])
         elif isinstance(args, list):
-            rslt = pool.map(self.run_functions,[(get_func(function[i]) if isinstance(function, list) else get_func(function), args[i]) for i in range(len(args))])
+            results = pool.map(self.run_functions,[(get_func(function[i]) if isinstance(function, list) else get_func(function), args[i]) for i in range(len(args))])
         elif isinstance(function, list):
-            rslt = pool.map(self.run_functions,[(get_func(function[i]), args) for i in range(len(function))])
+            results = pool.map(self.run_functions,[(get_func(function[i]), args) for i in range(len(function))])
         else:
-            rslt = getattr(self.instance[0]() if not self.instance[1] else self.instance[0], function)(*args)
-        if rslt == None or len(rslt) == 0: return {} if callback == None else callback({})
-        results = rslt
-        if self.use_ordered_dict:
-            try: results = collections.OrderedDict((key,d[key]) for d in sorted(rslt, key = lambda d: list(d.keys())[0]) for key in d)
-            except: return rslt
+            results = getattr(self.instance[0]() if not self.instance[1] else self.instance[0], function)(*args)
+        if results == None or len(results) == 0: return {} if callback == None else callback({})
         return results if callback == None else callback(results)
                
     def process_begin_size_tuple(self, arg, params):
