@@ -2,7 +2,7 @@
 ### Main File ###
 ### Jeremy Dietrich ###
 ### jdietrich1@email.arizona.edu ###
-### 2022 January 8 ###
+### 2022 January 10 ###
 ### Version 2.0 ###
 ### Dietrich & Apai (2020), AJ, 160, 107D ###
 ### Dietrich & Apai (2021), AJ, 161, 17D ###
@@ -368,7 +368,7 @@ class dynamite:
                 ek_r.append(_ek[a])
                 ik_r.append(_ik[a])
 
-        print("ACCEPTED INJECTIONS:", len(Pk))
+        print(target_name, "Accepted Injections:", len(Pk))
 
         if self.config_parameters["stability"] == "spock":
             print("STABILITY THRESHOLD VALUE:", np.mean(val), "+/-", np.std(val), "TIME TO INSTABILITY", np.mean(tim)/per[0], "+/-", np.std(tim)/per[0])

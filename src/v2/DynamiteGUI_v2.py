@@ -2,7 +2,7 @@
 ### GUI ###
 ### Jeremy Dietrich ###
 ### jdietrich1@email.arizona.edu ###
-### 2022 January 8 ###
+### 2022 January 10 ###
 ### Version 2.0 ###
 ### Dietrich & Apai (2020), AJ, 160, 107D ###
 ### Dietrich & Apai (2021), AJ, 161, 17D ###

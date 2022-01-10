@@ -2,7 +2,7 @@
 ### Plotting File ###
 ### Jeremy Dietrich ###
 ### jdietrich1@email.arizona.edu ###
-### 2022 January 88 ###
+### 2022 January 10 ###
 ### Version 2.0 ###
 ### Dietrich & Apai (2020), AJ, 160, 107D ###
 ### Dietrich & Apai (2021), AJ, 161, 17D ###
@@ -128,12 +128,12 @@ class dynamite_plots:
 
             plot_fig_p = np.array(plot_fig_p)
             plot_fig_r = np.array(plot_fig_r)
-            np.savetxt("plot_fig_p.txt", plot_fig_p)
-            np.savetxt("plot_fig_r.txt", plot_fig_r)
+            np.savetxt("plot_fig_p" + mode + ".txt", plot_fig_p)
+            np.savetxt("plot_fig_r" + mode + ".txt", plot_fig_r)
 
         elif self.config_parameters["saved"] == "True":
-            plot_fig_p = np.loadtxt("plot_fig_p.txt")
-            plot_fig_r = np.loadtxt("plot_fig_r.txt")
+            plot_fig_p = np.loadtxt("plot_fig_p" + mode + ".txt")
+            plot_fig_r = np.loadtxt("plot_fig_r" + mode + ".txt")
 
         for i in range(len(targets)):
             targets[i][1] = int(float(targets[i][1])*100 - 10)
@@ -145,190 +145,194 @@ class dynamite_plots:
 
         pfpi = np.zeros((len(plot_fig_p), len(Pf)))
 
-        for i in range(len(plot_fig_p)):
-            pfpi[i] = np.interp(Pf, P[:1855], plot_fig_p[i])
+        try:
+            for i in range(len(plot_fig_p)):
+                pfpi[i] = np.interp(Pf, P[:1855], plot_fig_p[i])
 
-        pfri = np.zeros((len(plot_fig_r), len(Rf)))
+            pfri = np.zeros((len(plot_fig_r), len(Rf)))
 
-        for i in range(len(plot_fig_r)):
-            pfri[i] = np.interp(Rf, R, plot_fig_r[i])
+            for i in range(len(plot_fig_r)):
+                pfri[i] = np.interp(Rf, R, plot_fig_r[i])
 
-        prf = np.zeros((len(Rf), len(Pf)))
+            prf = np.zeros((len(Rf), len(Pf)))
 
-        for i in range(len(targets)):
-            pp = [pfpi[i*200, j] for j in range(len(Pf))]
-            pr = [pfri[i*200, j] for j in range(len(Rf))]
-            prf += np.outer(pr, pp)
-
-        fig, ax = plt.subplots(1,1, figsize=(20, 12))
-        fig.suptitle(r"Period-Planet Radius Relative Likelihood", fontsize=30)
-        img = ax.imshow(prf, cmap=plt.cm.viridis, origin="lower", aspect="auto")
-        ax.set_xscale("Log")
-        xlabels = [0.1, 1, 10, 100]
-        ylabels = [0, 1, 2, 3, 4, 5]
-        ax.set_xticks([9, 90, 990, 9990])
-        ax.set_yticks([-100, 900, 1900, 2900, 3900, 4900])
-        ax.set_xticklabels(xlabels)
-        ax.set_yticklabels(ylabels)
-        ax.tick_params(labelsize=14)
-        plt.scatter([int(targets[i][1]) for i in range(len(targets))], [int(targets[i][4]) for i in range(len(targets))], color="w", marker="*")
-
-        for i in range(len(targets)):
-            ple = int(targets[i][1]) - int(targets[i][2])
-            pue = int(targets[i][1]) + int(targets[i][3])
-            rle = int(targets[i][4]) - int(targets[i][5])
-            rue = int(targets[i][4]) + int(targets[i][6])
-            ellipse = mpatch.Ellipse((np.mean([ple, pue]), np.mean([rle, rue])), pue-ple, rue-rle, alpha=0.1, color="w")
-            ax.add_patch(ellipse)
-
-        bottom = []
-        left = []
-        right = []
-        tl = []
-        tr = []
-        bl = []
-        br = []
-
-        if self.config_parameters["mode"] == "TESS":
-            if self.config_parameters["period"] == "epos":
-                bottom = ["TOI 256", "TOI 286", "TOI 270", "TOI 402", "TOI 411", "TOI 712", "TOI 1269", "TOI 1468", "TOI 1726"]
-                left = ["TOI 119", "TOI 487", "TOI 1469"]
-                right = ["TOI 266", "TOI 396", "TOI 703", "TOI 1266", "TOI 1749"]
-                tl = ["TOI 1260", "TOI 1438"]
-                tr = ["TOI 763"]
-                bl = ["TOI 712"]
-                br = ["TOI 713"]
-
-            elif self.config_parameters["period"] == "syssim":
-                bottom = ["TOI 119", "TOI 286", "TOI 487", "TOI 736", "TOI 797", "TOI 1453", "TOI 1720", "TOI 1726", "TOI 1749"]
-                left = ["TOI 256", "TOI 1269"]
-                right = ["TOI 431", "TOI 703", "TOI 1277", "TOI 1730"]
-                tl = ["TOI 125"]
-                tr = ["TOI 266"]
-                bl = ["TOI 836", "TOI 1260"]
-                br = ["TOI 1438"]
-
-        if self.config_parameters["mode"] != "Kepler":
             for i in range(len(targets)):
-                if targets[i][0] in bottom:
-                    plt.annotate(targets[i][0][targets[i][0].find(" "):], (int(targets[i][1]), int(targets[i][4])), color="w", textcoords="offset points", xytext=(0,-20), ha="center", weight='bold', fontsize=16)
+                pp = [pfpi[i*200, j] for j in range(len(Pf))]
+                pr = [pfri[i*200, j] for j in range(len(Rf))]
+                prf += np.outer(pr, pp)
 
-                elif targets[i][0] in right:
-                    plt.annotate(targets[i][0][targets[i][0].find(" "):], (int(targets[i][1]), int(targets[i][4])), color="w", textcoords="offset points", xytext=(25,-7), ha="center", weight='bold', fontsize=16)
-
-                elif targets[i][0] in left:
-                    plt.annotate(targets[i][0][targets[i][0].find(" "):], (int(targets[i][1]), int(targets[i][4])), color="w", textcoords="offset points", xytext=(-30,-7), ha="center", weight='bold', fontsize=16)
-
-                elif targets[i][0] in tl:
-                    plt.annotate(targets[i][0][targets[i][0].find(" "):], (int(targets[i][1]), int(targets[i][4])), color="w", textcoords="offset points", xytext=(-25,7), ha="center", weight='bold', fontsize=16)
-
-                elif targets[i][0] in tr:
-                    plt.annotate(targets[i][0][targets[i][0].find(" "):], (int(targets[i][1]), int(targets[i][4])), color="w", textcoords="offset points", xytext=(12,5), ha="center", weight='bold', fontsize=16)
-
-                elif targets[i][0] in bl:
-                    plt.annotate(targets[i][0][targets[i][0].find(" "):], (int(targets[i][1]), int(targets[i][4])), color="w", textcoords="offset points", xytext=(-15,-20), ha="center", weight='bold', fontsize=16)
-
-                elif targets[i][0] in br:
-                    plt.annotate(targets[i][0][targets[i][0].find(" "):], (int(targets[i][1]), int(targets[i][4])), color="w", textcoords="offset points", xytext=(15,-20), ha="center", weight='bold', fontsize=16)
-
-                else:
-                    plt.annotate(targets[i][0][targets[i][0].find(" "):], (int(targets[i][1]), int(targets[i][4])), color="w", textcoords="offset points", xytext=(0,8), ha="center", weight='bold', fontsize=16)
-
-        cb = fig.colorbar(img)
-        cb.set_label(label="Probability normalized to 1 injected planet per system", size=20)
-        cb.ax.tick_params(labelsize=14)
-        plt.xlabel("Log Period (days)", fontsize=20)
-        plt.ylabel(r"Radius ($R_{\oplus}$)", fontsize=20)
-        plt.ylim(750, 4200)
-
-        if self.config_parameters["period"] == "epos":
-            plt.xlim(150, 11000)
-
-        elif self.config_parameters["period"] == "syssim":
-            plt.xlim(40, 11000)
-
-        plt.savefig("PRfig_" + self.config_parameters["mode"] + "_" + self.config_parameters["period"] + "_ell.png", bbox_inches='tight')
-
-        if self.config_parameters["show_plots"] == "True":
-            plt.show()
-
-        elif self.config_parameters["show_plots"] == "False":
-            plt.close()
-
-        fig, ax = plt.subplots(1,1, figsize=(10,12))
-        fig.suptitle("Period Relative Likelihoods for " + self.config_parameters["mode"] + " Systems", fontsize=30)
-        img = ax.imshow(pfpi, cmap=plt.cm.Blues, origin="lower", aspect="auto")
-
-        if self.config_parameters["plt_P_scale"] == "linear":
-            xlabels = [0, 20, 40, 60, 80, 100, 120, 140, 160, 180]
-            ax.set_xticks([-50, 1500, 3500, 5500, 7500, 9500, 11500, 13500, 15500, 17500])
-            ax.set_xticklabels(xlabels)
-            ax.set_xlim(-500, 18000)
-
-        elif self.config_parameters["plt_P_scale"] == "log":
+            fig, ax = plt.subplots(1,1, figsize=(20, 12))
+            fig.suptitle(r"Period-Planet Radius Relative Likelihood", fontsize=30)
+            img = ax.imshow(prf, cmap=plt.cm.viridis, origin="lower", aspect="auto")
             ax.set_xscale("Log")
             xlabels = [0.1, 1, 10, 100]
-            ax.set_xticks([0, 90, 990, 9990])
+            ylabels = [0, 1, 2, 3, 4, 5]
+            ax.set_xticks([9, 90, 990, 9990])
+            ax.set_yticks([-100, 900, 1900, 2900, 3900, 4900])
             ax.set_xticklabels(xlabels)
-            ax.set_xlim(10, 73000)
+            ax.set_yticklabels(ylabels)
+            ax.tick_params(labelsize=14)
+            plt.scatter([int(targets[i][1]) for i in range(len(targets))], [int(targets[i][4]) for i in range(len(targets))], color="w", marker="*")
 
-        ylabels = [targets[i][0] for i in range(len(targets))]
-        ax.set_yticks(np.arange(100, len(ylabels)*200 + 100, 200))
-        ax.set_yticklabels(ylabels)
-        ax.tick_params(labelsize=12)
-        cb = fig.colorbar(img)
-        cb.set_label(label="Probability normalized to 1 injected planet per system", size=16)
-        cb.ax.tick_params(labelsize=12)
-        plt.xlabel("Period (days)", fontsize=16)
-        plt.ylabel("Systems", fontsize=16)
-        pc = 100
-        plt.scatter(np.where(np.isclose(Pf, pers[0][0], atol=(0.005 if pers[0][0] < 1 else 0.05)))[0][0], pc, color="r", s=int(round(rads[0][0]*20, 0)), label="Known Planets")
+            for i in range(len(targets)):
+                ple = int(targets[i][1]) - int(targets[i][2])
+                pue = int(targets[i][1]) + int(targets[i][3])
+                rle = int(targets[i][4]) - int(targets[i][5])
+                rue = int(targets[i][4]) + int(targets[i][6])
+                ellipse = mpatch.Ellipse((np.mean([ple, pue]), np.mean([rle, rue])), pue-ple, rue-rle, alpha=0.1, color="w")
+                ax.add_patch(ellipse)
 
-        for i in range(len(pers)):
-            for j in range(len(pers[i])):
-                plt.scatter(np.where(np.isclose(Pf, pers[i][j], atol=0.006))[0][0], pc, color="r", s=int(round(rads[i][j]*20, 0)))
+            bottom = []
+            left = []
+            right = []
+            tl = []
+            tr = []
+            bl = []
+            br = []
 
-            pc += 200
+            if self.config_parameters["mode"] == "TESS":
+                if self.config_parameters["period"] == "epos":
+                    bottom = ["TOI 256", "TOI 286", "TOI 270", "TOI 402", "TOI 411", "TOI 712", "TOI 1269", "TOI 1468", "TOI 1726"]
+                    left = ["TOI 119", "TOI 487", "TOI 1469"]
+                    right = ["TOI 266", "TOI 396", "TOI 703", "TOI 1266", "TOI 1749"]
+                    tl = ["TOI 1260", "TOI 1438"]
+                    tr = ["TOI 763"]
+                    bl = ["TOI 712"]
+                    br = ["TOI 713"]
 
-        plt.savefig("logPfig_" + self.config_parameters["mode"] + "_" + self.config_parameters["period"] + ".png", bbox_inches='tight')
+                elif self.config_parameters["period"] == "syssim":
+                    bottom = ["TOI 119", "TOI 286", "TOI 487", "TOI 736", "TOI 797", "TOI 1453", "TOI 1720", "TOI 1726", "TOI 1749"]
+                    left = ["TOI 256", "TOI 1269"]
+                    right = ["TOI 431", "TOI 703", "TOI 1277", "TOI 1730"]
+                    tl = ["TOI 125"]
+                    tr = ["TOI 266"]
+                    bl = ["TOI 836", "TOI 1260"]
+                    br = ["TOI 1438"]
 
-        if self.config_parameters["show_plots"] == "True":
-            plt.show()
+            if self.config_parameters["mode"] != "Kepler":
+                for i in range(len(targets)):
+                    if targets[i][0] in bottom:
+                        plt.annotate(targets[i][0][targets[i][0].find(" "):], (int(targets[i][1]), int(targets[i][4])), color="w", textcoords="offset points", xytext=(0,-20), ha="center", weight='bold', fontsize=16)
 
-        elif self.config_parameters["show_plots"] == "False":
-            plt.close()
-       
-        fig, ax = plt.subplots(1,1, figsize=(10,12))
-        fig.suptitle("Planet Radius Relative Likelihoods for " + self.config_parameters["mode"] + " Systems", fontsize=30)
-        img = ax.imshow(pfri, cmap=plt.cm.Blues, origin="lower", aspect="auto")
-        xlabels = [0, 1, 2, 3, 4, 5]
-        ylabels = [targets[i][0] for i in range(len(targets))]
-        ax.set_xticks([-100, 900, 1900, 2900, 3900, 4900]) 
-        ax.set_yticks(np.arange(100, len(ylabels)*200 + 100, 200))
-        ax.set_xticklabels(xlabels)
-        ax.set_yticklabels(ylabels)
-        ax.tick_params(labelsize=12)
-        cb = fig.colorbar(img)
-        cb.set_label(label="Probability normalized to 1 injected planet per system", size=16)
-        cb.ax.tick_params(labelsize=12)
-        plt.xlabel(r"Radius ($R_{\oplus}$)", fontsize=16)
-        plt.ylabel("Systems", fontsize=16)
-        rc = 100
-        plt.scatter(np.where(np.isclose(Rf, rads[0][0], atol=0.006))[0][0], rc, color="r", label="Known Planets")
+                    elif targets[i][0] in right:
+                        plt.annotate(targets[i][0][targets[i][0].find(" "):], (int(targets[i][1]), int(targets[i][4])), color="w", textcoords="offset points", xytext=(25,-7), ha="center", weight='bold', fontsize=16)
 
-        for i in range(len(rads)):
-            for j in range(len(rads[i])):
-                plt.scatter(np.where(np.isclose(Rf, rads[i][j], atol=0.006))[0][0], rc, color="r")
+                    elif targets[i][0] in left:
+                        plt.annotate(targets[i][0][targets[i][0].find(" "):], (int(targets[i][1]), int(targets[i][4])), color="w", textcoords="offset points", xytext=(-30,-7), ha="center", weight='bold', fontsize=16)
 
-            rc += 200
+                    elif targets[i][0] in tl:
+                        plt.annotate(targets[i][0][targets[i][0].find(" "):], (int(targets[i][1]), int(targets[i][4])), color="w", textcoords="offset points", xytext=(-25,7), ha="center", weight='bold', fontsize=16)
 
-        plt.savefig("Rfig_" + self.config_parameters["mode"] + ".png", bbox_inches='tight')
+                    elif targets[i][0] in tr:
+                        plt.annotate(targets[i][0][targets[i][0].find(" "):], (int(targets[i][1]), int(targets[i][4])), color="w", textcoords="offset points", xytext=(12,5), ha="center", weight='bold', fontsize=16)
 
-        if self.config_parameters["show_plots"] == "True":
-            plt.show()
+                    elif targets[i][0] in bl:
+                        plt.annotate(targets[i][0][targets[i][0].find(" "):], (int(targets[i][1]), int(targets[i][4])), color="w", textcoords="offset points", xytext=(-15,-20), ha="center", weight='bold', fontsize=16)
 
-        elif self.config_parameters["show_plots"] == "False":
-            plt.close()
+                    elif targets[i][0] in br:
+                        plt.annotate(targets[i][0][targets[i][0].find(" "):], (int(targets[i][1]), int(targets[i][4])), color="w", textcoords="offset points", xytext=(15,-20), ha="center", weight='bold', fontsize=16)
+
+                    else:
+                        plt.annotate(targets[i][0][targets[i][0].find(" "):], (int(targets[i][1]), int(targets[i][4])), color="w", textcoords="offset points", xytext=(0,8), ha="center", weight='bold', fontsize=16)
+
+            cb = fig.colorbar(img)
+            cb.set_label(label="Probability normalized to 1 injected planet per system", size=20)
+            cb.ax.tick_params(labelsize=14)
+            plt.xlabel("Log Period (days)", fontsize=20)
+            plt.ylabel(r"Radius ($R_{\oplus}$)", fontsize=20)
+            plt.ylim(750, 4200)
+
+            if self.config_parameters["period"] == "epos":
+                plt.xlim(150, 11000)
+
+            elif self.config_parameters["period"] == "syssim":
+                plt.xlim(40, 11000)
+
+            plt.savefig("PRfig_" + self.config_parameters["mode"] + "_" + self.config_parameters["period"] + "_ell.png", bbox_inches='tight')
+
+            if self.config_parameters["show_plots"] == "True":
+                plt.show()
+
+            elif self.config_parameters["show_plots"] == "False":
+                plt.close()
+
+            fig, ax = plt.subplots(1,1, figsize=(10,12))
+            fig.suptitle("Period Relative Likelihoods for " + self.config_parameters["mode"] + " Systems", fontsize=30)
+            img = ax.imshow(pfpi, cmap=plt.cm.Blues, origin="lower", aspect="auto")
+
+            if self.config_parameters["plt_P_scale"] == "linear":
+                xlabels = [0, 20, 40, 60, 80, 100, 120, 140, 160, 180]
+                ax.set_xticks([-50, 1500, 3500, 5500, 7500, 9500, 11500, 13500, 15500, 17500])
+                ax.set_xticklabels(xlabels)
+                ax.set_xlim(-500, 18000)
+
+            elif self.config_parameters["plt_P_scale"] == "log":
+                ax.set_xscale("Log")
+                xlabels = [0.1, 1, 10, 100]
+                ax.set_xticks([0, 90, 990, 9990])
+                ax.set_xticklabels(xlabels)
+                ax.set_xlim(10, 73000)
+
+            ylabels = [targets[i][0] for i in range(len(targets))]
+            ax.set_yticks(np.arange(100, len(ylabels)*200 + 100, 200))
+            ax.set_yticklabels(ylabels)
+            ax.tick_params(labelsize=12)
+            cb = fig.colorbar(img)
+            cb.set_label(label="Probability normalized to 1 injected planet per system", size=16)
+            cb.ax.tick_params(labelsize=12)
+            plt.xlabel("Period (days)", fontsize=16)
+            plt.ylabel("Systems", fontsize=16)
+            pc = 100
+            plt.scatter(np.where(np.isclose(Pf, pers[0][0], atol=(0.005 if pers[0][0] < 1 else 0.05)))[0][0], pc, color="r", s=int(round(rads[0][0]*20, 0)), label="Known Planets")
+
+            for i in range(len(pers)):
+                for j in range(len(pers[i])):
+                    plt.scatter(np.where(np.isclose(Pf, pers[i][j], atol=0.006))[0][0], pc, color="r", s=int(round(rads[i][j]*20, 0)))
+
+                pc += 200
+
+            plt.savefig("logPfig_" + self.config_parameters["mode"] + "_" + self.config_parameters["period"] + ".png", bbox_inches='tight')
+
+            if self.config_parameters["show_plots"] == "True":
+                plt.show()
+
+            elif self.config_parameters["show_plots"] == "False":
+                plt.close()
+           
+            fig, ax = plt.subplots(1,1, figsize=(10,12))
+            fig.suptitle("Planet Radius Relative Likelihoods for " + self.config_parameters["mode"] + " Systems", fontsize=30)
+            img = ax.imshow(pfri, cmap=plt.cm.Blues, origin="lower", aspect="auto")
+            xlabels = np.arange(int(self.config_parameters["radmax"]) + 1)
+            ylabels = [targets[i][0] for i in range(len(targets))]
+            ax.set_xticks(np.arange(-100, (int(self.config_parameters["radmax"]) + 1)*1000 - 100, 1000))
+            ax.set_yticks(np.arange(100, len(ylabels)*200 + 100, 200))
+            ax.set_xticklabels(xlabels)
+            ax.set_yticklabels(ylabels)
+            ax.tick_params(labelsize=12)
+            cb = fig.colorbar(img)
+            cb.set_label(label="Probability normalized to 1 injected planet per system", size=16)
+            cb.ax.tick_params(labelsize=12)
+            plt.xlabel(r"Radius ($R_{\oplus}$)", fontsize=16)
+            plt.ylabel("Systems", fontsize=16)
+            rc = 100
+            plt.scatter(np.where(np.isclose(Rf, rads[0][0], atol=0.006))[0][0], rc, color="r", label="Known Planets")
+
+            for i in range(len(rads)):
+                for j in range(len(rads[i])):
+                    plt.scatter(np.where(np.isclose(Rf, rads[i][j], atol=0.006))[0][0], rc, color="r")
+
+                rc += 200
+
+            plt.savefig("Rfig_" + self.config_parameters["mode"] + ".png", bbox_inches='tight')
+
+            if self.config_parameters["show_plots"] == "True":
+                plt.show()
+
+            elif self.config_parameters["show_plots"] == "False":
+                plt.close()
+
+        except:
+            print("Plots could not be created! Check DYNAMITE's mode and/or most recent saved data")
 
 
 
