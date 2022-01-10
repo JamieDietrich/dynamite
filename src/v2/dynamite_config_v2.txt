@@ -25,8 +25,8 @@
 # eccentricity: Probability distribution for planet eccentricities - currently accepts rayleigh/syssim
 # stability: which stability model to run - currently accepts hill/spock/specfrac; if spock, SPOCK must be installed and must be on system of 3 planets or more; if spock or specfrac, REBOUND must be installed; specfrac adds hours on HPC clusters
 
-MC_chain::100
-mode::k2
+MC_chain::100000
+mode::single
 system::Kepler-305
 period::syssim
 radius::syssim
