@@ -147,7 +147,7 @@ class PPR(object):
             results = pool.map(self.run_functions,[(get_func(function[i]), args) for i in range(len(function))])
         else:
             results = getattr(self.instance[0]() if not self.instance[1] else self.instance[0], function)(*args)
-        if results == None or len(results) == 0: return {} if callback == None else callback({})
+        if results == None or len(results) == 0: return [] if callback == None else callback([])
         return results if callback == None else callback(results)
                
     def process_begin_size_tuple(self, arg, params):
