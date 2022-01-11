@@ -298,21 +298,21 @@ class DynamiteGUI:
         self.use_mass_box.bind('<<ComboboxSelected>>')
         self.use_mass_box.configure(state = 'readonly')
                 
-        self.ind_p_box = ttk.Combobox(self.root, width = 10, justify = Tkconstants.RIGHT)
+        self.ind_p_box = ttk.Combobox(self.root, width = 12, justify = Tkconstants.RIGHT)
         self.ind_p_box["values"] = self.ind_p_values
         self.ind_p_box.current(2)
         self.config_entries["ind_P"] = self.ind_p_box
         self.ind_p_box.bind('<<ComboboxSelected>>')
         self.ind_p_box.configure(state = 'readonly')
         
-        self.ind_r_box = ttk.Combobox(self.root, width = 10, justify = Tkconstants.RIGHT)
+        self.ind_r_box = ttk.Combobox(self.root, width = 12, justify = Tkconstants.RIGHT)
         self.ind_r_box["values"] = self.ind_r_values
         self.ind_r_box.current(1)
         self.config_entries["ind_R"] = self.ind_r_box
         self.ind_r_box.bind('<<ComboboxSelected>>')
         self.ind_r_box.configure(state = 'readonly')
         
-        self.ind_i_box = ttk.Combobox(self.root, width = 10, justify = Tkconstants.RIGHT)
+        self.ind_i_box = ttk.Combobox(self.root, width = 12, justify = Tkconstants.RIGHT)
         self.ind_i_box["values"] = self.ind_i_values
         self.ind_i_box.current(0)
         self.config_entries["ind_i"] = self.ind_i_box
@@ -387,7 +387,7 @@ class DynamiteGUI:
         self.root.grid_rowconfigure(row,weight=1)
         Tkinter.Label(self.root, text = "Show Plots").grid(row = row, column = 0, padx = 10, sticky = 'W')
         self.show_plots_box.grid(row = row, column = 0, padx = 10, sticky = 'E')
-        Tkinter.Label(self.root, text = "Plot Hist").grid(row = row, column = 1, padx = 10, sticky = 'W', pady =5)
+        Tkinter.Label(self.root, text = "Plot Ind Hist").grid(row = row, column = 1, padx = 10, sticky = 'W', pady =5)
         self.plot_hist_box.grid(row = row, column = 1, padx = 10, sticky = 'E')
         Tkinter.Label(self.root, text = "Plot Deltas").grid(row = row, column = 2, padx = 10, sticky = 'W')
         self.plot_deltas_box.grid(row = row, column = 2, padx =  10, sticky = 'E')
@@ -540,7 +540,7 @@ class DynamiteGUI:
                 return False
         else:
             if self.plot_hist_box.get() == "True":
-                tkMB.showerror(title="INVALID ENTRY, PLOT ABORTED", message= " Mode must be single when Plot Hist is True")
+                tkMB.showerror(title="INVALID ENTRY, PLOT ABORTED", message= " Mode must be single when Plot Ind Hist is True")
                 return False
             if self.plot_pdf_box.get() == "True":
                 tkMB.showerror(title="INVALID ENTRY, PLOT ABORTED", message= " Mode must be single when Plot PDF is True")
