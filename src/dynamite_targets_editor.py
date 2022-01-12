@@ -20,10 +20,13 @@ import traceback
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 
+#headerxx=[('', ': ', 'T', 'TARGET', '15'), ('([', ', ', 'S', 'RADIUS', '8'), ('', ', ', 'S', 'RADIUS~', '9'), ('', ', ', 'S', 'MASS', '7'), ('', ', ', 'S', 'MASS~', '7'), ('', '],', 'S', 'TEMP', '7'), (' [', ', ', 'P', 'PERIOD', '20'), ('', ', ', 'P', 'RADIUS/MASS', '30'), ('', ', ', 'P', 'INCLINATION', '28'), ('', ', ', 'P', 'ECCENTRICITY', '14'), ('', '],', 'P', 'NAME', '6'), ('', '', 'C', 'COMMENTS', '35')]
+headerxx=[('', ': ', 'T', 'TARGET', '15'), ('([', ', ', 'S', 'RADIUS', '8'), ('', ', ', 'S', 'RADIUS~', '9'), ('', ', ', 'S', 'MASS', '7'), ('', ', ', 'S', 'MASS~', '7'), ('', '],', 'S', 'TEMP', '7'), (' [', ', ', 'P', 'PERIOD', '20'), ('', ', ', 'P', 'RADIUS/MASS', '30'), ('', ', ', 'P', 'INCLINATION', '28'), ('', ', ', 'P', 'ECCENTRICITY', '14'), ('', '],', 'P', 'NAME', '6'), ('', '', 'C', 'COMMENTS', '35')]
+
 class dynamite_targets_editor():
     def __init__(self, root, filename, header, text_variables):
         self.rootMain=root
-        self.headers_info = header
+        self.headers_info = headerxx if header == None else header
         self.text_variables = text_variables
         self.headers_length = len(self.headers_info)
         self.planet_fields  = len([x for x in self.headers_info if x[2] == 'P'])
@@ -328,8 +331,8 @@ class dynamite_targets_editor():
             plines = pfile.readlines()
         with open(sys.argv[0], "w") as pfile:
             for line in plines:
-                if line.startswith("        headerxx="):
-                    line = "        headerxx=" + str(header_info) +"\n"
+                if line.startswith("headerxx="):
+                    line = "headerxx=" + str(header_info) +"\n"
                 pfile.write(line)
         self.root.destroy()
         dynamite_targets_editor(self.rootMain, None, header_info, self.text_variables)
@@ -810,7 +813,7 @@ class dynamite_targets_editor():
             tk.Label(self.help_top, text="Delete All Targets -> <Control-Delete>").grid(row=5, column=0, sticky='w', padx =5, pady = 0)
             tk.Label(self.help_top, text="Modify Header -> <Control-m>").grid(row=5, column=1, sticky='w', padx =5, pady = 0)
             tk.Label(self.help_top, text="Load targets Overwrite-> <Control-L>").grid(row=5, column=2, sticky='w', padx =5, pady = 0)
-            self.close_button = tk.Button(self.help_top, text="Close", command=lambda event: self.remove_find_popup())
+            self.close_button = tk.Button(self.help_top, text="Close", command=lambda: self.remove_find_popup())
             self.close_button.grid(row=6, column=1, padx = 5, pady = 0)
             self.close_button.bind("<Return>", lambda event: self.remove_find_popup())
             self.close_button.bind("<Escape>", lambda event: self.remove_find_popup())
@@ -927,7 +930,4 @@ if __name__ == "__main__":
     if len(sys.argv) != 3: 
         root=tk.Tk()
         root.withdraw()
-    #headerxx=[('', ': ', 'T', 'TARGET', '15'), ('([', ', ', 'S', 'RADIUS', '8'), ('', ', ', 'S', 'RADIUS~', '9'), ('', ', ', 'S', 'MASS', '7'), ('', ', ', 'S', 'MASS~', '7'), ('', '],', 'S', 'TEMP', '7'), (' [', ', ', 'P', 'PERIOD', '20'), ('', ', ', 'P', 'RADIUS/MASS', '30'), ('', ', ', 'P', 'INCLINATION', '28'), ('', ', ', 'P', 'ECCENTRICITY', '14'), ('', '],', 'P', 'NAME', '6'), ('', '', 'C', 'COMMENTS', '35')]
-    headerxx=[('', ': ', 'T', 'TARGET', '15'), ('([', ', ', 'S', 'RADIUS', '8'), ('', ', ', 'S', 'RADIUS~', '9'), ('', ', ', 'S', 'MASS', '7'), ('', ', ', 'S', 'MASS~', '7'), ('', '],', 'S', 'TEMP', '7'), (' [', ', ', 'P', 'PERIOD', '20'), ('', ', ', 'P', 'RADIUS/MASS', '30'), ('', ', ', 'P', 'INCLINATION', '28'), ('', ', ', 'P', 'ECCENTRICITY', '14'), ('', '],', 'P', 'NAME', '6'), ('', '', 'C', 'COMMENTS', '35')]
-    dynamite_targets_editor(sys.argv[0] if len(sys.argv) == 3 else root, sys.argv[1] if len(sys.argv) >= 2 else None, headerxx, None)
-
+    dynamite_targets_editor(sys.argv[0] if len(sys.argv) == 3 else root, sys.argv[1] if len(sys.argv) >= 2 else None, None, None)
