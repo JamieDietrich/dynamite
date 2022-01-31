@@ -595,12 +595,20 @@ class dynamite:
         if stability == "spock" or stability == "specfrac" and D < 1000:
             try:
                 import rebound
-                from spock import FeatureClassifier, DeepRegressor
 
             except:
                 stability = "hill"
                 if k == 0:
                     print("WARNING: REBOUND not installed on this machine - not performing N body integration dynamical stability analysis")
+
+            if stability == "spock":
+                try:
+                    from spock import FeatureClassifier, DeepRegressor
+
+                except:
+                    stability = "hill"
+                    if k == 0:
+                        print("WARNING: SPOCK not installed on this machine - not performing N body integration dynamical stability analysis")
 
         if stability == "spock" or stability == "specfrac" and D < 1000:
             sim = rebound.Simulation()
