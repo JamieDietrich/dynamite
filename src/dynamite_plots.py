@@ -491,7 +491,7 @@ class dynamite_plots:
         p1, p11, p12, p2, p3, r1, r11, r12, r2, r3, m1, m11, m12, m2, m3, i1, i11, i12, i2, i3, e1, e11, e12, e2, e3, l1, l11, l12, l2, l3 = [],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]
 
         def mr_appends(val_tup, m, r):
-            if val_tup[1] == "Mass":
+            if val_tup[1].lower() == "mass":
                 m.append(val_tup[0])
 
                 if self.config_parameters["mass_radius"] == "mrexo":
@@ -500,7 +500,7 @@ class dynamite_plots:
                 elif self.config_parameters["mass_radius"] == "otegi":
                     r.append(self.otegi_mr(val_tup[0], 'radius'))
 
-            elif val_tup[1] == "Radius":
+            elif val_tup[1].lower() == "radius":
                 r.append(val_tup[0])
 
                 if self.config_parameters["mass_radius"] == "mrexo":
