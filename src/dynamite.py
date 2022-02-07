@@ -833,16 +833,22 @@ class dynamite:
 
             fP[i] *= spst.norm.cdf(fD[i], loc=dc)
 
-        Du = np.arange(0, max(fD) + 1)
-        fDu = np.zeros(len(Du))
+
         trap = np.trapz(fP, P)
+        
+        try:
+            Du = np.arange(0, max(fD) + 1)
+            fDu = np.zeros(len(Du))
 
-        for i in range(len(fD)):
-            j = int(fD[i])
-            fDu[j] += fP[i]/trap
+            for i in range(len(fD)):
+                j = int(fD[i])
+                fDu[j] += fP[i]/trap
 
-        for i in range(len(cdfP)):
-            cdfP[i] = np.trapz(fP[:i+1], P[:i+1])/trap
+            for i in range(len(P)):
+                cdfP[i] = np.trapz(fP[:i + 1], P[:i + 1])/np.trapz(fP, P)
+                
+        except:
+            fDu = []
 
         return fP/trap, fDu, cdfP
 
@@ -976,16 +982,21 @@ class dynamite:
 
             fP[i] *= spst.norm.cdf(fD[i], loc=dc)
 
-        Du = np.arange(0, max(fD) + 1)
-        fDu = np.zeros(len(Du))
         trap = np.trapz(fP, P)
+        
+        try:
+            Du = np.arange(0, max(fD) + 1)
+            fDu = np.zeros(len(Du))
 
-        for i in range(len(fD)):
-            j = int(fD[i])
-            fDu[j] += fP[i]/trap
+            for i in range(len(fD)):
+                j = int(fD[i])
+                fDu[j] += fP[i]/trap
 
-        for i in range(len(P)):
-            cdfP[i] = np.trapz(fP[:i + 1], P[:i + 1])/np.trapz(fP, P)
+            for i in range(len(P)):
+                cdfP[i] = np.trapz(fP[:i + 1], P[:i + 1])/np.trapz(fP, P)
+                
+        except:
+            fDu = []
 
         return fP/trap, fDu, cdfP
 
