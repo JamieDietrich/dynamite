@@ -437,8 +437,19 @@ class dynamite:
                 Pues[pm] = Pms[pm]
 
         Pmmax = Pis[np.where(PPi == np.amax(PPi))[0][0]]
-        Plemax = Ples[np.where(Pms == Pmmax)[0][0]]
-        Puemax = Pues[np.where(Pms == Pmmax)[0][0]]
+
+        try:
+            Plemax = Ples[np.where(Pms == Pmmax)[0][0]]
+
+        except:
+            Plemax = Ples[0]
+
+        try:
+            Puemax = Pues[np.where(Pms == Pmmax)[0][0]]
+
+        except:
+            Puemax = Pues[0]
+
         Rm = np.percentile(Rk, 50)
         Rle = Rm - np.percentile(Rk, 16)
         Rue = np.percentile(Rk, 84) - Rm
