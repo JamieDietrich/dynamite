@@ -467,7 +467,7 @@ class dynamite:
 
         print(datetime.now(), "Running Transit Calculations for", target_name)
 
-tpm = np.zeros(len(Pms))
+        tpm = np.zeros(len(Pms))
         tpue = np.zeros(len(Pms))
         tple = np.zeros(len(Pms))
 
@@ -530,7 +530,10 @@ tpm = np.zeros(len(Pms))
                 for pm in range(len(tpm)):
                     f.write(str(tpm[pm]) + "^{" + str(tpue[pm]) + "}_{" + str(tple[pm]) + ("}, $" if pm != len(tpm) - 1 else "}$ & $\\\\\n"))
 
-        return tdm, tdle, tdue, tpm, tpue, tple, target_values
+        mtp = max(tpm)
+        mtpu = tpue[np.where(tpm == mtp)[0][0]]
+        mtpl = tple[np.where(tpm == mtp)[0][0]]
+        return tdm, tdle, tdue, mtp, mtpu, mtpl, target_values
 
 
 
