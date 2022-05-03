@@ -467,7 +467,15 @@ class dynamite:
 
         print(datetime.now(), "Running Transit Calculations for", target_name)
 
+tpm = np.zeros(len(Pms))
+        tpue = np.zeros(len(Pms))
+        tple = np.zeros(len(Pms))
+
         for pm in range(len(Pms)):
+            ntrans = 0
+            ntl = 0
+            ntu = 0
+
             for j in range(len(ik)):
                 if math.cos(ik[j]*math.pi/180) < (R_star*self.R_sun + Rm*self.R_earth)/self.K3(Pms[pm], M_star):
                     ntrans += 1
@@ -478,16 +486,20 @@ class dynamite:
                 if math.cos(ik[j]*math.pi/180) < ((R_star + Rse)*self.R_sun + (Rm + Rue)*self.R_earth)/self.K3(Ples[pm], (M_star - Mse)):
                     ntu += 1
 
+            tpm[pm] = ntrans/len(ik)
+            tple[pm] = max(1e-3, (ntrans - ntl)/len(ik)) if (tpm != 0 and tpm != 1) else (ntrans - ntl)/len(ik)
+            tpue[pm] = max(1e-3, (ntu - ntrans)/len(ik)) if (tpm != 0 and tpm != 1) else (ntu - ntrans)/len(ik)
+
         print(datetime.now(), "Writing out Best Values for", target_name)
-        tpm = ntrans/len(ik)
-        tple = max(1e-3, ntrans/len(ik) - ntl/len(ik)) if (tpm != 0 and tpm != 1) else ntrans/len(ik) - ntl/len(ik)
-        tpue = max(1e-3, ntu/len(ik) - ntrans/len(ik)) if (tpm != 0 and tpm != 1) else ntu/len(ik) - ntrans/len(ik)
 
         for pm in range(len(Pms)):
             Pms[pm] = round(Pms[pm], (1 if Pms[pm] > 10 else 3 if Pms[pm] < 1 else 2))
             Pmes[pm] = round(Pmes[pm], (1 if Pmes[pm] > 10 else 3 if Pmes[pm] < 1 else 2))
             Pues[pm] = round(Pues[pm], (1 if Pues[pm] > 10 else 3 if Pues[pm] < 1 else 2))
             Ples[pm] = round(Ples[pm], (1 if Ples[pm] > 10 else 3 if Ples[pm] < 1 else 2))
+            tpm[pm] = round(tpm[pm], 3)
+            tpue[pm] = round(tpue[pm], 3)
+            tple[pm] = round(tple[pm], 3)
 
         Rm = round(Rm, (3 if Rm < 1 else 2))
         Rue = round(Rue, (3 if Rue < 1 else 2))
@@ -504,9 +516,6 @@ class dynamite:
         tdm = int(round(tdm/10, 0))*10 if tdm > 1000 else int(round(tdm, 0))
         tdue = int(round(tdue/100, 0))*100 if tdue > 10000 else int(round(tdue/10, 0))*10 if tdue > 1000 else int(round(tdue, 0))
         tdle = int(round(tdle/10, 0))*10 if tdle > 1000 else int(round(tdle, 0))
-        tpm = round(tpm, 3)
-        tpue = round(tpue, 3)
-        tple = round(tple, 3)
         target_values = [target_name, Pmmax, Plemax, Puemax, Rm, Rle, Rue]
 
         if write:
@@ -516,7 +525,10 @@ class dynamite:
                 for pm in range(len(Pms)):
                     f.write(str(Pms[pm]) + "(" + str(Pmes[pm]) + ")^{" + str(Pues[pm]) + "}_{" + str(Ples[pm]) + ("}, $" if pm != len(Pms) - 1 else "})$ & $"))
 
-                f.write(str(Rm) + "^{" + str(Rue) + "}_{" + str(Rle) + "}$ & $" + str(Mm) + "^{" + str(Mue) + "}_{" + str(Mle) + "}$ & $" + str(im) + "^{" + str(iue) + "}_{" + str(ile) + "}$ & $" + str(em) + "^{" + str(eue) + "}_{" + str(ele) + "}$ & $" + str(R_star) + "\pm" + str(Rse) + "$ & $" + str(tdm) + "^{" + str(tdue) + "}_{" + str(tdle) + "}$ & $" + str(tpm) + "^{" + str(tpue) + "}_{" + str(tple) + "}$ \\\\\n")
+                f.write(str(Rm) + "^{" + str(Rue) + "}_{" + str(Rle) + "}$ & $" + str(Mm) + "^{" + str(Mue) + "}_{" + str(Mle) + "}$ & $" + str(im) + "^{" + str(iue) + "}_{" + str(ile) + "}$ & $" + str(em) + "^{" + str(eue) + "}_{" + str(ele) + "}$ & $" + str(R_star) + "\pm" + str(Rse) + "$ & $" + str(tdm) + "^{" + str(tdue) + "}_{" + str(tdle) + "}$ & $")
+
+                for pm in range(len(tpm)):
+                    f.write(str(tpm[pm]) + "^{" + str(tpue[pm]) + "}_{" + str(tple[pm]) + ("}, $" if pm != len(tpm) - 1 else "}$ & $\\\\\n"))
 
         return tdm, tdle, tdue, tpm, tpue, tple, target_values
 
