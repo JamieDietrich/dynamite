@@ -487,8 +487,8 @@ class dynamite:
                     ntu += 1
 
             tpm[pm] = ntrans/len(ik)
-            tple[pm] = max(1e-3, (ntrans - ntl)/len(ik)) if (tpm != 0 and tpm != 1) else (ntrans - ntl)/len(ik)
-            tpue[pm] = max(1e-3, (ntu - ntrans)/len(ik)) if (tpm != 0 and tpm != 1) else (ntu - ntrans)/len(ik)
+            tple[pm] = max(1e-3, (ntrans - ntl)/len(ik)) if (tpm[pm] != 0 and tpm[pm] != 1) else (ntrans - ntl)/len(ik)
+            tpue[pm] = max(1e-3, (ntu - ntrans)/len(ik)) if (tpm[pm] != 0 and tpm[pm] != 1) else (ntu - ntrans)/len(ik)
 
         print(datetime.now(), "Writing out Best Values for", target_name)
 
