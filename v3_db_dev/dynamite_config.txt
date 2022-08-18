@@ -26,10 +26,10 @@
 # eccentricity: Probability distribution for planet eccentricities - currently accepts rayleigh/syssim
 # stability: which stability model to run - currently accepts hill/spock/specfrac; if spock, SPOCK must be installed and must be on system of 3 planets or more; if spock or specfrac, REBOUND must be installed; specfrac adds hours on HPC clusters
 
-MC_chain::1000
+MC_chain::100000
 mode::single
-system::TRAPPIST-1
-period::epos
+system::SPECULOOS-2
+period::syssim
 radius::syssim
 radtype::clustered
 radmin::0.1
@@ -87,3 +87,13 @@ additional::[[]]
 unconfirmed::[[]]
 removed::[]
 add_unconfirmed::False
+
+## DYNAMITE DATABASE AND CREATION CSVs ##
+
+# targets_db: the full pathname (if needed) to the target database
+# exoplanetarchive_csv: the full pathname (if needed) to the Exoplanet Archive CSV
+# exofop_csv: the full pathname (if needed) to the ExoFOP CSV
+
+targets_db::dynamite_targets_test.db
+exoplanetarchive_csv::
+exofop_csv::

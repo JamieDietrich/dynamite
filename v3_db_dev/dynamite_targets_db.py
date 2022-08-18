@@ -14,11 +14,10 @@ import sqlite3
 
 class dynamite_targets_db:
 
-    def __init__(self):
+    def __init__(self, dbname):
         """Creates the database connection for the target dictionary"""
 
-        self.DBNAME = "dynamite_targets.db"
-
+        self.DBNAME = "dynamite_targets.db" if dbname == None else dbname
 
 
     def get_targets(self, mode, system, radmax, removed=[]):
@@ -26,6 +25,9 @@ class dynamite_targets_db:
 
         def create_tuple(val, upp, low):
             """Tests parameters for value vs. None and creates tuples"""
+
+            if isinstance(low, str):
+                print(val, upp, low)
 
             if upp != None and upp != 0 and val != None and val/upp < 10:
                 upp = val/10
@@ -57,7 +59,7 @@ class dynamite_targets_db:
             target_names = [i[0] for i in dbcursor.fetchall()]
 
             for n in target_names:
-                dbcursor.execute("select sradius, sradius_unc_upper, smass, smass_unc_upper, stemp from target where tname = '" + n + "'")
+                dbcursor.execute("select sradius, sradius_unc_upper, smass, smass_unc_upper, stemp, rv_lim from target where tname = '" + n + "'")
                 result = dbcursor.fetchone()
                 target_params = [[i for i in result]]
                 #dbcursor.execute("select period, pradius, pmass, pinc, pecc, pname from planet where tname = '" + n + "' order by period")
@@ -67,6 +69,9 @@ class dynamite_targets_db:
                 for p in planets:
                     #period, radius, mass, inc, ecc, name = p
                     _, name, period, pul, pll, radius, rul, rll, mass, mul, mll, inc, iul, ill, ecc, eul, ell = p
+
+                    if isinstance(pll, str) or isinstance(rll, str) or isinstance(mll, str) or isinstance(ill, str) or isinstance(ell, str):
+                        print(p)
                     #target_params.append([period, radius if radius != None else "?", mass if mass != None else "?", inc if inc != None else "?", ecc if ecc != None else "?", name])
                     target_params.append([create_tuple(period,pul,pll), create_tuple(radius,rul,rll), create_tuple(mass,mul,mll), create_tuple(inc,iul,ill), create_tuple(ecc,eul,ell), name])
 
@@ -124,10 +129,17 @@ class dynamite_targets_db:
             dbcursor.execute("select smass, age, inner_hz, outer_hz from isochrones where smass = (select smass from isochrones where smass <= " + str(mass) + " order by smass DESC limit 1) order by age")
             iso_low = dbcursor.fetchall()
 
-            m = [iso_low[0][0], iso_upp[0][0]]
-            t = [i[1] for i in iso_upp]
-            ie = [[iso_low[i][2] for i in range(len(iso_upp))], [iso_upp[i][2] for i in range(len(iso_upp))]]
-            oe = [[iso_low[i][3] for i in range(len(iso_upp))], [iso_upp[i][3] for i in range(len(iso_upp))]]
+            if iso_upp == []:
+                m = [iso_low[0][0], iso_low[0][0]]
+                t = [i[1] for i in iso_low]
+                ie = [[iso_low[i][2] for i in range(len(iso_low))], [iso_low[i][2] for i in range(len(iso_low))]]
+                oe = [[iso_low[i][3] for i in range(len(iso_low))], [iso_low[i][3] for i in range(len(iso_low))]]
+
+            else:
+                m = [iso_low[0][0], iso_upp[0][0]]
+                t = [i[1] for i in iso_upp]
+                ie = [[iso_low[i][2] for i in range(len(iso_upp))], [iso_upp[i][2] for i in range(len(iso_upp))]]
+                oe = [[iso_low[i][3] for i in range(len(iso_upp))], [iso_upp[i][3] for i in range(len(iso_upp))]]
 
             return m, t, ie, oe
 

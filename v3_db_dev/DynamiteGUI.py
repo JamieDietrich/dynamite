@@ -2,7 +2,7 @@
 ### GUI ###
 ### Jeremy Dietrich ###
 ### jdietrich1@email.arizona.edu ###
-### 2022 June 20 ###
+### 2022 July 10 ###
 ### Version 3.0 ###
 ### Dietrich & Apai (2020), AJ, 160, 107D ###
 ### Dietrich & Apai (2021), AJ, 161, 17D ###
@@ -65,30 +65,28 @@ class CreateToolTip(object):
             self.tw = None
 
 class DynamiteGUI:
-    def __init__(self, dbname):
+    def __init__(self, dbname = None):
         """Creates an instance of the GUI with instance variables."""
         
-        dbconn = sqlite3.connect(dbname)
-        dbcursor = dbconn.cursor()
-        dbcursor.execute("select tname from target order by tname")
-          
         self.config_entries = {}
         self.run_editors = {}
         self.plot_editors = {}
+        self.dbarchive_editors = {}
         self.root = Tkinter.Tk()
         self.root.minsize(1200, 400)
-                
+        self.dbname = dbname 
+        
         if (len(sys.argv)  >=  2):
             self.load_config_data(sys.argv[1])
         else:
             self.load_config_data("dynamite_config.txt")
-            
-        ttk.Style().map("TCombobox", fieldbackground = [('!readonly', '#FFFFFF'),('readonly', '#FFFFFF'),],)
-        self.root.title("DYNAMITE ---> " + self.config_file + " (right-click on field for tooltips)")
-                        
+        
+        if self.dbname == None:
+            self.dbname = self.config_parameters["targets_db"]
+        self.load_database()
+                  
+        ttk.Style().map("TCombobox", fieldbackground = [('!readonly', '#FFFFFF'),('readonly', '#FFFFFF'),],)                        
         self.mc_chain_values = "10000"
-        self.system_values = [i[0] for i in dbcursor.fetchall()]
-        dbconn.close()
         self.radmin_values = "0.1"
         self.radmax_values = "5"
         self.plot_colors_values = '["377eb8", "d95f02", "4daf4a", "984ea3", "e41a1c", "e6ab02"]'
@@ -154,9 +152,10 @@ class DynamiteGUI:
         self.mode_box.current(0)
         self.config_entries["mode"] = self.mode_box
         self.mode_box.bind('<<ComboboxSelected>>', self.set_plot_save_false)
+        self.mode_box.bind('<<ComboboxSelected>>', self.mode_box_changed)
         self.mode_box.configure(state = 'readonly')
         
-        self.system_box = ttk.Combobox(self.root, width = 16, height = 20, justify = Tkconstants.RIGHT)
+        self.system_box = ttk.Combobox(self.root, width = 23, height = 20, justify = Tkconstants.RIGHT)
         self.system_box["values"] = self.system_values
         self.system_box.current(0)
         self.config_entries["system"] = self.system_box
@@ -445,13 +444,15 @@ class DynamiteGUI:
         self.run_button.grid(row = row, column = 0, padx = 10, pady = 5, sticky = 'W')     
         self.plot_button = Tkinter.Button(self.root, text = 'Run Plots Only', command = self.plot_dynamite)
         self.plot_button.grid(row = row, column = 1, padx = 0, sticky = 'W')
+        self.load_targets_db_button = Tkinter.Button(self.root, text = 'Load New Targets DB', command = lambda: self.load_database(True))
+        self.load_targets_db_button.grid(row = row, column = 2, padx = 0, sticky = 'W')
+        self.update_targets_db_button = Tkinter.Button(self.root, text = 'DB Archive Loader', command = self.update_targets_db)
+        self.update_targets_db_button.grid(row = row, column = 3, padx = 0, sticky = 'W')
         self.load_button = Tkinter.Button(self.root, text = 'Load New Config', command = self.load_config_file)
-        self.load_button.grid(row = row, column = 3, padx = 0, sticky = 'W')
+        self.load_button.grid(row = row, column = 4, padx = 0, sticky = 'W')
         self.edit_button = Tkinter.Button(self.root, text = 'Edit Config File', command = lambda: self.display_editor(self.root))
-        self.edit_button.grid(row = row, column = 4, padx = 0, sticky = 'W')
+        self.edit_button.grid(row = row, column = 5, padx = 0, sticky = 'W')
         self.root.grid_rowconfigure(row, weight=1)
-        self.exit_button = Tkinter.Button(self.root, text = 'Exit', command = self.exit_program)
-        self.exit_button.grid(row = row, column = 5, padx = 5)
         
         self.root.grid_columnconfigure(0,weight=1)
         self.root.grid_columnconfigure(1,weight=1)
@@ -463,15 +464,67 @@ class DynamiteGUI:
         self.root.protocol("WM_DELETE_WINDOW", self.exit_program)
         self.root.mainloop()
     
+    def load_database(self, ask_file_popup = False):
+        """ Load targets database """
+        if ask_file_popup:
+            try:
+                dbname = ''.join(tkFD.askopenfilename())
+                if (dbname == ""):
+                    return
+                parts = os.path.split(dbname)
+                self.dbname = dbname if parts[0] != os.getcwd().replace("\\","/") else parts[1]
+            except:
+                return
+        try:
+            self.system_values = ["No Values"]
+            if os.path.exists(self.dbname):
+                dbconn = sqlite3.connect(self.dbname)
+                dbcursor = dbconn.cursor()
+                dbcursor.execute("select tname from target order by tname")
+                self.system_values = [i[0] for i in dbcursor.fetchall()]
+                dbconn.close()
+            self.config_entries["targets_db"] = Tkinter.StringVar(value = self.dbname) 
+            self.config_entries["exoplanetarchive_csv"] = Tkinter.StringVar(value ="")
+            self.config_entries["ecofop_csv"] = Tkinter.StringVar(value ="") 
+            self.root.title("DYNAMITE ---> " + self.config_file + " ---> " + self.dbname if self.dbname != None else "")
+        except:
+            tkMB.showerror(title="DATABASE REQUESTED", message= " Cannot be loaded!! " + self.dbname)
+        if  hasattr(self, "system_box"):
+            self.system_box["values"] = self.system_values if len(self.system_values) > 0 else ["No Values"]
+            self.system_box.current(0)
+        
     def set_plot_save_false(self, *args):
         self.save_plots_box.current(1)
         
+    def mode_box_changed(self, *args):
+        if self.mode_box.get() == "single":
+            self.plot_p_r_box.current(1)
+            self.plot_deltas_box.current(1)
+            self.plot_ratios_box.current(1)
+            self.plot_tdtp_box.current(1)
+        else:
+            self.plot_hist_box.current(1)
+            self.plot_pdf_box.current(1)
+            self.show_rearth_box.current(1)
+            
     def check_valid_entries(self):
         """check that entries are valid lists"""
         for l in self.check_valid_entries_list:
             if not self.validate_entry(l.get()):
                 return tkMB.askyesno(title="POSSIBLE INVALID ENTRY", message= "Possible Invalid Entry for " + self.find_config_key(l) + " -> " + l.get() + "\nDo you want to Continue?" )
         return True    
+    
+    def update_targets_db(self):
+        """ run dynamite targets DBarchive program"""
+        if len(self.dbarchive_editors) > 0:
+            if (tkMB.askyesno("Close Output Window(s)", "Do you want to close previous DBArchive output window(s)?")):
+                for e in self.dbarchive_editors:
+                    e.destroy()
+                self.dbarchive_editors = {}
+        self.editors = self.dbarchive_editors
+        thread = threading.Thread(target=self.execute_program, args=("DBARCHIVE", "DBarchive.py " + self.dbname + " " + self.config_parameters["exoplanetarchive_csv"] + " " + self.config_parameters["ecofop_csv"]))
+        thread.daemon = True
+        thread.start()
     
     def run_dynamite(self):
         """run dynamite program"""
@@ -667,7 +720,7 @@ class DynamiteGUI:
             if len(self.config_parameters) == 0:
                 raise TypeError("No Config entries loaded")
             self.config_file = filename
-            self.root.title("DYNAMITE ---> " + self.config_file)
+            self.root.title("DYNAMITE ---> " + self.config_file + " ---> " + self.dbname if self.dbname != None else "")
         except Exception as e:
             tkMB.showerror("Config File Load Failed", "Cannot load Config File " + filename)
             self.config_file = None
@@ -746,7 +799,8 @@ class DynamiteGUI:
         CreateToolTip(self.plot_button, self.root, "Executes the dynamite_plots.py script", None)
         CreateToolTip(self.load_button, self.root, "Loads a new dynamite config file into the GUI", None)
         CreateToolTip(self.edit_button, self.root, "Displays an editor for the currently loaded dynamite config file", None)
-        CreateToolTip(self.exit_button, self.root, "Exits the GUI and stops all python sub processes", None)
+        CreateToolTip(self.load_targets_db_button, self.root, "Reload the System from the targets db into GUI", None)
+        CreateToolTip(self.update_targets_db_button, self.root, "Executes the update dynamite targets database script", None)
         
     def find_selected_item(self, item,  values):
         """Find selected combo box entry"""
@@ -801,7 +855,7 @@ class DynamiteGUI:
                     if not found:
                         cfile.write(entry + "::" + str(self.config_entries[entry].get()) + "\n")
         except Exception as e:
-            print(str(e))    
+            print(e)    
 
     def diff_config_file(self):
         """ Check if there are config changes"""
@@ -836,6 +890,8 @@ class DynamiteGUI:
         file_handler = tkFD.askopenfilename()       
         if (file_handler == ""):
             return
+        parts = os.path.split(file_handler)
+        file_handler = file_handler if parts[0] != os.getcwd().replace("\\","/") else parts[1]
         self.load_config_data(file_handler)
         self.setup_widget_values()
         
@@ -908,4 +964,4 @@ class DynamiteGUI:
         rmenu.tk_popup(e.x_root + 40, e.y_root + 10, entry = "0")
 
 if __name__ == '__main__':      
-    DynamiteGUI(sys.argv[1] if len(sys.argv) > 1 else "dynamite_targets_updatesExoplanetarchive.db")
+    DynamiteGUI(sys.argv[1] if len(sys.argv) > 1 else None)

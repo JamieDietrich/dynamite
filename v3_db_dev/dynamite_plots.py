@@ -489,8 +489,8 @@ class dynamite_plots:
         print(datetime.now(), "Creating Histograms for", system)
 
         color_scheme = ["#" + self.config_parameters["plt_colors"][i] for i in range(len(self.config_parameters["plt_colors"]))]
-        targets_dict = dynamite_targets_db().get_targets(self.config_parameters["mode"], system, self.config_parameters["radmax"], self.config_parameters["removed"])
-        Rs, Ms, Ts, target, names = self.set_up(targets_dict, system)
+        targets_dict = dynamite_targets_db(self.config_parameters["targets_db"]).get_targets(self.config_parameters["mode"], system, self.config_parameters["radmax"], self.config_parameters["removed"])
+        Rs, Ms, Ts, target, names, _ = self.set_up(targets_dict, system)
         target = target[:-1] if len(self.config_parameters["removed"]) > 0 else target
         p1, p11, p12, p2, p3, r1, r11, r12, r2, r3, m1, m11, m12, m2, m3, i1, i11, i12, i2, i3, e1, e11, e12, e2, e3, l1, l11, l12, l2, l3 = [],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]
         """
@@ -599,7 +599,7 @@ class dynamite_plots:
         """
         ax1 = ax.twinx()
         #t, ie, oe = np.loadtxt("0.090.txt", unpack=True, usecols=(2,3,4))
-        m, t, ieb, oeb = dynamite_targets_db().get_isochrones(Ms)
+        m, t, ieb, oeb = dynamite_targets_db(self.config_parameters["targets_db"]).get_isochrones(Ms)
 
         if np.array_equal(ieb[0], ieb[1]):
             ie = ieb[0]
@@ -754,7 +754,8 @@ class dynamite_plots:
             annots = self.plot_annots(annots, p3, ul, l3, xlim, ("log" if self.config_parameters["ind_P"] == "log" else "linear"), ax)
 
         #ax.annotate("Habitable\nZone", (min(vl)*math.sqrt(max(vl)/min(vl)), ul*0.75), textcoords="offset points", xytext=(-5, 0), ha="center", weight='bold', fontsize=11)
-        ax.annotate("Habitable\nZone", (pi[-1]*math.sqrt(po[-1]/pi[-1]), ul*0.75), textcoords="offset points", xytext=(5, 0), ha="center", weight='bold', fontsize=11)
+        hztl = [np.interp(1.5, t, pi), np.interp(1.5, t, po)]
+        ax.annotate("Habitable\nZone", (hztl[0]*math.sqrt(hztl[1]/hztl[0]), ul*0.75), textcoords="offset points", xytext=(0, 0), ha="center", weight='bold', fontsize=11)
         ax.set_xlabel("Period (days)", fontsize=24)
         ax.set_ylabel("Relative Likelihood", fontsize=24)
         ax1.set_ylabel("Time (Gyr)", fontsize=24)
@@ -1132,6 +1133,13 @@ class dynamite_plots:
         t = list(targets_dict[target])
 
         for x in range(len(t)):
+            if x == 0:
+                if t[x][1] == None:
+                    t[x][1] = 0.0
+
+                if t[x][3] == None:
+                    t[x][3] = 0.0
+
             for y in range(len(t[x])):
                 #if isinstance(t[x][y], tuple):
                     #if isinstance(t[x][y][0], str):
@@ -1146,7 +1154,7 @@ class dynamite_plots:
                 elif y == 2 and t[x][y] == "?":
                     t[x][y] = float(self.mr_convert(t[x][y-1], "mass"))
 
-        return t[0][0], t[0][2], t[0][4], [t[i][:-1] for i in range(1, len(t))], np.array([t[i][-1] for i in range(1, len(t))])
+        return t[0][0], t[0][2], t[0][4], [t[i][:-1] for i in range(1, len(t))], np.array([t[i][-1] for i in range(1, len(t))]), t[0][5]
 
 
 

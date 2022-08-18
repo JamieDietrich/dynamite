@@ -18,9 +18,9 @@ import socket
 import itertools
 import numpy as np
 from PPR import PPR
-import matplotlib.pyplot as plt
 import scipy.stats as spst
 from datetime import datetime
+import matplotlib.pyplot as plt
 import astropy.constants as const
 from scipy.signal import argrelextrema
 from dynamite_plots import dynamite_plots
@@ -95,9 +95,9 @@ class dynamite:
         for node in range(self.node_number - 1):
             self.seed_start += self.interation_list[node]
 
-        targets_dict = dynamite_targets_db().get_targets(self.config_parameters["mode"], self.config_parameters["system"], self.config_parameters["radmax"], self.config_parameters["removed"])
+        targets_dict = dynamite_targets_db(self.config_parameters["targets_db"]).get_targets(self.config_parameters["mode"], self.config_parameters["system"], self.config_parameters["radmax"], self.config_parameters["removed"])
 
-        if len(targets_dict) == 0:
+        if targets_dict == None or len(targets_dict) == 0:
             print("Error: No targets selected!")
             exit()
 
@@ -111,7 +111,7 @@ class dynamite:
 
         if self.config_parameters["saved"] == "False":
             if self.config_parameters["mode"] == "single":
-                R_star, Rse, M_star, Mse, target, target_name = self.set_up(targets_dict, self.config_parameters["system"])
+                R_star, Rse, M_star, Mse, target, target_name, rv_lim = self.set_up(targets_dict, self.config_parameters["system"])
                 targ_rem = []
 
                 for i in range(len(target) - 1 if len(self.config_parameters["removed"]) > 0 else len(target)):
@@ -165,7 +165,7 @@ class dynamite:
                         targ_rem.append(x)
 
                 target = sorted(targ_rem, key=lambda x: x[0][0])
-                data = self.run_monte_carlo(R_star, Rse, M_star, Mse, target, target_name) + ([target[i][0] for i in range(len(target))], [target[i][1] for i in range(len(target))], [target[i][2] for i in range(len(target))], [target[i][4] for i in range(len(target))])
+                data = self.run_monte_carlo(R_star, Rse, M_star, Mse, target, target_name, rv_lim) + ([target[i][0] for i in range(len(target))], [target[i][1] for i in range(len(target))], [target[i][2] for i in range(len(target))], [target[i][4] for i in range(len(target))])
 
                 if self.num_of_nodes == 1:
                     np.savez("saved_data.npz", data=data)
@@ -230,7 +230,7 @@ class dynamite:
     def mt_mc(self, targets_dict, targlist, i):
         """Runs the Monte Carlo code on multiple threads"""
 
-        R_star, Rse, M_star, Mse, target, target_name = self.set_up(targets_dict, targlist[i])
+        R_star, Rse, M_star, Mse, target, target_name, rv_lim = self.set_up(targets_dict, targlist[i])
 
         try:
             inds = np.argsort([target[i][0][0] for i in range(len(target))])
@@ -239,7 +239,7 @@ class dynamite:
         except IndexError:
             print("ERROR IN DICT ON TARGET", target_name)
 
-        data = self.run_monte_carlo(R_star, Rse, M_star, Mse, target, target_name) + ([target[i][0] for i in range(len(target))], [target[i][1] for i in range(len(target))], [target[i][2] for i in range(len(target))], [target[i][4] for i in range(len(target))])
+        data = self.run_monte_carlo(R_star, Rse, M_star, Mse, target, target_name, rv_lim) + ([target[i][0] for i in range(len(target))], [target[i][1] for i in range(len(target))], [target[i][2] for i in range(len(target))], [target[i][4] for i in range(len(target))])
 
         return data
     
@@ -249,7 +249,6 @@ class dynamite:
         """Processes data for the multithreading component"""
 
         return tuple([list(z) for z in zip(*itertools.chain(data))])
-
 
 
 
@@ -263,6 +262,13 @@ class dynamite:
         t = list(targets_dict[target])
 
         for x in range(len(t)):
+            if x == 0:
+                if t[x][1] == None:
+                    t[x][1] = 0.0
+
+                if t[x][3] == None:
+                    t[x][3] = 0.0
+
             for _ in range(len(t[x])):
                 #if isinstance(t[x][y], tuple):
                     #if isinstance(t[x][y][0], str):
@@ -292,7 +298,7 @@ class dynamite:
                     low = self.mr_convert(t[x][1][0] + t[x][1][2], "mass", flow) - val if t[x][1][2] != "?" else "?"
                     t[x][2] = (val, upp, low)
 
-        return t[0][0], t[0][1], t[0][2], t[0][3], list([t[i][:-1] for i in range(1, len(t))]), target
+        return t[0][0], t[0][1], t[0][2], t[0][3], list([t[i][:-1] for i in range(1, len(t))]), target, t[0][5]
 
 
 
@@ -336,7 +342,7 @@ class dynamite:
 
 
 
-    def run_monte_carlo(self, R_star, Rse, M_star, Mse, target, target_name):
+    def run_monte_carlo(self, R_star, Rse, M_star, Mse, target, target_name, rv_lim):
         """Runs the Monte Carlo analysis."""
 
         GMfp213 = (self.G*M_star*self.M_sun/(4*math.pi**2))**(1/3)
@@ -413,7 +419,7 @@ class dynamite:
         inc_tup = [target[i][3] for i in range(len(target))]
         ecc_tup = [target[i][4] for i in range(len(target))]
 
-        stable, val, tim, _Pk, _Rk, _ek, _ik = self.ppr.create_processes("mc_test", (P, R, inew, ib, il, el, cdfP, cdfR, cdfi, cdfe, per_tup, rad_tup, mas_tup, inc_tup, ecc_tup, GMfp213, R_star, M_star), -int(self.interation_list[self.node_number - 1]), self.process_mc_data)
+        stable, val, tim, _Pk, _Rk, _ek, _ik = self.ppr.create_processes("mc_test", (P, R, inew, ib, il, el, cdfP, cdfR, cdfi, cdfe, per_tup, rad_tup, mas_tup, inc_tup, ecc_tup, GMfp213, R_star, M_star, rv_lim), -int(self.interation_list[self.node_number - 1]), self.process_mc_data)
 
         for a in range(len(stable)):
             if stable[a] == "YES":
@@ -446,20 +452,13 @@ class dynamite:
         return Pk, P, PP, Rk, R, PR, ik, il, Pinc, ek, el, Pecc, deltas, ratios, tdm, tdle, tdue, tpm, tpue, tple, target_values, star_values
 
 
+
     def write_bf_pred_file(self, GMfp213, Pk, Rk, ik, ek, per, rad, mas, ecc, Pecc, target_name, star_values, write):
         """Writes out the best-fit prediction file."""
 
-        R_star, Rse, M_star, Mse = star_values
-        cdfe = np.cumsum(Pecc)/np.sum(Pecc)
         print(datetime.now(), "Calculating Best Fit Predictions for", target_name)
+        R_star, Rse, M_star, Mse = star_values
 
-        if target_name == "Inner Solar System":
-            Pis = np.hstack(np.array([np.arange(0.5, 1.001, 0.001), np.arange(1.01, 10.01, 0.01), np.arange(10.1, 100.1, 0.1), np.arange(101, 1001, 1), np.arange(1000, 4331, 10)]))
-
-        else:
-            Pis = np.hstack(np.array([np.arange(0.5, 1.001, 0.001), np.arange(1.01, 10.01, 0.01), np.arange(10.1, 100.1, 0.1), np.arange(101, 731, 1)]))
-
-        R = [0]
         per_vals = []
         rad_vals = []
         mas_vals = []
@@ -471,12 +470,9 @@ class dynamite:
             mas_vals.append(mas[i][0] if isinstance(mas[i], tuple) else mas[i])
             ecc_vals.append(ecc[i][0] if isinstance(ecc[i], tuple) else ecc[i])
 
-        if self.config_parameters["period"] == "epos":
-            PPi, _, _ = self.epos_pers(min(per_vals), per_vals, rad_vals, mas_vals, ecc_vals, Pis, R, Rk, Pecc, cdfe, M_star, GMfp213)
-
-        elif self.config_parameters["period"] == "syssim":
-            PPi, _, _ = self.syssim_pers(per_vals, rad_vals, mas_vals, ecc_vals, Pis, R, Rk, Pecc, cdfe, M_star, GMfp213)
-
+        Pis = np.hstack(np.array([np.logspace(-0.3, 0.5, 18), np.logspace(0.51, 2.9, 121)]))
+        bins = np.append(Pis, 10**2.91)
+        PPi, _ = np.histogram(Pk, bins=bins)
         Pmsi = argrelextrema(PPi, np.greater)[0]
         Pms = [Pis[Pmsi[s]] for s in range(len(Pmsi)) if PPi[Pmsi[s]] > 0.2*np.amax(PPi)]
         Pmes = np.zeros(len(Pms))
@@ -487,8 +483,8 @@ class dynamite:
             a = []
 
             try:
-                x = np.where((PPi < np.amax(PPi)*0.001) & (Pis < Pms[pm]))[0][-1]
-                y = np.where((PPi < np.amax(PPi)*0.001) & (Pis > Pms[pm]))[0][0]
+                x = np.where((PPi < np.amax(PPi)*0.01) & (Pis < Pms[pm]))[0][-1]
+                y = np.where((PPi < np.amax(PPi)*0.01) & (Pis > Pms[pm]))[0][0]
                 z = np.where((Pk > Pis[x]) & (Pk < Pis[y]))[0]
 
                 for aa in z:
@@ -504,21 +500,27 @@ class dynamite:
 
             else:
                 Pmes[pm] = Pms[pm]
-                Ples[pm] = Pms[pm]
-                Pues[pm] = Pms[pm]
+                Ples[pm] = np.where((PPi < np.exp(-1)*PPi[np.where(Pis == Pms[pm])[0][0]]) & (Pis < Pms[pm]))[0][-1]
+                Pues[pm] = np.where((PPi < np.exp(-1)*PPi[np.where(Pis == Pms[pm])[0][0]]) & (Pis > Pms[pm]))[0][0]
 
             if pm == len(Pms) - 1:
                 a = []
 
                 for aa in range(len(Pk)):
-                    tol = 0.1 if Pk[aa] < 100 else 10 if Pk[aa] > 1000 else 1
+                    tol = 1 if Pk[aa] < 100 else 10
 
-                    if Pk[aa] > Pms[pm]/2 and Pk[aa] < Pms[pm]*4 and PPi[np.where(np.isclose(Pis, Pk[aa], atol=tol))[0][0]] > np.amax(PPi)*0.1:
+                    if Pk[aa] > Pms[pm]/2 and Pk[aa] < Pms[pm]*4 and PPi[np.where(np.isclose(Pis, Pk[aa], atol=tol))[0][0]] > np.amax(PPi)*0.2:
                         a.append(Pk[aa])
 
-                Pmes[pm] = np.percentile(a, 50)
-                Ples[pm] = Pmes[pm] - np.percentile(a, 16)
-                Pues[pm] = np.percentile(a, 84) - Pmes[pm]
+                if len(a) > 0:
+                    Pmes[pm] = np.percentile(a, 50)
+                    Ples[pm] = Pmes[pm] - np.percentile(a, 16)
+                    Pues[pm] = np.percentile(a, 84) - Pmes[pm]
+
+                else:
+                    Pmes[pm] = Pms[pm]
+                    Ples[pm] = np.where((PPi < np.exp(-1)*PPi[np.where(Pis == Pms[pm])[0][0]]) & (Pis < Pms[pm]))[0][-1]
+                    Pues[pm] = np.where((PPi < np.exp(-1)*PPi[np.where(Pis == Pms[pm])[0][0]]) & (Pis > Pms[pm]))[0][0]
 
         Pmmax = Pis[np.where(PPi == np.amax(PPi))[0][0]]
 
@@ -622,6 +624,7 @@ class dynamite:
         return tdm, tdle, tdue, mtp, mtpu, mtpl, target_values
 
 
+
     def random_val_from_tup(self, tup):
         """Draws a random value from the given tuple (value, upper_unc, lower_unc)"""
 
@@ -644,7 +647,7 @@ class dynamite:
 
 
 
-    def mc_test(self, P, R, inew, ib, il, el, cdfP, cdfR, cdfi, cdfe, per_tup, rad_tup, mas_tup, inc_tup, ecc_tup, GMfp213, R_star, M_star, k):
+    def mc_test(self, P, R, inew, ib, il, el, cdfP, cdfR, cdfi, cdfe, per_tup, rad_tup, mas_tup, inc_tup, ecc_tup, GMfp213, R_star, M_star, rv_lim, k):
         """Runs MC in multi-threading."""
 
         np.random.seed(self.seed_start + k + np.random.randint(100000))
@@ -659,7 +662,7 @@ class dynamite:
             inc.append(self.random_val_from_tup(inc_tup[i]) if inc_tup[i][0] != "?" else "?")
             ecc.append(self.random_val_from_tup(ecc_tup[i]) if ecc_tup[i][0] != "?" else "?")
 
-        stable = "YES"
+        accept = "YES"
         val = 0
         tim = 0
 
@@ -799,7 +802,7 @@ class dynamite:
                 tim, _, _ = model.predict_instability_time(sim)
 
                 if val < 0.34:
-                    stable = "SPOCK"
+                    accept = "SPOCK"
 
             else:
                 for it in range(3000):
@@ -812,7 +815,7 @@ class dynamite:
                             amd[j, it] = Ms*mp/(Ms + mp)*math.sqrt(self.G*(Ms*mp)*l[j].a*self.au)*(1-math.sqrt(1-l[j].e**2)*math.cos(l[j].inc*math.pi/180))
 
                         except ValueError:
-                            stable = "EJECTED"
+                            accept = "EJECTED"
 
                             if j < mind:
                                 ps = "PLANET " + str(j+1)
@@ -829,7 +832,7 @@ class dynamite:
 
                     for j in range(0, len(l) - 1):
                         if l[j].a*(1+l[j].e) >= l[j+1].a*(1-l[j+1].e):
-                            stable = "ORBITS CROSSED"
+                            accept = "ORBITS CROSSED"
 
                             if j < mind:
                                 ps1 = "PLANET " + str(j+1)
@@ -847,16 +850,16 @@ class dynamite:
                             tim = it
                             break
 
-                    if stable != "YES":
+                    if accept != "YES":
                         break
 
-            if stable == "YES":
+            if accept == "YES":
                 for j in range(len(amd)):
                     amdps = abs(np.fft.fft([amd[j,it] for it in range(len(amd[j]))]))**2
                     mps = max(amdps)
 
                     if sum([1 if amdps[it] > 0.01*mps else 0 for it in range(3000)]) > 0.01*len(amdps):
-                        stable = "SPECTRAL FRACTION"
+                        accept = "SPECTRAL FRACTION"
 
                         if j < mind:
                             ps = "PLANET " + str(j+1)
@@ -871,9 +874,12 @@ class dynamite:
 
         else:
             if D < 8:
-                stable = "HILL RADIUS"
+                accept = "HILL RADIUS"
 
-        return (stable, val, tim, Pmc, Rmc, emc, imc)
+        if accept == "YES" and (203.3*Pmc*(1/3)*Mmc*math.sin(imc*math.pi/180)*(M_star+0.0009548*Mmc/317.83)**(-2/3)*(1-emc**2)**-0.5)/317.83 > rv_lim:
+            accept = "RV LIMIT"
+
+        return (accept, val, tim, Pmc, Rmc, emc, imc)
 
 
 
@@ -1140,7 +1146,7 @@ class dynamite:
     def epos_rads(self, r1, r2):
         """Generates probability of radius from uniform distribution between minimum and maximum planet radii in system (similar to same-R from Mulders et al. 2018)"""
 
-        R = np.arange(r1, r2+0.01, 0.01)
+        R = np.arange(r1, r2, 0.01)
         fR = np.ones(len(R))/(r2 - r1)
         cdfR = spst.uniform(r1, r2-r1).cdf(R)
     
