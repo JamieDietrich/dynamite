@@ -470,6 +470,9 @@ class dynamite:
         tpm = np.zeros(len(Pms))
         tpue = np.zeros(len(Pms))
         tple = np.zeros(len(Pms))
+        rvsa = np.zeros(len(Pms))
+        rvue = np.zeros(len(Pms))
+        rvle = np.zeros(len(Pms))
 
         for pm in range(len(Pms)):
             ntrans = 0
@@ -489,6 +492,9 @@ class dynamite:
             tpm[pm] = ntrans/len(ik)
             tple[pm] = max(1e-3, (ntrans - ntl)/len(ik)) if (tpm[pm] != 0 and tpm[pm] != 1) else (ntrans - ntl)/len(ik)
             tpue[pm] = max(1e-3, (ntu - ntrans)/len(ik)) if (tpm[pm] != 0 and tpm[pm] != 1) else (ntu - ntrans)/len(ik)
+            rvsa[pm] = (203.3*Pms[pm]*(1/3)*Mm*math.sin(im*math.pi/180)*(M_star+0.0009548*Mm/317.83)**(-2/3)*(1-em**2)**-0.5)/317.83
+            rvle[pm] = rvsa[pm] - (203.3*(Pms[pm]-Ples[pm])*(1/3)*(Mm-Mle)*math.sin((im-ile)*math.pi/180)*(M_star+0.0009548*(Mm-Mle)/317.83)**(-2/3)*(1-(em-ele)**2)**-0.5)/317.83
+            rvue[pm] = (203.3*(Pms[pm]+Pues[pm])*(1/3)*(Mm+Mue)*math.sin((im+iue)*math.pi/180)*(M_star+0.0009548*(Mm+Mue)/317.83)**(-2/3)*(1-(em+eue)**2)**-0.5)/317.83 - rvsa[pm]
 
         print(datetime.now(), "Writing out Best Values for", target_name)
 
@@ -500,6 +506,9 @@ class dynamite:
             tpm[pm] = round(tpm[pm], 3)
             tpue[pm] = round(tpue[pm], 3)
             tple[pm] = round(tple[pm], 3)
+            rvsa[pm] = round(rvsa[pm], 2)
+            rvue[pm] = round(rvue[pm], 2)
+            rvle[pm] = round(rvle[pm], 2)
 
         Rm = round(Rm, (3 if Rm < 1 else 2))
         Rue = round(Rue, (3 if Rue < 1 else 2))
@@ -520,15 +529,18 @@ class dynamite:
 
         if write:
             with open("table_" + self.config_parameters["mode"] + "_" + self.config_parameters["period"] + "_" + target_name + ".txt", "w") as f:
-                f.write("Name\tPeriod\tPlanet Radius\tMass\tInclination\tEccentricity\tStellar Radius\tTransit Depth\tTransit Probability\n" + target_name + " & ($")
+                f.write("Name & Period (d) & Planet Radius (R_Earth) & Mass (M_Earth) & Inclination (deg) & Eccentricity & Stellar Radius (R_Sun) & Transit Depth (ppm) & Transit Probability & RV Semi-amplitude (m/s)\n" + target_name + " & ($")
 
                 for pm in range(len(Pms)):
                     f.write(str(Pms[pm]) + "(" + str(Pmes[pm]) + ")^{" + str(Pues[pm]) + "}_{" + str(Ples[pm]) + ("}, $" if pm != len(Pms) - 1 else "})$ & $"))
 
-                f.write(str(Rm) + "^{" + str(Rue) + "}_{" + str(Rle) + "}$ & $" + str(Mm) + "^{" + str(Mue) + "}_{" + str(Mle) + "}$ & $" + str(im) + "^{" + str(iue) + "}_{" + str(ile) + "}$ & $" + str(em) + "^{" + str(eue) + "}_{" + str(ele) + "}$ & $" + str(R_star) + "\pm" + str(Rse) + "$ & $" + str(tdm) + "^{" + str(tdue) + "}_{" + str(tdle) + "}$ & $")
+                f.write(str(Rm) + "^{" + str(Rue) + "}_{" + str(Rle) + "}$ & $" + str(Mm) + "^{" + str(Mue) + "}_{" + str(Mle) + "}$ & $" + str(im) + "^{" + str(iue) + "}_{" + str(ile) + "}$ & $" + str(em) + "^{" + str(eue) + "}_{" + str(ele) + "}$ & $" + str(R_star) + "\pm" + str(Rse) + "$ & $" + str(tdm) + "^{" + str(tdue) + "}_{" + str(tdle) + "}$ & $(")
 
                 for pm in range(len(tpm)):
-                    f.write(str(tpm[pm]) + "^{" + str(tpue[pm]) + "}_{" + str(tple[pm]) + ("}, $" if pm != len(tpm) - 1 else "}$ & $\\\\\n"))
+                    f.write(str(tpm[pm]) + "^{" + str(tpue[pm]) + "}_{" + str(tple[pm]) + ("}, $" if pm != len(tpm) - 1 else "})$ & $("))
+
+                for pm in range(len(rvsa)):
+                    f.write(str(rvsa[pm]) + "^{" + str(rvue[pm]) + "}_{" + str(rvle[pm]) + ("}, $" if pm != len(rvsa) - 1 else "})$\\\\\n"))
 
         mtp = max(tpm)
         mtpu = tpue[np.where(tpm == mtp)[0][0]]
