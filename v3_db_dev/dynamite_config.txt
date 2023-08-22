@@ -1,14 +1,15 @@
 ### DYNAmical Multi-planet Injection TEster (DYNAMITE) ###
 ### Configuration File ###
 ### Jeremy Dietrich ###
-### jdietrich1@email.arizona.edu ###
-### 2022 June 24 ###
+### jdietrich@asu.edu ###
+### 2023 August 22 ###
 ### Version 3.0 ###
 ### Dietrich & Apai (2020), AJ, 160, 107D ###
+### https://iopscience.iop.org/article/10.3847/1538-3881/aba61d ###
 ### Dietrich & Apai (2021), AJ, 161, 17D ###
 ### Dietrich, Apai, & Malhotra (2022), AJ, 163, 88D ###
 ### Basant, Dietrich, & Apai (2022), AJ, 164, 12B ###
-### https://iopscience.iop.org/article/10.3847/1538-3881/aba61d ###
+### Basant, Dietrich, & Apai (2022), RNAAS, 6, 213 ###
 
 ## PREDICTION PARAMETERS ##
 
@@ -18,8 +19,8 @@
 # period: Probability distribution for planet periods - currently accepts epos/syssim
 # radius: Probability distribution for planet radii - currently accepts epos/syssim
 # radtype: planet radius function type - powerlaw/clustered, radius must be syssim
-# radmin: planet radius minimum - 0.5 for full Kepler popluation stats, 0.1 for reaching the smallest planets in TOI multi systems
-# radmax: planet radius maximum - 5 for Neptunes and below, 10 for full Kepler population stats, 15 for largest super-Jupiter planets in TOI multi systems; may be less accurate at higher radii
+# radmin: planet radius minimum - 0.5 for full Kepler popluation stats, 0.1 for reaching the smallest planets in TOI-multi systems
+# radmax: planet radius maximum - 5 for Neptunes and below, 10 for full Kepler population stats, 15 for largest super-Jupiter planets in TOI-multi systems; may be less accurate at higher radii
 # mass_radius: which mass-radius relationship to use - mrexo/otegi; mrexo for non-parametric model (Ning et al. 2018, Kanodia et al. 2019, MUCH SLOWER!), otegi for power-law model (Otegi et al. 2020)
 # otegi_rho: whether to use volatile formula or rocky formula for 5 M_earth < M < 25 M_earth - rocky/volatile; only used if mass_radius is otegi
 # inclination: Probability distribution for planet inclinations - currently accepts rayleigh_iso/syssim
@@ -28,12 +29,16 @@
 
 MC_chain::100000
 mode::single
-system::SPECULOOS-2
-period::syssim
+system::["TOI-969", "TOI-932", "TOI-904", "TOI-880", "TOI-872", "TOI-836", "TOI-822", "TOI-815", "TOI-810", "TOI-797", "TOI-790", "TOI-789", "TOI-786", "TOI-776", "TOI-763", "TOI-736", "TOI-732", "TOI-714", "TOI-713", "TOI-712", "TOI-711", "TOI-709", "TOI-703", "TOI-700", "TOI-699", "TOI-696", "TOI-663", "TOI-6454", "TOI-6293", "TOI-6276", "TOI-6249", "TOI-6109", "TOI-6078", "TOI-6054", "TOI-6022", "TOI-5788", "TOI-5738", "TOI-5696", "TOI-5611", "TOI-561", "TOI-560", "TOI-5564", "TOI-554", "TOI-553", "TOI-5520", "TOI-5493", "TOI-5478", "TOI-5398", "TOI-5143", "TOI-5126", "TOI-5123", "TOI-512", "TOI-509", "TOI-5088", "TOI-500", "TOI-487", "TOI-4647", "TOI-4643", "TOI-4599", "TOI-4593", "TOI-4567", "TOI-4538", "TOI-4511", "TOI-451", "TOI-4504", "TOI-4495", "TOI-4468", "TOI-4443", "TOI-4405", "TOI-4342", "TOI-4323", "TOI-4320", "TOI-4311", "TOI-431", "TOI-4307", "TOI-4305", "TOI-4304", "TOI-421", "TOI-4156", "TOI-411", "TOI-4093", "TOI-406", "TOI-402", "TOI-4010", "TOI-396", "TOI-3485", "TOI-3353", "TOI-286", "TOI-282", "TOI-270", "TOI-266", "TOI-261", "TOI-256", "TOI-2548", "TOI-2540", "TOI-2525", "TOI-2494", "TOI-2448", "TOI-2441", "TOI-2404", "TOI-2392", "TOI-2350", "TOI-2345", "TOI-233", "TOI-2322", "TOI-2300", "TOI-2274", "TOI-2269", "TOI-2267", "TOI-2202", "TOI-216", "TOI-214", "TOI-213", "TOI-2112", "TOI-2104", "TOI-2103", "TOI-2096", "TOI-2095", "TOI-2086", "TOI-2084", "TOI-2081", "TOI-2079", "TOI-2076", "TOI-2016", "TOI-201", "TOI-2000", "TOI-1873", "TOI-186", "TOI-1836", "TOI-1812", "TOI-1806", "TOI-1803", "TOI-1798", "TOI-1797", "TOI-1782", "TOI-178", "TOI-1757", "TOI-1752", "TOI-175", "TOI-1749", "TOI-1746", "TOI-174", "TOI-1730", "TOI-1726", "TOI-171", "TOI-1706", "TOI-1692", "TOI-1670", "TOI-1659", "TOI-1533", "TOI-1471", "TOI-1469", "TOI-1468", "TOI-1453", "TOI-1446", "TOI-1445", "TOI-1444", "TOI-1438", "TOI-1404", "TOI-1347", "TOI-1346", "TOI-1339", "TOI-1338 A", "TOI-1288", "TOI-1272", "TOI-1269", "TOI-1266", "TOI-1260", "TOI-125", "TOI-1246", "TOI-1238", "TOI-1237", "TOI-1233", "TOI-1225", "TOI-1208", "TOI-119", "TOI-1136", "TOI-1130", "TOI-1097", "TOI-1064", "TOI-1062", "TOI-1027"]
+# 2023 GOOD SYSTEMS: ["TOI-969", "TOI-932", "TOI-904", "TOI-880", "TOI-872", "TOI-836", "TOI-822", "TOI-815", "TOI-810", "TOI-797", "TOI-790", "TOI-789", "TOI-786", "TOI-776", "TOI-763", "TOI-736", "TOI-732", "TOI-714", "TOI-713", "TOI-712", "TOI-711", "TOI-709", "TOI-703", "TOI-700", "TOI-699", "TOI-696", "TOI-663", "TOI-6454", "TOI-6293", "TOI-6276", "TOI-6249", "TOI-6109", "TOI-6078", "TOI-6054", "TOI-6022", "TOI-5788", "TOI-5738", "TOI-5696", "TOI-5611", "TOI-561", "TOI-560", "TOI-5564", "TOI-554", "TOI-553", "TOI-5520", "TOI-5493", "TOI-5478", "TOI-5398", "TOI-5143", "TOI-5126", "TOI-5123", "TOI-512", "TOI-509", "TOI-5088", "TOI-500", "TOI-487", "TOI-4647", "TOI-4643", "TOI-4599", "TOI-4593", "TOI-4567", "TOI-4538", "TOI-4511", "TOI-451", "TOI-4504", "TOI-4495", "TOI-4468", "TOI-4443", "TOI-4405", "TOI-4342", "TOI-4323", "TOI-4320", "TOI-4311", "TOI-431", "TOI-4307", "TOI-4305", "TOI-4304", "TOI-421", "TOI-4156", "TOI-411", "TOI-4093", "TOI-406", "TOI-402", "TOI-4010", "TOI-396", "TOI-3485", "TOI-3353", "TOI-286", "TOI-282", "TOI-270", "TOI-266", "TOI-261", "TOI-256", "TOI-2548", "TOI-2540", "TOI-2525", "TOI-2494", "TOI-2448", "TOI-2441", "TOI-2404", "TOI-2392", "TOI-2350", "TOI-2345", "TOI-233", "TOI-2322", "TOI-2300", "TOI-2274", "TOI-2269", "TOI-2267", "TOI-2202", "TOI-216", "TOI-214", "TOI-213", "TOI-2112", "TOI-2104", "TOI-2103", "TOI-2096", "TOI-2095", "TOI-2086", "TOI-2084", "TOI-2081", "TOI-2079", "TOI-2076", "TOI-2016", "TOI-201", "TOI-2000", "TOI-1873", "TOI-186", "TOI-1836", "TOI-1812", "TOI-1806", "TOI-1803", "TOI-1798", "TOI-1797", "TOI-1782", "TOI-178", "TOI-1757", "TOI-1752", "TOI-175", "TOI-1749", "TOI-1746", "TOI-174", "TOI-1730", "TOI-1726", "TOI-171", "TOI-1706", "TOI-1692", "TOI-1670", "TOI-1659", "TOI-1533", "TOI-1471", "TOI-1469", "TOI-1468", "TOI-1453", "TOI-1446", "TOI-1445", "TOI-1444", "TOI-1438", "TOI-1404", "TOI-1347", "TOI-1346", "TOI-1339", "TOI-1338 A", "TOI-1288", "TOI-1272", "TOI-1269", "TOI-1266", "TOI-1260", "TOI-125", "TOI-1246", "TOI-1238", "TOI-1237", "TOI-1233", "TOI-1225", "TOI-1208", "TOI-119", "TOI-1136", "TOI-1130", "TOI-1097", "TOI-1064", "TOI-1062", "TOI-1027"]
+# 2023 EB: ["TOI-1897"]
+# 2020 GOOD SYSTEMS: ["TOI-561", "TOI-431", "TOI-1238", "TOI-732", "TOI-696", "TOI-736", "TOI-1346", "TOI-797", "TOI-713", "TOI-1468", "TOI-1730", "TOI-175", "TOI-663", "TOI-1469", "TOI-1260", "TOI-270", "TOI-261", "TOI-396", "TOI-256", "TOI-1233", "TOI-836", "TOI-174", "TOI-411", "TOI-1269", "TOI-1246", "TOI-1453", "TOI-714", "TOI-1749", "TOI-286", "TOI-125", "TOI-402", "TOI-1438", "TOI-119", "TOI-763", "TOI-1136", "TOI-1064", "TOI-266", "TOI-178", "TOI-1726", "TOI-487", "TOI-776", "TOI-703", "TOI-1339", "TOI-712", "TOI-214", "TOI-700", "TOI-1266", "TOI-553", "TOI-699", "TOI-282"]
+# 2020 SINGLE PLANETS WITH FALSE ALARMS: ["TOI-1449", "TOI-1277"]
+period::epos
 radius::syssim
 radtype::clustered
 radmin::0.1
-radmax::15
+radmax::25
 mass_radius::otegi
 otegi_rho::volatile
 inclination::syssim
@@ -60,9 +65,9 @@ stability::hill
 # ind_i: scale of the x-axis for the individual system inclination plot - full/truncated; mode must be single
 
 plot::True
-show_plots::True
+show_plots::False
 saved::False
-plt_P_R::False
+plt_P_R::True
 plt_P_scale::log
 plt_tdtp::False
 plt_deltas::False
@@ -78,8 +83,8 @@ ind_i::full
 
 ## SYSTEM ARCHITECTURE PARAMETERS ##
 
-# additional: the parameters of the planet(s) you want to add - must be list of lists, with each inner list having the parameters in order [inclination, planet radius/mass, period]; mode must be single
-# unconfirmed: the parameters of the unconfirmed candidate(s) - must be list of lists, with each inner list having the parameters in order [inclination, planet radius/mass, period]; mode must be single
+# additional: the parameters of the planet(s) you want to add - must be list of lists, each inner list with parameters [period, radius, mass, inclination, eccentricity, name]; mode must be single
+# unconfirmed: the parameters of the unconfirmed candidate(s) - must be list of lists, each inner list with parameters [period, radius, mass, inclination, eccentricity, name]; mode must be single
 # removed: the parameters of the planet or planets you want to remove - must be a list of the periods for the planets to remove, as those are unique identifiers; mode must be single
 # add_unconfirmed: whether or not to add the unconfirmed planets into the DYNAMITE analysis - True/False
 
@@ -94,6 +99,6 @@ add_unconfirmed::False
 # exoplanetarchive_csv: the full pathname (if needed) to the Exoplanet Archive CSV
 # exofop_csv: the full pathname (if needed) to the ExoFOP CSV
 
-targets_db::dynamite_targets_test.db
+targets_db::dynamite_targets_archive.db
 exoplanetarchive_csv::
 exofop_csv::

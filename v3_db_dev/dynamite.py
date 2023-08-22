@@ -1,14 +1,15 @@
 ### DYNAmical Multi-planet Injection TEster (DYNAMITE) ###
 ### Main File ###
 ### Jeremy Dietrich ###
-### jdietrich1@email.arizona.edu ###
-### 2022 June 24 ###
+### jdietrich@asu.edu ###
+### 2023 August 22 ###
 ### Version 3.0 ###
 ### Dietrich & Apai (2020), AJ, 160, 107D ###
+### https://iopscience.iop.org/article/10.3847/1538-3881/aba61d ###
 ### Dietrich & Apai (2021), AJ, 161, 17D ###
 ### Dietrich, Apai, & Malhotra (2022), AJ, 163, 88D ###
 ### Basant, Dietrich, & Apai (2022), AJ, 164, 12B ###
-### https://iopscience.iop.org/article/10.3847/1538-3881/aba61d ###
+### Basant, Dietrich, & Apai (2022), RNAAS, 6, 213 ###
 
 import os
 import ast
@@ -32,11 +33,11 @@ class dynamite:
     def __init__(self, merged_data=None):
         """Runs the script"""
 
-        cfname = "dynamite_config.txt"
+        self.cfname = "dynamite_config.txt"
         self.node_number = 1
 
         if len(sys.argv) >= 2:
-            cfname = sys.argv[1]
+            self.cfname = sys.argv[1]
 
         if len(sys.argv) == 3:
             self.node_number = int(sys.argv[2])
@@ -51,7 +52,7 @@ class dynamite:
         self.config_parameters = {}
 
         try:
-            config_data = np.loadtxt(cfname, dtype=str, delimiter='::')
+            config_data = np.loadtxt(self.cfname, dtype=str, delimiter='::')
 
         except IOError:
             print("Error, configuration file not found!")
@@ -59,6 +60,8 @@ class dynamite:
 
         for i in range(len(config_data)):
             self.config_parameters[config_data[i, 0]] = config_data[i, 1] if config_data[i, 1].find("[") == -1 else ast.literal_eval(config_data[i, 1])
+
+        # FIX THIS
 
         if merged_data != None:
             try:
@@ -69,16 +72,16 @@ class dynamite:
             except:
                 self.write_bf_pred_file((self.G*merged_data[-4][2]*self.M_sun/(4*math.pi**2))**(1/3), merged_data[0], merged_data[3], merged_data[6], merged_data[9], merged_data[-3], merged_data[-2], merged_data[-1], merged_data[11], merged_data[-5][0], merged_data[-4], True)
 
-            with np.load("saved_data.npz", allow_pickle=True) as data:
+            with np.load("saved_data_" + target_system.replace(" ", "_") if self.config_parameters["mode"] == "single" else self.config_parameters["mode"] + ".npz", allow_pickle=True) as data:
                 Pk, P, PP, Rk, R, PR, ik, il, Pinc, ek, el, Pecc, deltas, ratios, tdm, tdle, tdue, tpm, tple, tpue, targets, starvs, pers, rads, mass, eccs = data["data"]
 
             if self.config_parameters["plot"] == "True":
-                print(datetime.now(), "Creating Plots")
-                dynamite_plots(Pk, P, PP, Rk, R, PR, ik, il, Pinc, ek, el, Pecc, deltas, ratios, tdm, tdle, tdue, tpm, tple, tpue, targets, starvs, pers, rads, mass, eccs, cfname)
+                self.run_plots(data)
 
             return
 
-        print(datetime.now(), "Initiating DYNAMITE on node", socket.gethostname())
+        self.startdatetime = str(datetime.now()).replace(" ", "_")
+        print(self.startdatetime, "Initiating DYNAMITE on node", socket.gethostname())
 
         try:
             self.node_number = int(os.environ.get('SLURM_ARRAY_TASK_ID'))
@@ -95,135 +98,175 @@ class dynamite:
         for node in range(self.node_number - 1):
             self.seed_start += self.interation_list[node]
 
-        targets_dict = dynamite_targets_db(self.config_parameters["targets_db"]).get_targets(self.config_parameters["mode"], self.config_parameters["system"], self.config_parameters["radmax"], self.config_parameters["removed"])
-
-        if targets_dict == None or len(targets_dict) == 0:
-            print("Error: No targets selected!")
-            exit()
-
         try:
             processes = int(os.environ.get('SLURM_CPUS_PER_TASK'))
 
         except:
             processes = None
 
-        self.ppr = PPR((self, None), processes)
-
         if self.config_parameters["saved"] == "False":
             if self.config_parameters["mode"] == "single":
-                R_star, Rse, M_star, Mse, target, target_name, rv_lim = self.set_up(targets_dict, self.config_parameters["system"])
-                targ_rem = []
+                if isinstance(self.config_parameters["system"], str):
+                    self.ppr = PPR((self, None), processes)
+                    data = self.run_single(self.config_parameters["system"])
 
-                for i in range(len(target) - 1 if len(self.config_parameters["removed"]) > 0 else len(target)):
-                    if target[i][0][0] not in self.config_parameters["removed"]:
-                        targ_rem.append(target[i])
+                    if self.config_parameters["plot"] == "True":
+                        self.run_plots(data, self.config_parameters["system"])
 
-                if len(self.config_parameters["additional"][0]) > 0:
-                    for i in self.config_parameters["additional"]:
-                        x = []
+                    self.ppr.terminate_PPR()
 
-                        for j in range(len(i) - 1):
-                            #if isinstance(i[j], tuple):
-                                #if self.config_parameters["use_mass"] == "True":
-                                    #x.append(self.mr_convert(i[j][0], "radius"))
+                elif isinstance(self.config_parameters["system"], list):
+                    with open("table_" + self.config_parameters["mode"] + "_" + self.config_parameters["period"] + "_run_" + self.startdatetime + ".txt", "w") as f:
+                        f.write("Name --- Period --- Radius")
+                        #f.write(" --- Transit probability --- RV Limit")
+                        f.write("\n")
 
-                                #else:
-                                    #x.append(i[j][0])
+                    for i in self.config_parameters["system"]:
+                        self.ppr = PPR((self, None), processes)
+                        data = self.run_single(i)
 
-                            if (j == 2 and self.config_parameters["use_mass"] == "True") or (j == 1 and i[j] == "?"):
-                                x.append(self.mr_convert(i[2], "radius"))
+                        if self.config_parameters["plot"] == "True":
+                            self.run_plots(data, i)
 
-                            elif j == 2 and i[j] == "?":
-                                x.append(self.mr_convert(i[1], "mass"))
-
-                            else:
-                                x.append(i[j])
-
-                        targ_rem.append(x)
-
-                if self.config_parameters["add_unconfirmed"] == "True":
-                    for i in self.config_parameters["unconfirmed"]:
-                        x = []
-
-                        for j in range(len(i) - 1):
-                            #if isinstance(i[j], tuple):
-                                #if self.config_parameters["use_mass"] == "True":
-                                    #x.append(self.mr_convert(i[j][0], "radius"))
-
-                                #else:
-                                    #x.append(i[j][0])
-
-                            if (j == 2 and self.config_parameters["use_mass"] == "True") or (j == 1 and i[j] == "?"):
-                                x.append(self.mr_convert(i[2], "radius"))
-
-                            elif j == 2 and i[j] == "?":
-                                x.append(self.mr_convert(i[1], "mass"))
-
-                            else:
-                                x.append(i[j])
-
-                        targ_rem.append(x)
-
-                target = sorted(targ_rem, key=lambda x: x[0][0])
-                data = self.run_monte_carlo(R_star, Rse, M_star, Mse, target, target_name, rv_lim) + ([target[i][0] for i in range(len(target))], [target[i][1] for i in range(len(target))], [target[i][2] for i in range(len(target))], [target[i][4] for i in range(len(target))])
-
-                if self.num_of_nodes == 1:
-                    np.savez("saved_data.npz", data=data)
-
-                else:
-                    np.savez("saved_data_" + str(self.node_number) + ".npz", data=data)
+                        self.ppr.terminate_PPR()
 
             else:
-                targlist = []
-
-                for tn in targets_dict.keys():
-                    if self.config_parameters["mode"] == "all":
-                        targlist.append(tn)
-
-                    elif self.config_parameters["mode"] == "tess" and tn.find("TOI") != -1:
-                        targlist.append(tn)
-
-                    elif self.config_parameters["mode"] == "kepler" and tn.find("Kepler") != -1:
-                        targlist.append(tn)
-
-                    elif self.config_parameters["mode"] == "k2" and tn.find("K2") != -1:
-                        targlist.append(tn)
-
-                    elif self.config_parameters["mode"] == "test" and tn.find("test") != -1:
-                        targlist.append(tn)
-
+                targets_dict = dynamite_targets_db(self.config_parameters["targets_db"]).get_targets(self.config_parameters["mode"], targsys, self.config_parameters["radmax"], self.config_parameters["removed"])
+                targlist = [tn for tn in targets_dict.keys()]
                 Pk, P, PP, Rk, R, PR, ik, il, Pinc, ek, el, Pecc, deltas, ratios, tdm, tdle, tdue, tpm, tple, tpue, targets, starvs, pers, rads, mass, eccs = datavars = self.ppr.create_processes("mt_mc", (targets_dict, targlist), -len(targlist), self.process_data)
             
                 if self.num_of_nodes == 1:
-                    np.savez("saved_data.npz", data=datavars)
+                    np.savez("saved_data_" + mode + ".npz", data=datavars)
 
                 else:
-                    np.savez("saved_data_" + str(self.node_number) + ".npz", data=datavars)
+                    np.savez("saved_data_" + mode + "_" + str(self.node_number) + ".npz", data=datavars)
+
+                if self.config_parameters["plot"] == "True":
+                    self.run_plots(datavars)
 
         elif self.config_parameters["saved"] == "True":
-            with np.load("saved_data.npz", allow_pickle=True) as data:
-                Pk, P, PP, Rk, R, PR, ik, il, Pinc, ek, el, Pecc, deltas, ratios, tdm, tdle, tdue, tpm, tple, tpue, targets, starvs, pers, rads, mass, eccs = data["data"]
+            if self.config_parameters["mode"] == "single":
+                if isinstance(self.config_parameters["system"], str):
+                    with np.load("saved_data_" + self.config_parameters["system"].replace(" ", "_") + ".npz", allow_pickle=True) as data:
+                        datavars = data["data"]
+                        self.saved_writing(datavars, self.config_parameters["system"])
 
-            try:
-                if len(targets[0]) > 1:
-                    for i in range(len(targets)):
-                        self.write_bf_pred_file((self.G*starvs[i][2]*self.M_sun/(4*math.pi**2))**(1/3), Pk[i], Rk[i], ik[i], ek[i], pers[i], rads[i], mass[i], eccs[i], Pecc[i], targets[i][0], starvs[i], True)
+                elif isinstance(self.config_parameters["system"], list):
+                    with open("table_" + self.config_parameters["mode"] + "_" + self.config_parameters["period"] + "_run_" + self.startdatetime + ".txt", "w") as f:
+                        f.write("Name --- Period --- Radius")
+                        #f.write(" --- Transit probability --- RV Limit")
+                        f.write("\n")
 
-            except:
-                self.write_bf_pred_file((self.G*starvs[2]*self.M_sun/(4*math.pi**2))**(1/3), Pk, Rk, ik, ek, pers, rads, mass, eccs, Pecc, targets[0], starvs, True)
+                    for i in self.config_parameters["system"]:
+                        with np.load("saved_data_" + i.replace(" ", "_") + ".npz", allow_pickle=True) as data:
+                            datavars = data["data"]
+                            self.saved_writing(datavars, i)
+
+
+
+    def saved_writing(self, datavars, targsys):
+        """Writes the files and runs the plots from saved data."""
+
+        Pk, P, PP, Rk, R, PR, ik, il, Pinc, ek, el, Pecc, deltas, ratios, tdm, tdle, tdue, tpm, tple, tpue, targets, starvs, pers, rads, mass, eccs = datavars
+
+        try:
+            if len(targets[0]) > 1:
+                for i in range(len(targets)):
+                    self.write_bf_pred_file((self.G*starvs[i][2]*self.M_sun/(4*math.pi**2))**(1/3), Pk[i], Rk[i], ik[i], ek[i], pers[i], rads[i], mass[i], eccs[i], Pecc[i], targets[i][0], starvs[i], True)
+
+        except:
+            self.write_bf_pred_file((self.G*starvs[2]*self.M_sun/(4*math.pi**2))**(1/3), Pk, Rk, ik, ek, pers, rads, mass, eccs, Pecc, targets[0], starvs, True)
 
         if self.config_parameters["plot"] == "True":
-            if self.config_parameters["saved"] == "False" and self.config_parameters["mode"] == "single":
-                Pk, P, PP, Rk, R, PR, ik, il, Pinc, ek, el, Pecc, deltas, ratios, tdm, tdle, tdue, tpm, tple, tpue, targets, starvs, pers, rads, mass, eccs = data
-
-            elif self.config_parameters["saved"] == "False" and self.config_parameters["mode"] != "single":
-                Pk, P, PP, Rk, R, PR, ik, il, Pinc, ek, el, Pecc, deltas, ratios, tdm, tdle, tdue, tpm, tple, tpue, targets, starvs, pers, rads, mass, eccs = datavars
-
-            print(datetime.now(), "Creating Plots")
-            dynamite_plots(Pk, P, PP, Rk, R, PR, ik, il, Pinc, ek, el, Pecc, deltas, ratios, tdm, tdle, tdue, tpm, tple, tpue, targets, starvs, pers, rads, mass, eccs, cfname)
+            self.run_plots(datavars, targsys)
 
         print(datetime.now(), "Finishing DYNAMITE")
-        self.ppr.terminate_PPR()
+
+
+
+    def run_single(self, targsys):
+        """Runs DYNAMITE in single mode for the given target name."""
+
+        targets_dict = dynamite_targets_db(self.config_parameters["targets_db"]).get_targets(self.config_parameters["mode"], targsys, self.config_parameters["radmax"], self.config_parameters["removed"])
+
+        if targets_dict == None or len(targets_dict) == 0:
+            print("Error: No targets selected!")
+            exit()
+
+        R_star, Rse, M_star, Mse, target, target_name, rv_lim = self.set_up(targets_dict, targsys)
+        targ_rem = []
+
+        for i in range(len(target) - 1 if len(self.config_parameters["removed"]) > 0 else len(target)):
+            if target[i][0][0] not in self.config_parameters["removed"]:
+                targ_rem.append(target[i])
+
+        if len(self.config_parameters["additional"][0]) > 0:
+            for i in self.config_parameters["additional"]:
+                x = []
+
+                for j in range(len(i) - 1):
+                    #if isinstance(i[j], tuple):
+                        #if self.config_parameters["use_mass"] == "True":
+                            #x.append(self.mr_convert(i[j][0], "radius"))
+
+                        #else:
+                            #x.append(i[j][0])
+
+                    if (j == 2 and self.config_parameters["use_mass"] == "True") or (j == 1 and i[1][0] == "?"):
+                        mv = self.mr_convert(i[2][0], "radius")
+                        x.append([mv, self.mr_convert(i[2][0]+i[2][1], "radius") - mv, mv - self.mr_convert(i[2][0]-i[2][2], "radius")])
+
+                    elif j == 2 and i[2][0] == "?":
+                        mv = self.mr_convert(i[1][0], "mass")
+                        x.append([mv, self.mr_convert(i[1][0]+i[1][1], "mass") - mv, mv - self.mr_convert(i[1][0]-i[1][2], "mass")])
+
+                    else:
+                        x.append(i[j])
+
+                targ_rem.append(x)
+
+        if self.config_parameters["add_unconfirmed"] == "True":
+            for i in self.config_parameters["unconfirmed"]:
+                x = []
+
+                for j in range(len(i) - 1):
+                    #if isinstance(i[j], tuple):
+                        #if self.config_parameters["use_mass"] == "True":
+                            #x.append(self.mr_convert(i[j][0], "radius"))
+
+                        #else:
+                            #x.append(i[j][0])
+
+                    if (j == 2 and self.config_parameters["use_mass"] == "True") or (j == 1 and i[j] == "?"):
+                        x.append(self.mr_convert(i[2], "radius"))
+
+                    elif j == 2 and i[j] == "?":
+                        x.append(self.mr_convert(i[1], "mass"))
+
+                    else:
+                        x.append(i[j])
+
+                targ_rem.append(x)
+
+        target = sorted(targ_rem, key=lambda x: x[0][0])
+        data = self.run_monte_carlo(R_star, Rse, M_star, Mse, target, target_name, rv_lim) + ([target[i][0] for i in range(len(target))], [target[i][1] for i in range(len(target))], [target[i][2] for i in range(len(target))], [target[i][4] for i in range(len(target))])
+
+        if self.num_of_nodes == 1:
+            np.savez("saved_data_" + target_name.replace(" ", "_") + ".npz", data=data)
+
+        else:
+            np.savez("saved_data_" + target_name.replace(" ", "_") + "_" + str(self.node_number) + ".npz", data=data)
+
+        return data
+
+
+
+    def run_plots(self, data, targsys):
+        """Runs the plotting program."""
+
+        Pk, P, PP, Rk, R, PR, ik, il, Pinc, ek, el, Pecc, deltas, ratios, tdm, tdle, tdue, tpm, tple, tpue, targets, starvs, pers, rads, mass, eccs = data
+        print(datetime.now(), "Creating Plots")
+        dynamite_plots(Pk, P, PP, Rk, R, PR, ik, il, Pinc, ek, el, Pecc, deltas, ratios, tdm, tdle, tdue, tpm, tple, tpue, targets, starvs, pers, rads, mass, eccs, targsys, self.cfname)
 
 
 
@@ -363,6 +406,9 @@ class dynamite:
         if target_name == "Inner Solar System":
             P = np.arange(0.5, 4331.1, 0.1)
 
+        elif target_name == "eps Eri":
+            P = np.arange(100, 4331.1, 0.1)
+
         elif target_name == "Proxima Centauri":
             P = np.arange(0.5, 1412.3, 0.1)
 
@@ -472,9 +518,15 @@ class dynamite:
 
         Pis = np.hstack(np.array([np.logspace(-0.3, 0.5, 18), np.logspace(0.51, 2.9, 121)]))
         bins = np.append(Pis, 10**2.91)
-        PPi, _ = np.histogram(Pk, bins=bins)
+        widths = [bins[i+1] - bins[i] for i in range(len(bins)-1)]
+        PPis, _ = np.histogram(Pk, bins=bins)
+        PPi = PPis/widths
         Pmsi = argrelextrema(PPi, np.greater)[0]
-        Pms = [Pis[Pmsi[s]] for s in range(len(Pmsi)) if PPi[Pmsi[s]] > 0.2*np.amax(PPi)]
+        Pms = [Pis[s] for s in Pmsi if (PPi[s] > 0.2*np.amax(PPi) and PPi[s] > 1.5*np.mean(PPi[s-2:s+3]))]
+
+        if len(Pms) == 0:
+            Pms = [Pis[s] for s in Pmsi if PPi[s] > 0.2*np.amax(PPi)]
+
         Pmes = np.zeros(len(Pms))
         Ples = np.zeros(len(Pms))
         Pues = np.zeros(len(Pms))
@@ -501,7 +553,12 @@ class dynamite:
             else:
                 Pmes[pm] = Pms[pm]
                 Ples[pm] = np.where((PPi < np.exp(-1)*PPi[np.where(Pis == Pms[pm])[0][0]]) & (Pis < Pms[pm]))[0][-1]
-                Pues[pm] = np.where((PPi < np.exp(-1)*PPi[np.where(Pis == Pms[pm])[0][0]]) & (Pis > Pms[pm]))[0][0]
+
+                try:
+                    Pues[pm] = np.where((PPi < np.exp(-1)*PPi[np.where(Pis == Pms[pm])[0][0]]) & (Pis > Pms[pm]))[0][0]
+
+                except:
+                    Pues[pm] = max(Pis)
 
             if pm == len(Pms) - 1:
                 a = []
@@ -509,8 +566,12 @@ class dynamite:
                 for aa in range(len(Pk)):
                     tol = 1 if Pk[aa] < 100 else 10
 
-                    if Pk[aa] > Pms[pm]/2 and Pk[aa] < Pms[pm]*4 and PPi[np.where(np.isclose(Pis, Pk[aa], atol=tol))[0][0]] > np.amax(PPi)*0.2:
-                        a.append(Pk[aa])
+                    try:
+                        if Pk[aa] > Pms[pm]/2 and Pk[aa] < Pms[pm]*4 and PPi[np.where(np.isclose(Pis, Pk[aa], atol=tol))[0][0]] > np.amax(PPi)*0.2:
+                            a.append(Pk[aa])
+
+                    except IndexError:
+                        pass
 
                 if len(a) > 0:
                     Pmes[pm] = np.percentile(a, 50)
@@ -557,6 +618,9 @@ class dynamite:
         tpm = np.zeros(len(Pms))
         tpue = np.zeros(len(Pms))
         tple = np.zeros(len(Pms))
+        rvsa = np.zeros(len(Pms))
+        rvue = np.zeros(len(Pms))
+        rvle = np.zeros(len(Pms))
 
         for pm in range(len(Pms)):
             ntrans = 0
@@ -576,6 +640,9 @@ class dynamite:
             tpm[pm] = ntrans/len(ik)
             tple[pm] = max(1e-3, (ntrans - ntl)/len(ik)) if (tpm[pm] != 0 and tpm[pm] != 1) else (ntrans - ntl)/len(ik)
             tpue[pm] = max(1e-3, (ntu - ntrans)/len(ik)) if (tpm[pm] != 0 and tpm[pm] != 1) else (ntu - ntrans)/len(ik)
+            rvsa[pm] = (203.3*Pms[pm]*(1/3)*Mm*math.sin(im*math.pi/180)*(M_star+0.0009548*Mm/317.83)**(-2/3)*(1-em**2)**-0.5)/317.83
+            rvle[pm] = rvsa[pm] - (203.3*(Pms[pm]-Ples[pm])*(1/3)*(Mm-Mle)*math.sin((im-ile)*math.pi/180)*(M_star+0.0009548*(Mm-Mle)/317.83)**(-2/3)*(1-(em-ele)**2)**-0.5)/317.83
+            rvue[pm] = (203.3*(Pms[pm]+Pues[pm])*(1/3)*(Mm+Mue)*math.sin((im+iue)*math.pi/180)*(M_star+0.0009548*(Mm+Mue)/317.83)**(-2/3)*(1-(em+eue)**2)**-0.5)/317.83 - rvsa[pm]
 
         print(datetime.now(), "Writing out Best Values for", target_name)
 
@@ -587,6 +654,9 @@ class dynamite:
             tpm[pm] = round(tpm[pm], 3)
             tpue[pm] = round(tpue[pm], 3)
             tple[pm] = round(tple[pm], 3)
+            rvsa[pm] = round(rvsa[pm], 2)
+            rvue[pm] = round(rvue[pm], 2)
+            rvle[pm] = round(rvle[pm], 2)
 
         Rm = round(Rm, (3 if Rm < 1 else 2))
         Rue = round(Rue, (3 if Rue < 1 else 2))
@@ -607,16 +677,48 @@ class dynamite:
 
         if write:
             with open("table_" + self.config_parameters["mode"] + "_" + self.config_parameters["period"] + "_" + target_name + ".txt", "w") as f:
-                f.write("Name\tPeriod\tPlanet Radius\tMass\tInclination\tEccentricity\tStellar Radius\tTransit Depth\tTransit Probability\n" + target_name + " & ($")
+                f.write("Name & Period (d) & Planet Radius (R_Earth) & Mass (M_Earth) & Inclination (deg) & Eccentricity & Stellar Radius (R_Sun) & Transit Depth (ppm) & Transit Probability & RV Semi-amplitude (m/s)\n" + target_name + " & ($")
 
                 for pm in range(len(Pms)):
                     f.write(str(Pms[pm]) + "(" + str(Pmes[pm]) + ")^{" + str(Pues[pm]) + "}_{" + str(Ples[pm]) + ("}, $" if pm != len(Pms) - 1 else "})$ & $"))
 
-                f.write(str(Rm) + "^{" + str(Rue) + "}_{" + str(Rle) + "}$ & $" + str(Mm) + "^{" + str(Mue) + "}_{" + str(Mle) + "}$ & $" + str(im) + "^{" + str(iue) + "}_{" + str(ile) + "}$ & $" + str(em) + "^{" + str(eue) + "}_{" + str(ele) + "}$ & $" + str(R_star) + "\pm" + str(Rse) + "$ & $" + str(tdm) + "^{" + str(tdue) + "}_{" + str(tdle) + "}$ & $")
+                f.write(str(Rm) + "^{" + str(Rue) + "}_{" + str(Rle) + "}$ & $" + str(Mm) + "^{" + str(Mue) + "}_{" + str(Mle) + "}$ & $" + str(im) + "^{" + str(iue) + "}_{" + str(ile) + "}$ & $" + str(em) + "^{" + str(eue) + "}_{" + str(ele) + "}$ & $" + str(R_star) + "\pm" + str(Rse) + "$ & $" + str(tdm) + "^{" + str(tdue) + "}_{" + str(tdle) + "}$ & $(")
 
                 for pm in range(len(tpm)):
-                    f.write(str(tpm[pm]) + "^{" + str(tpue[pm]) + "}_{" + str(tple[pm]) + ("}, $" if pm != len(tpm) - 1 else "}$ & $\\\\\n"))
+                    f.write(str(tpm[pm]) + "^{" + str(tpue[pm]) + "}_{" + str(tple[pm]) + ("}, $" if pm != len(tpm) - 1 else "})$ & $("))
 
+                for pm in range(len(rvsa)):
+                    f.write(str(rvsa[pm]) + "^{" + str(rvue[pm]) + "}_{" + str(rvle[pm]) + ("}, $" if pm != len(rvsa) - 1 else "})$\\\\\n"))
+
+                f.write("\nName --- Period --- Radius --- Transit probability --- RV Limit\n" + target_name + " --- ")
+
+                for pm in range(len(Pms)):
+                    f.write(str(Pms[pm]) + " (+" + str(Pues[pm]) + "/-" + str(Ples[pm]) + ("), " if pm != len(Pms) - 1 else ") --- "))
+
+                f.write(str(Rm) + "(+" + str(Rue) + "/-" + str(Rle) + ") --- ")
+
+                for pm in range(len(tpm)):
+                    f.write(str(tpm[pm]) + " (+" + str(tpue[pm]) + "/-" + str(tple[pm]) + ("), " if pm != len(tpm) - 1 else ") --- "))
+
+                for pm in range(len(rvsa)):
+                    f.write(str(rvsa[pm]) + " (+" + str(rvue[pm]) + "/-" + str(rvle[pm]) + ("), " if pm != len(rvsa) - 1 else ")\n"))
+
+            if isinstance(self.config_parameters["system"], list):
+                with open("table_" + self.config_parameters["mode"] + "_" + self.config_parameters["period"] + "_run_" + self.startdatetime + ".txt", "a") as f:
+                    f.write(target_name + " --- ")
+
+                    for pm in range(len(Pms)):
+                        f.write(str(Pms[pm]) + " (+" + str(Pues[pm]) + "/-" + str(Ples[pm]) + ("), " if pm != len(Pms) - 1 else ")"))
+
+                    f.write(" --- " + str(Rm) + "(+" + str(Rue) + "/-" + str(Rle) + ")")
+                    """
+                    for pm in range(len(tpm)):
+                        f.write(" --- " + str(tpm[pm]) + " (+" + str(tpue[pm]) + "/-" + str(tple[pm]) + ("), " if pm != len(tpm) - 1 else ")"))
+
+                    for pm in range(len(rvsa)):
+                        f.write(" --- " + str(rvsa[pm]) + " (+" + str(rvue[pm]) + "/-" + str(rvle[pm]) + ("), " if pm != len(rvsa) - 1 else ")"))
+                    """
+                    f.write("\n")
         mtp = max(tpm)
         mtpu = tpue[np.where(tpm == mtp)[0][0]]
         mtpl = tple[np.where(tpm == mtp)[0][0]]
@@ -876,8 +978,18 @@ class dynamite:
             if D < 8:
                 accept = "HILL RADIUS"
 
-        if accept == "YES" and (203.3*Pmc*(1/3)*Mmc*math.sin(imc*math.pi/180)*(M_star+0.0009548*Mmc/317.83)**(-2/3)*(1-emc**2)**-0.5)/317.83 > rv_lim:
-            accept = "RV LIMIT"
+        if accept == "YES" and rv_lim is not None:
+            if (203.3*Pmc*(1/3)*Mmc*math.sin(imc*math.pi/180)*(M_star+0.0009548*Mmc/317.83)**(-2/3)*(1-emc**2)**-0.5)/317.83 > rv_lim:
+                accept = "RV LIMIT"
+
+            # for l in rv_lim:
+                # if Pmc > l[0] and (203.3*Pmc*(1/3)*Mmc*math.sin(imc*math.pi/180)*(M_star+0.0009548*Mmc/317.83)**(-2/3)*(1-emc**2)**-0.5)/317.83 > l[1]:
+                    # accept = "RV LIMIT"
+
+        # if accept == "YES" and ttv_lim is not None:
+            # for p in range(len(per)):
+                # if ttv_lim[p] > 0 and (Pmc > per[p] or p == 0 and Pmc < per[0]) and Mmc > ttv_lim[p]:
+                    # accept = "TTV LIMIT"
 
         return (accept, val, tim, Pmc, Rmc, emc, imc)
 
@@ -1098,7 +1210,11 @@ class dynamite:
             for j in range(Nc):
                 f.append(np.interp(P[i], (Pcb if Nc == 1 else Pcb[j])*Pip, fPip[j]))
 
-            fP[i] = max(f)
+            try:
+                fP[i] = max(f)
+
+            except:
+                fP[i] = 1
 
         if len(R) == 1:
             m2 = self.mr_convert(np.median(cdfR), "mass")

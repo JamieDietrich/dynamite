@@ -1,14 +1,15 @@
 ### DYNAmical Multi-planet Injection TEster (DYNAMITE) ###
 ### Plotting File ###
 ### Jeremy Dietrich ###
-### jdietrich1@email.arizona.edu ###
-### 2022 June 24 ###
+### jdietrich@asu.edu ###
+### 2023 August 22 ###
 ### Version 3.0 ###
 ### Dietrich & Apai (2020), AJ, 160, 107D ###
+### https://iopscience.iop.org/article/10.3847/1538-3881/aba61d ###
 ### Dietrich & Apai (2021), AJ, 161, 17D ###
 ### Dietrich, Apai, & Malhotra (2022), AJ, 163, 88D ###
 ### Basant, Dietrich, & Apai (2022), AJ, 164, 12B ###
-### https://iopscience.iop.org/article/10.3847/1538-3881/aba61d ###
+### Basant, Dietrich, & Apai (2022), RNAAS, 6, 213 ###
 
 import ast
 import sys
@@ -26,7 +27,7 @@ from dynamite_targets_db import dynamite_targets_db
 
 class dynamite_plots:
 
-    def __init__(self, Pk=[], P=[], PP=[], Rk=[], R=[], PR=[], ik=[], inc=[], Pi=[], ek=[], ecc=[], Pe=[], deltas=[], ratios=[], tdm=[], tdle=[], tdue=[], tpm=[], tple=[], tpue=[], targets=[], starvs=[], pers=[], rads=[], mass=[], eccs=[], cfname="dynamite_config.txt"):
+    def __init__(self, Pk=[], P=[], PP=[], Rk=[], R=[], PR=[], ik=[], inc=[], Pi=[], ek=[], ecc=[], Pe=[], deltas=[], ratios=[], tdm=[], tdle=[], tdue=[], tpm=[], tple=[], tpue=[], targets=[], starvs=[], pers=[], rads=[], mass=[], eccs=[], system="", cfname="dynamite_config.txt"):
         """Sets up plotting routines"""
 
         self.seconds_per_day = 86400
@@ -78,7 +79,7 @@ class dynamite_plots:
         self.ppr.create_processes(functions, args)
 
         if self.config_parameters["plt_indpars"] == "True" and self.config_parameters["mode"] == "single":
-            self.plot_ind_params(Pk, P, PP, Rk, R, PR, ik, inc, Pi, ek, ecc, Pe)
+            self.plot_ind_params(Pk, P, PP, Rk, R, PR, ik, inc, Pi, ek, ecc, Pe, system)
 
         print(datetime.now(), "Finishing Plots")
 
@@ -129,12 +130,12 @@ class dynamite_plots:
 
             plot_fig_p = np.array(plot_fig_p)
             plot_fig_r = np.array(plot_fig_r)
-            np.savetxt("plot_fig_p" + self.config_parameters["mode"] + ".txt", plot_fig_p)
-            np.savetxt("plot_fig_r" + self.config_parameters["mode"] + ".txt", plot_fig_r)
+            np.savetxt("plot_fig_p_" + self.config_parameters["mode"] + ".txt", plot_fig_p)
+            np.savetxt("plot_fig_r_" + self.config_parameters["mode"] + ".txt", plot_fig_r)
 
         elif self.config_parameters["saved"] == "True":
-            plot_fig_p = np.loadtxt("plot_fig_p" + self.config_parameters["mode"] + ".txt")
-            plot_fig_r = np.loadtxt("plot_fig_r" + self.config_parameters["mode"] + ".txt")
+            plot_fig_p = np.loadtxt("plot_fig_p_" + self.config_parameters["mode"] + ".txt")
+            plot_fig_r = np.loadtxt("plot_fig_r_" + self.config_parameters["mode"] + ".txt")
 
         for i in range(len(targets)):
             targets[i][1] = int(float(targets[i][1])*100 - 10)
@@ -165,7 +166,7 @@ class dynamite_plots:
             fig, ax = plt.subplots(1,1, figsize=(20, 12))
             fig.suptitle(r"Period-Planet Radius Relative Likelihood", fontsize=30)
             img = ax.imshow(prf, cmap=plt.cm.viridis, origin="lower", aspect="auto")
-            ax.set_xscale("Log")
+            ax.set_xscale("log")
             xlabels = [0.1, 1, 10, 100]
             ylabels = [0, 1, 2, 3, 4, 5]
             ax.set_xticks([9, 90, 990, 9990])
@@ -270,7 +271,7 @@ class dynamite_plots:
                 ax.set_xlim(-500, 18000)
 
             elif self.config_parameters["plt_P_scale"] == "log":
-                ax.set_xscale("Log")
+                ax.set_xscale("log")
                 xlabels = [0.1, 1, 10, 100]
                 ax.set_xticks([0, 90, 990, 9990])
                 ax.set_xticklabels(xlabels)
@@ -390,7 +391,7 @@ class dynamite_plots:
         Dgrid[0] = -4
         pdfP = spst.norm(logD, sigma).pdf(Dgrid)
         plt.plot(PRgrid, 17*pdfP, linewidth=4, label=r"$Kepler$ PDF fit")
-        plt.xscale("Log")
+        plt.xscale("log")
         plt.xlabel(r"Period Ratio $P_i/P_{i-1}$", fontsize=20)
         plt.ylabel("Occurrence", fontsize=20)
         plt.legend(fontsize=16)
@@ -481,10 +482,8 @@ class dynamite_plots:
 
 
 
-    def plot_ind_params(self, Pk, P, PP, Rk, R, PR, ik, inc, Pi, ek, ecc, Pe):
+    def plot_ind_params(self, Pk, P, PP, Rk, R, PR, ik, inc, Pi, ek, ecc, Pe, system):
         """Plots histograms of each individual distribution"""
-
-        system = self.config_parameters["system"]
 
         print(datetime.now(), "Creating Histograms for", system)
 
@@ -526,7 +525,7 @@ class dynamite_plots:
 
         for i in range(len(target)):
             if target[i][0] not in self.config_parameters["removed"]:
-                if (system != "Inner Solar System" and target[i][3] != "?" and abs(math.cos(target[i][3]*math.pi/180)) * self.K3(target[i][0], Ms) / (Rs*self.R_sun) <= 1) or (system == "Inner Solar System" and target[i][1] < 1.5):
+                if (system != "Inner Solar System" and target[i][3] != "?" and abs(math.cos(target[i][3]*math.pi/180)) * self.K3(target[i][0], Ms) / (Rs*self.R_sun) <= 1) or (system == "Inner Solar System" or system == "eps Eri" and target[i][1] < 1.5):
                     p1.append(target[i][0])
                     r1.append(target[i][1] if target[i][1] != "?" else mr_appends("radius", float(target[i][2])))
                     m1.append(target[i][2] if target[i][2] != "?" else mr_appends("mass", float(target[i][1])))
@@ -544,12 +543,12 @@ class dynamite_plots:
 
         if len(self.config_parameters["additional"][0]) > 0:
             for i in self.config_parameters["additional"]:
-                p11.append(i[0])
-                r11.append(i[1] if i[1] != "?" else mr_appends("radius", i[2]))
-                m11.append(i[2] if i[2] != "?" else mr_appends("mass", i[1]))
-                i11.append(i[3])
-                e11.append(i[4])
-                l11.append(i[5])
+                p11.append(i[0][0])
+                r11.append(i[1][0] if i[1][0] != "?" else mr_appends("radius", i[2][0]))
+                m11.append(i[2][0] if i[2][0] != "?" else mr_appends("mass", i[1][0]))
+                i11.append(i[3][0])
+                e11.append(i[4][0])
+                l11.append(i[5][0])
 
         if len(self.config_parameters["unconfirmed"][0]) > 0:
             for i in self.config_parameters["unconfirmed"]:
@@ -618,14 +617,14 @@ class dynamite_plots:
         ax1.plot(pi, t, color=color_scheme[6])
         ax1.plot(po, t, color=color_scheme[6])
         ax1.fill_betweenx(t, pi, po, color=color_scheme[6], alpha=0.5)
-        ax1.set_yscale("Log")
+        ax1.set_yscale("log")
         ax.set_zorder(ax1.get_zorder()+1)
         ax.patch.set_visible(False)
 
         if self.config_parameters["ind_P"] == "linear_zoom":
             n, _, h1 = ax.hist(Pk, bins=np.arange(0.5, round(5*max(per)) + 1, 0.5), weights=np.ones(len(Pk))*2 / (len(Pk)), color=color_scheme[0] if self.config_parameters["stability"] == "hill" else color_scheme[2])
             hands.append(h1[0])
-            labs = [(r"$\tau$ Ceti" if system == "tau Ceti" else system) +  " Predictions - " + (r"$\bf{Period}$ $\bf{Ratios}$" if self.config_parameters["period"] == "epos" else r"$\bf{Clustered}$ $\bf{Periods}$")]
+            labs = [(r"$\tau$ Ceti" if system == "tau Cet" else system) +  " Predictions - " + (r"$\bf{Period}$ $\bf{Ratios}$" if self.config_parameters["period"] == "epos" else r"$\bf{Clustered}$ $\bf{Periods}$")]
             if self.config_parameters["plt_PDFs"] == "True":
                 h2 = ax.plot(P, PP, color=color_scheme[1], linewidth=3, zorder=ax.get_zorder()+1)
                 hands.append(h2[0])
@@ -639,7 +638,7 @@ class dynamite_plots:
             Pb = list(P)
             n, _, h1 = ax.hist(Pk, bins=Pb, weights=np.ones(len(Pk))*10 / len(Pk), color=color_scheme[0] if self.config_parameters["stability"] == "hill" else color_scheme[2])
             hands.append(h1[0])
-            labs = [(r"$\tau$ Ceti" if system == "tau Ceti" else system) +  " Predictions - " + (r"$\bf{Period}$ $\bf{Ratios}$" if self.config_parameters["period"] == "epos" else r"$\bf{Clustered}$ $\bf{Periods}$")]
+            labs = [(r"$\tau$ Ceti" if system == "tau Cet" else system) +  " Predictions - " + (r"$\bf{Period}$ $\bf{Ratios}$" if self.config_parameters["period"] == "epos" else r"$\bf{Clustered}$ $\bf{Periods}$")]
 
             if self.config_parameters["plt_PDFs"] == "True":
                 h2 = ax.plot(P, PP, color=color_scheme[1], linewidth=3, zorder=ax.get_zorder()+1)
@@ -648,6 +647,9 @@ class dynamite_plots:
 
             ul = np.amax(n)*1.5
             xlim = [0.5 if min(per) > 0.5 else min(per) - 0.1, 7300 if system == "Inner Solar System" else 730 if 2*max(po) < 730 else 2*max(po)]
+
+            if system == "eps Eri":
+                xlim = [100, 7300]
             """
             xlim = [6, 23]
             plt.axvline(6.765*1.5, color='k')
@@ -684,6 +686,13 @@ class dynamite_plots:
                 else:
                     bins = np.hstack(np.array([np.logspace(-0.3, 0.5, 18), np.logspace(0.51, 3.15, 265)]))
 
+            elif system == "eps Eri":
+                if self.config_parameters["stability"] == "hill":
+                    bins = np.logspace(2, 3.66, 112)
+
+                else:
+                    bins = np.logspace(2, 3.66, 167)
+                
             else:
                 if self.config_parameters["stability"] == "hill":
                     bins = np.hstack(np.array([np.logspace(-0.3, 0.5, 18), np.logspace(0.51, 2.9, 121)]))
@@ -696,7 +705,7 @@ class dynamite_plots:
             hist_norm = hist/widths
             h1 = ax.bar(bins[:-1], hist_norm/len(Pk), widths, color=color_scheme[0] if self.config_parameters["stability"] == "hill" else color_scheme[2])
             hands.append(h1)
-            labs = [(r"$\tau$ Ceti" if system == "tau Ceti" else (system[:system.index("test") - 1] if system.find("test") != -1 else system)) +  " Predictions - " + (r"$\bf{Period}$ $\bf{Ratios}$" if self.config_parameters["period"] == "epos" else r"$\bf{Clustered}$ $\bf{Periods}$")]
+            labs = [(r"$\tau$ Ceti" if system == "tau Cet" else (system[:system.index("test") - 1] if system.find("test") != -1 else system)) +  " Predictions - " + (r"$\bf{Period}$ $\bf{Ratios}$" if self.config_parameters["period"] == "epos" else r"$\bf{Clustered}$ $\bf{Periods}$")]
             PPl = np.interp(bins, P, PP)
 
             if self.config_parameters["plt_PDFs"] == "True":
@@ -705,8 +714,12 @@ class dynamite_plots:
                 labs.append("Probability Density Function")
 
             ul = np.amax(hist_norm)*1.5/len(Pk)
-            ax.set_xscale("Log")
-            xlim = [0.5 if min(per) > 0.5 else min(per) - 0.1, 7300 if system == "Inner Solar System" or system == "Proxima Centauri" else 730 if 2*max(po) < 730 else 2*max(po)]
+            ax.set_xscale("log")
+            xlim = [0.5 if min(per) > 0.5 else min(per) - 0.1, 7300 if (system == "Inner Solar System" or system == "Proxima Centauri") else 730 if 2*max(po) < 730 else 2*max(po)]
+
+            if system == "eps Eri":
+                xlim = [100, 7300]
+
             plt_savename = system.replace(" ", "") + "_P_log_" + self.config_parameters["period"] + "_" + self.config_parameters["mass_radius"] + ("_" + self.config_parameters["otegi_rho"] if self.config_parameters["mass_radius"] == "otegi" else "") + "_" + self.config_parameters["inclination"] + "_" + self.config_parameters["eccentricity"] + "_" + self.config_parameters["stability"] + ".png"
 
         annots = []
@@ -774,7 +787,7 @@ class dynamite_plots:
         tx.set_fontsize(20)
         tx.set_position((-0.1,1.05))
         ax.xaxis.set_major_formatter(mticker.ScalarFormatter())
-        fig.suptitle((r"$\tau$ Ceti" if system == "tau Ceti" else (system[:system.index("test") - 1] if system.find("test") != -1 else system)) + " Period Relative Likelihood", fontsize=30)
+        fig.suptitle((r"$\tau$ Ceti" if system == "tau Cet" else (system[:system.index("test") - 1] if system.find("test") != -1 else system)) + " Period Relative Likelihood", fontsize=30)
         plt.savefig(plt_savename)
 
         if self.config_parameters["show_plots"] == "True":
@@ -799,7 +812,7 @@ class dynamite_plots:
             elif self.config_parameters["mass_radius"] == "otegi":
                 Mk = [self.otegi_mr(Rk[i], 'mass') for i in range(len(Rk))]
                 Mb1 = sorted([self.otegi_mr(Rb[i], 'mass') for i in range(len(Rb))])
-                Mb = np.arange(Mb1[0], Mb1[-1], 0.5)
+                Mb = np.arange(Mb1[0], Mb1[-1], 0.25)
 
             n, _, h1 = plt.hist(Mk, bins=Mb, weights=np.ones(len(Mk))*10 / len(Mk), color=color_scheme[0] if self.config_parameters["stability"] == "hill" else color_scheme[2])
             plt.xlabel(r"Mass ($M_{\oplus}$)", fontsize=30)
@@ -831,10 +844,15 @@ class dynamite_plots:
             plt_savename = system.replace(" ", "") + "_" + ("R" if self.config_parameters["use_mass"] == "False" else "M") + "_linear_" + self.config_parameters["mass_radius"] + ("_" + self.config_parameters["otegi_rho"] if self.config_parameters["mass_radius"] == "otegi" else "") + "_" + self.config_parameters["inclination"] + "_" + self.config_parameters["eccentricity"] + "_" + self.config_parameters["stability"] + ".png"
             ullim = np.where(n > 0.01*ul)[0]
             lims = [Rb[ullim[0]], Rb[ullim[-1]]] if self.config_parameters["use_mass"] == "False" else [Mb[ullim[0]], Mb[ullim[-1]]]
-            xlim = (min(lims[0], min(rad)) - 0.25, max(lims[1], max(rad)) + 0.25)
+
+            if self.config_parameters["use_mass"] == "False":
+                xlim = (min(lims[0], min(rad)) - 0.25, max(lims[1], max(rad)) + 0.25)
+
+            else:
+                xlim = (min(lims[0], min(mas)) - 0.25, max(lims[1], max(mas)) + 0.25)
 
         hands = [h1[0]]
-        labs = [(r"$\tau$ Ceti" if system == "tau Ceti" else system) + " Predictions - " + (r"$\bf{NP}$" if self.config_parameters["mass_radius"] == "mrexo" else "\"" + r"$\bf{Rocky}$" + "\"" if self.config_parameters["mass_radius"] == "otegi" and self.config_parameters["otegi_rho"] == "rocky" else "\"" + r"$\bf{Volatile}$" + "\"")]
+        labs = [(r"$\tau$ Ceti" if system == "tau Cet" else system) + " Predictions - " + (r"$\bf{NP}$" if self.config_parameters["mass_radius"] == "mrexo" else "\"" + r"$\bf{Rocky}$" + "\"" if self.config_parameters["mass_radius"] == "otegi" and self.config_parameters["otegi_rho"] == "rocky" else "\"" + r"$\bf{Volatile}$" + "\"")]
         annots = []
 
         if self.config_parameters["plt_PDFs"] == "True":
@@ -929,7 +947,7 @@ class dynamite_plots:
         plt.ylabel("Relative Likelihood", fontsize=32)
         plt.legend(hands, labs, loc=9, fontsize=14, ncol=2)
         ax.tick_params(labelsize=24)
-        fig.suptitle((r"$\tau$ Ceti" if system == "tau Ceti" else system) + " Planet " + ("Radius " if self.config_parameters["use_mass"] == "False" else "Mass ") + "Relative Likelihood", fontsize=30)
+        fig.suptitle((r"$\tau$ Ceti" if system == "tau Cet" else system) + " Planet " + ("Radius " if self.config_parameters["use_mass"] == "False" else "Mass ") + "Relative Likelihood", fontsize=30)
         plt.savefig(plt_savename)
 
         if self.config_parameters["show_plots"] == "True":
@@ -950,13 +968,17 @@ class dynamite_plots:
 
         n, _, h1 = plt.hist(ik, bins=np.linspace(0, 180.5, 362), weights=np.ones(len(ik)) / (len(ik)), color=color_scheme[0])
         hands = [h1[0]]
-        labs = [(r"$\tau$ Ceti" if system == "tau Ceti" else system) + " DYNAMITE Predictions"]
+        labs = [(r"$\tau$ Ceti" if system == "tau Cet" else system) + " DYNAMITE Predictions"]
         ul = 1.5*np.amax(n)
         annots = []
+        j11 = [j for j in i11 if j != "?"]
         j12 = [j for j in i12 if j != "?"]
         j2 = [j for j in i2 if j != "?"]
         j3 = [j for j in i3 if j != "?"]
-        xval = [i1, i11]
+        xval = [i1]
+
+        if len(j11) > 0:
+            xval.append(j11)
 
         if len(j12) > 0:
             xval.append(j12)
@@ -990,11 +1012,11 @@ class dynamite_plots:
 
             annots = self.plot_annots(annots, i1, ul, l1, xlim)
 
-        if len(i11) > 0:
-            h4 = plt.scatter(i11, np.ones(len(i11))*ul/10, c=color_scheme[3], marker="s", edgecolors="k", s=200, linewidth=2, zorder=2)
+        if len(j11) > 0:
+            h4 = plt.scatter(j11, np.ones(len(j11))*ul/10, c=color_scheme[3], marker="s", edgecolors="k", s=200, linewidth=2, zorder=2)
             hands.append(h4)
             labs.append("Additional inserted planets" if len(i11) > 1 else "Additional inserted planet")
-            annots = self.plot_annots(annots, i11, ul, l11, xlim)
+            annots = self.plot_annots(annots, j11, ul, [l11[x] for x in range(len(l11)) if i11[x] != "?"], xlim)
         
         if len(j12) > 0:
             h5 = plt.scatter(j12, np.ones(len(j12))*ul/10, c=color_scheme[4], marker="^", edgecolors="k", s=200, linewidth=2, zorder=2)
@@ -1026,7 +1048,7 @@ class dynamite_plots:
         plt.ylim(0, np.amax(n)*1.5)
         ax.tick_params(labelsize=18)
         plt.legend(hands, labs, loc=9, fontsize=14, ncol=2)
-        fig.suptitle((r"$\tau$ Ceti" if system == "tau Ceti" else system) + " Inclination Relative Likelihood", fontsize=30)
+        fig.suptitle((r"$\tau$ Ceti" if system == "tau Cet" else system) + " Inclination Relative Likelihood", fontsize=30)
         plt.savefig(plt_savename)
 
         if self.config_parameters["show_plots"] == "True":
@@ -1040,7 +1062,7 @@ class dynamite_plots:
         plt_savename = system.replace(" ", "") + "_ecc_" + self.config_parameters["period"] + "_" + self.config_parameters["mass_radius"] + ("_" + self.config_parameters["otegi_rho"] if self.config_parameters["mass_radius"] == "otegi" else "") + "_" + self.config_parameters["inclination"] + "_" + self.config_parameters["eccentricity"] + "_" + self.config_parameters["stability"] + ".png"
         n, _, h1 = plt.hist(ek, bins=np.linspace(0, 1, 201), weights=np.ones(len(ek)) / (len(ek)), color=color_scheme[0])
         hands = [h1[0]]
-        labs = [(r"$\tau$ Ceti" if system == "tau Ceti" else system) + " DYNAMITE Predictions"]
+        labs = [(r"$\tau$ Ceti" if system == "tau Cet" else system) + " DYNAMITE Predictions"]
         ul = 1.5*np.amax(n)
         annots = []
         xlim = [-0.05, max(np.hstack([[j for j in e1 if j != "?"], [j for j in e2 if j != "?"], [j for j in e12 if j != "?"], [j for j in e2 if j != "?"], [j for j in e3 if j != "?"], [np.percentile(ek, 95)]])) + 0.05]
@@ -1098,7 +1120,7 @@ class dynamite_plots:
         plt.ylim(0, np.amax(n)*1.5)
         ax.tick_params(labelsize=18)
         plt.legend(hands, labs, loc=9, fontsize=14, ncol=2)
-        fig.suptitle((r"$\tau$ Ceti" if system == "tau Ceti" else system) + " Eccentricity Relative Likelihood", fontsize=30)
+        fig.suptitle((r"$\tau$ Ceti" if system == "tau Cet" else system) + " Eccentricity Relative Likelihood", fontsize=30)
         plt.savefig(plt_savename)
 
         if self.config_parameters["show_plots"] == "True":

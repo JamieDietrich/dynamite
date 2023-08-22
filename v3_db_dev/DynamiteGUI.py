@@ -1,13 +1,15 @@
 ### DYNAmical Multi-planet Injection TEster (DYNAMITE) ###
 ### GUI ###
 ### Jeremy Dietrich ###
-### jdietrich1@email.arizona.edu ###
-### 2022 July 10 ###
+### jdietrich@asu.edu ###
+### 2023 August 22 ###
 ### Version 3.0 ###
 ### Dietrich & Apai (2020), AJ, 160, 107D ###
-### Dietrich & Apai (2021), AJ, 161, 17D ###
-### Dietrich, Apai, & Malhotra (2022), accepted to AJ ###
 ### https://iopscience.iop.org/article/10.3847/1538-3881/aba61d ###
+### Dietrich & Apai (2021), AJ, 161, 17D ###
+### Dietrich, Apai, & Malhotra (2022), AJ, 163, 88D ###
+### Basant, Dietrich, & Apai (2022), AJ, 164, 12B ###
+### Basant, Dietrich, & Apai (2022), RNAAS, 6, 213 ###
 
 import os
 import sys

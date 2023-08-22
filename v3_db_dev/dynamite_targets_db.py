@@ -1,14 +1,15 @@
 ### DYNAmical Multi-planet Injection TEster (DYNAMITE) ###
 ### Targets List w/ SQLite DB ###
 ### Jeremy Dietrich ###
-### jdietrich1@email.arizona.edu ###
-### 2022 June 24 ###
+### jdietrich@asu.edu ###
+### 2023 August 22 ###
 ### Version 3.0 ###
 ### Dietrich & Apai (2020), AJ, 160, 107D ###
+### https://iopscience.iop.org/article/10.3847/1538-3881/aba61d ###
 ### Dietrich & Apai (2021), AJ, 161, 17D ###
 ### Dietrich, Apai, & Malhotra (2022), AJ, 163, 88D ###
 ### Basant, Dietrich, & Apai (2022), AJ, 164, 12B ###
-### https://iopscience.iop.org/article/10.3847/1538-3881/aba61d ###
+### Basant, Dietrich, & Apai (2022), RNAAS, 6, 213 ###
 
 import sqlite3
 
@@ -18,6 +19,7 @@ class dynamite_targets_db:
         """Creates the database connection for the target dictionary"""
 
         self.DBNAME = "dynamite_targets.db" if dbname == None else dbname
+
 
 
     def get_targets(self, mode, system, radmax, removed=[]):
@@ -108,6 +110,7 @@ class dynamite_targets_db:
                 elif mode == "test" and key.find("test 3") != -1:
                     sub_targets[key] = targets[key]
 
+            print(sub_targets)
             return sub_targets
 
         except Exception as e:
