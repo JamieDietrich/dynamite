@@ -22,11 +22,12 @@ import platform
 import threading
 import subprocess
 import numpy as np
-from tkinter import ttk
 import tkinter as Tkinter
+import tkinter.scrolledtext as ScrolledText
+
+from tkinter import ttk
 from tkinter import filedialog as tkFD
 from tkinter import messagebox as tkMB
-import tkinter.scrolledtext as ScrolledText
 from tkinter import constants as Tkconstants
 
 PYTHON_COMMAND = "C:\python38\python -u " if platform.system() == 'Windows' else "python -u "

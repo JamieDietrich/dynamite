@@ -15,13 +15,14 @@ import ast
 import sys
 import math
 import numpy as np
-from PPR import PPR
 import scipy.stats as spst
-from datetime import datetime
 import matplotlib.pyplot as plt
 import astropy.constants as const
 import matplotlib.ticker as mticker
 import matplotlib.patches as mpatch
+
+from PPR import PPR
+from datetime import datetime
 from mrexo import predict_from_measurement as pfm
 from dynamite_targets_db import dynamite_targets_db
 

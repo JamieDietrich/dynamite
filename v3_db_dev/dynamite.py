@@ -18,11 +18,13 @@ import math
 import socket
 import itertools
 import numpy as np
-from PPR import PPR
 import scipy.stats as spst
-from datetime import datetime
 import matplotlib.pyplot as plt
 import astropy.constants as const
+
+from PPR import PPR
+from datetime import datetime
+from ttvfaster import run_ttvfaster
 from scipy.signal import argrelextrema
 from dynamite_plots import dynamite_plots
 from mrexo import predict_from_measurement as pfm
@@ -860,7 +862,10 @@ class dynamite:
             sim.units = ('day', 'au', 'Msun')
             sim.integrator = "mercurius"
             sim.add(m=M_star)
-            m = np.zeros(len(per) + 1)
+            pf = np.zeros(len(per) + 1)
+            mf = np.zeros(len(per) + 1)
+            incf = np.zeros(len(per) + 1)
+            eccf = np.zeros(len(per) + 1)
             mind = 0
             mc_add = False
         
@@ -875,12 +880,18 @@ class dynamite:
                         m[p] = self.otegi_mr(rad[p], "mass")
                     """
                     #sim.add(m=m[p]*self.M_earth/self.M_sun, a=GMfp213*(per[p]*self.seconds_per_day)**(2/3)/self.au, e=ecc[p], inc=inc[p]*math.pi/180)
-                    m[p] = mas[p]
+                    pf[p] = per[p]
+                    mf[p] = mas[p]
+                    incf[p] = inc[p]*math.pi/180
+                    eccf[p] = ecc[p]
                     sim.add(m=mas[p]*self.M_earth/self.M_sun, a=GMfp213*(per[p]*self.seconds_per_day)**(2/3)/self.au, e=ecc[p], inc=inc[p]*math.pi/180)
 
                 else:
                     if not mc_add:
-                        m[p] = Mmc
+                        pf[p] = Pmc
+                        mf[p] = Mmc
+                        incf[p] = imc*math.pi/180
+                        eccf[p] = emc
                         sim.add(m=Mmc*self.M_earth/self.M_sun, a=GMfp213*(Pmc*self.seconds_per_day)**(2/3)/self.au, e=emc, inc=imc*math.pi/180)
                         mc_add = True
                     """
@@ -891,7 +902,10 @@ class dynamite:
                         m[p+1] = self.otegi_mr(rad[p], "mass")
                     """
                     #sim.add(m=m[p+1]*self.M_earth/self.M_sun, a=GMfp213*(per[p]*self.seconds_per_day)**(2/3)/self.au, e=ecc[p], inc=inc[p]*math.pi/180)
-                    m[p+1] = mas[p]
+                    pf[p+1] = per[p]
+                    mf[p+1] = mas[p]
+                    incf[p+1] = inc[p]*math.pi/180
+                    eccf[p+1] = ecc[p]
                     sim.add(m=mas[p]*self.M_earth/self.M_sun, a=GMfp213*(per[p]*self.seconds_per_day)**(2/3)/self.au, e=ecc[p], inc=inc[p]*math.pi/180)
 
             sim.dt = per[0]/40
@@ -985,12 +999,32 @@ class dynamite:
             # for l in rv_lim:
                 # if Pmc > l[0] and (203.3*Pmc*(1/3)*Mmc*math.sin(imc*math.pi/180)*(M_star+0.0009548*Mmc/317.83)**(-2/3)*(1-emc**2)**-0.5)/317.83 > l[1]:
                     # accept = "RV LIMIT"
+                    # break
+        """
+        if accept == "YES" and ttv_lim is not None:
+            ttvaa = []
 
-        # if accept == "YES" and ttv_lim is not None:
-            # for p in range(len(per)):
-                # if ttv_lim[p] > 0 and (Pmc > per[p] or p == 0 and Pmc < per[0]) and Mmc > ttv_lim[p]:
-                    # accept = "TTV LIMIT"
+            for i in range(1000):
+                lana = [np.random.rand()*2*math.pi - math.pi for j in range(len(pf))
+                apa = [np.random.rand()*2*math.pi - math.pi for j in range(len(pf))
+                params = [M_star]
 
+                for j in range(len(pf)):
+                    params.append(mf[j]*self.M_earth/self.M_sun, pf[j], eccf[j]*math.cos(apa[j]), incf[j], lana[j], eccf[j]*math.sin(apa[j]), ##)                    
+
+                tts = run_ttvfaster(len(pf), params, 0.0, 1000.0, 6)
+                
+                for p in range(len(tts)):
+                    for t in range(len(p)):
+                        tts[p][j] -= j*p
+
+                ttvaa.append([max(tts[p])*1440 for p in range(len(tts))])            
+
+            for l in ttv_lim:
+                if np.random.rand() > np.percentile(ttvaa, l):
+                    accept = "TTV LIMIT"
+                    break
+            """
         return (accept, val, tim, Pmc, Rmc, emc, imc)
 
 

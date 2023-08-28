@@ -8,6 +8,7 @@ import sqlite3
 import requests
 import traceback
 import numpy as np
+
 from string import Template
 from datetime import datetime
 
@@ -49,6 +50,7 @@ class DBarchive:
         exoFopCSV = self.exoFopCSV + timestamp + ".csv"
         input_exoPlanet_csv = False
         input_exoFop_csv = False
+        adjustmentsCSV = None
 
         for a in args:
             if ".db" in a:
@@ -61,6 +63,11 @@ class DBarchive:
             elif exoFopCSV.split("_")[0] in a and os.path.exists(a):
                 input_exoFop_csv = True
                 exoFopCSV = a
+            # initialize adjustments.csv
+            elif "adjustments.csv" in a and os.path.exists(a):
+                adjustmentsCSV = "adjustments.csv"
+                self.read_adjustments(adjustmentsCSV)
+                
 
         self.config_parameters = {}
         try:
@@ -112,6 +119,10 @@ class DBarchive:
                 self.load_database(dbconn, dbcursor, exoPlanetCSV)
             if os.path.exists(exoFopCSV):
                 self.load_database(dbconn, dbcursor, exoFopCSV)
+            # process adjustments.csv
+            '''if adjustmentsCSV:
+                self.adjust_database(dbconn, dbcursor)'''
+            
         except Exception as e:
             print(e)
         finally:
@@ -156,7 +167,7 @@ class DBarchive:
             
             self.read_csv(datasource, csvfile)
             print("Read - targets: ", len(self.csvtargets), "planets: ", len(self.csvplanets))
-        
+            self.adjust_csv()
             self.filter_data(dbcursor)
             self.update_database(dbconn, dbcursor, datasource)                 
            
@@ -278,6 +289,22 @@ class DBarchive:
         except Exception as e:
             print(str(e))
   
+    # do a quick test to return list of tuples and later optimize to dictionaries?
+    def read_adjustments(self, csvname):
+        try:
+            self.csv_adjustments = []
+            with open(csvname, newline='') as csvfile:
+                reader = csv.DictReader(csvfile)
+                for row in reader:
+                    tname = (row['tname']).strip()
+                    pname = (row['pname']).strip()
+                    dbattr = (row['dbattr']).strip()
+                    value = float((row['value']).strip())
+                    comment = (row['comment']).strip()
+                    self.csv_adjustments.append( (tname, pname, dbattr, value, comment) )
+        except Exception as e:
+            print(str(e))
+
     def remove_target(self, target):
         del self.csvtargets[target]
         planets = [ (tname, pname) for (tname, pname) in self.csvplanets.keys() if tname == target ]
@@ -287,12 +314,13 @@ class DBarchive:
         for (tname, pname) in planets:
             del self.csvplanets[(tname, pname)]
 
+    
     def filter_data(self, dbcursor):
         invalid_targets = []
         for t in self.csvtargets.keys():
-            (tname, sr, _sru, _srl, sm, _smu, _sml, st, _stu, _stl, _rv) = self.csvtargets[t]
+            (tname, sr, _sru, _srl, sm, _smu, _sml, st, _stu, _stl, _rv) = self.csvtargets[t]            
             if sr == None or sm == None or sm > 10 or st == None:
-                invalid_targets.append(t)
+                invalid_targets.append(t)        
         for i in invalid_targets:
             self.remove_target(i)
         invalid_planets = []
@@ -325,5 +353,19 @@ class DBarchive:
             period_found = [ p for p in periods if abs(p[0]-csv_period) < 0.1]
             return period_found[0][1] if len(period_found)==1 else None
         return result[1]  if result != None else None
-                    
+
+    def adjust_csv(self):
+        tnames_unique = set([ tname for (tname, pname, dbattr, value, comment) in self.csv_adjustments])
+        for tname in tnames_unique: 
+            target_list = list(self.csvtargets[tname])
+            target_adjs = [ (t,p,a,v,c) for (t,p,a,v,c) in self.csv_adjustments if t == tname]
+            for (t,p,a,v,c) in target_adjs:
+                if p != '':
+                    planet_list = list(self.csvplanets[t,p])
+                    planet_list[self.dbattr_planet.index(a)] = v
+                    self.csvplanets[t,p] = tuple(planet_list)
+                else: 
+                    target_list[self.dbattr_target.index(a)] = v
+            self.csvtargets[tname] = tuple(target_list)
+                
 DBarchive(sys.argv)
