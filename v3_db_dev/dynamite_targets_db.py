@@ -70,7 +70,7 @@ class dynamite_targets_db:
 
                 for p in planets:
                     #period, radius, mass, inc, ecc, name = p
-                    _, name, period, pul, pll, radius, rul, rll, mass, mul, mll, inc, iul, ill, ecc, eul, ell = p
+                    _, name, period, pul, pll, radius, rul, rll, mass, mul, mll, inc, iul, ill, ecc, eul, ell, _ttv = p
 
                     if isinstance(pll, str) or isinstance(rll, str) or isinstance(mll, str) or isinstance(ill, str) or isinstance(ell, str):
                         print(p)
@@ -145,6 +145,58 @@ class dynamite_targets_db:
                 oe = [[iso_low[i][3] for i in range(len(iso_upp))], [iso_upp[i][3] for i in range(len(iso_upp))]]
 
             return m, t, ie, oe
+
+        except Exception as e:
+            print(e)
+
+        finally:
+            dbconn.close()
+
+
+
+    def get_limits(self, mode, system):
+        """Gets the observational limits from the database."""
+
+        try:
+            dbconn = sqlite3.connect(self.DBNAME)
+            dbcursor = dbconn.cursor()
+
+            targets = {}
+            dbcursor.execute("select p1.tname, min(period) as minperiod from planet p1 where not exists (select * from planet p where p.tname = p1.tname and p.pradius > " + str(radmax) + ") group by p1.tname order by minperiod")
+            target_names = [i[0] for i in dbcursor.fetchall()]
+
+            for n in target_names:
+                dbcursor.execute("select * from limits where tname = '" + n + "' order by ltype, period")
+                limits = dbcursor.fetchall()
+                targets[n] = tuple(limits)
+
+            sub_targets = {}
+
+            if mode == "single":
+                for key in targets.keys():
+                    sub_targets[key] = targets[key]
+                    break
+
+                return sub_targets
+
+            for key in targets.keys():
+                if mode == "tess" and key.find("TOI") != -1 and key.find("test") == -1:
+                    sub_targets[key] = targets[key]
+
+                elif mode == "kepler" and key.find("Kepler") != -1 and key.find("test") == -1:
+                    sub_targets[key] = targets[key]
+
+                elif mode == "k2" and key.find("K2") != -1 and key.find("test") == -1:
+                    sub_targets[key] = targets[key]
+
+                elif mode == "all" and key.find("test") == -1:
+                    sub_targets[key] = targets[key]
+
+                elif mode == "test" and key.find("test 3") != -1:
+                    sub_targets[key] = targets[key]
+
+            print(sub_targets)
+            return sub_targets
 
         except Exception as e:
             print(e)

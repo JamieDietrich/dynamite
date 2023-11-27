@@ -24,7 +24,6 @@ import astropy.constants as const
 
 from PPR import PPR
 from datetime import datetime
-from ttvfaster import run_ttvfaster
 from scipy.signal import argrelextrema
 from dynamite_plots import dynamite_plots
 from mrexo import predict_from_measurement as pfm
@@ -134,8 +133,14 @@ class dynamite:
 
             else:
                 targets_dict = dynamite_targets_db(self.config_parameters["targets_db"]).get_targets(self.config_parameters["mode"], targsys, self.config_parameters["radmax"], self.config_parameters["removed"])
+                limits_dict = dynamite_targets_db(self.config_parameters["targets_db"]).get_limits(self.config_parameters["mode"], targsys)
+
+                if targets_dict == None or len(targets_dict) == 0:
+                    print("Error: No targets selected!")
+                    exit()
+
                 targlist = [tn for tn in targets_dict.keys()]
-                Pk, P, PP, Rk, R, PR, ik, il, Pinc, ek, el, Pecc, deltas, ratios, tdm, tdle, tdue, tpm, tple, tpue, targets, starvs, pers, rads, mass, eccs = datavars = self.ppr.create_processes("mt_mc", (targets_dict, targlist), -len(targlist), self.process_data)
+                Pk, P, PP, Rk, R, PR, ik, il, Pinc, ek, el, Pecc, deltas, ratios, tdm, tdle, tdue, tpm, tple, tpue, targets, starvs, pers, rads, mass, eccs = datavars = self.ppr.create_processes("mt_mc", (targets_dict, limits_dict, targlist), -len(targlist), self.process_data)
             
                 if self.num_of_nodes == 1:
                     np.savez("saved_data_" + mode + ".npz", data=datavars)
@@ -190,12 +195,13 @@ class dynamite:
         """Runs DYNAMITE in single mode for the given target name."""
 
         targets_dict = dynamite_targets_db(self.config_parameters["targets_db"]).get_targets(self.config_parameters["mode"], targsys, self.config_parameters["radmax"], self.config_parameters["removed"])
+        limits_dict = dynamite_targets_db(self.cconfig_parameters["targets_db"]).get_targets(self.config_parameters["mode"], targsys)
 
         if targets_dict == None or len(targets_dict) == 0:
             print("Error: No targets selected!")
             exit()
 
-        R_star, Rse, M_star, Mse, target, target_name, rv_lim = self.set_up(targets_dict, targsys)
+        R_star, Rse, M_star, Mse, target, target_name, limits = self.set_up(targets_dict, limits_dict, targsys)
         targ_rem = []
 
         for i in range(len(target) - 1 if len(self.config_parameters["removed"]) > 0 else len(target)):
@@ -251,7 +257,7 @@ class dynamite:
                 targ_rem.append(x)
 
         target = sorted(targ_rem, key=lambda x: x[0][0])
-        data = self.run_monte_carlo(R_star, Rse, M_star, Mse, target, target_name, rv_lim) + ([target[i][0] for i in range(len(target))], [target[i][1] for i in range(len(target))], [target[i][2] for i in range(len(target))], [target[i][4] for i in range(len(target))])
+        data = self.run_monte_carlo(R_star, Rse, M_star, Mse, target, target_name, limits) + ([target[i][0] for i in range(len(target))], [target[i][1] for i in range(len(target))], [target[i][2] for i in range(len(target))], [target[i][4] for i in range(len(target))])
 
         if self.num_of_nodes == 1:
             np.savez("saved_data_" + target_name.replace(" ", "_") + ".npz", data=data)
@@ -272,10 +278,10 @@ class dynamite:
 
 
 
-    def mt_mc(self, targets_dict, targlist, i):
+    def mt_mc(self, targets_dict, limits_dict, targlist, i):
         """Runs the Monte Carlo code on multiple threads"""
 
-        R_star, Rse, M_star, Mse, target, target_name, rv_lim = self.set_up(targets_dict, targlist[i])
+        R_star, Rse, M_star, Mse, target, target_name, limits = self.set_up(targets_dict, limits_dict, targlist[i])
 
         try:
             inds = np.argsort([target[i][0][0] for i in range(len(target))])
@@ -284,7 +290,7 @@ class dynamite:
         except IndexError:
             print("ERROR IN DICT ON TARGET", target_name)
 
-        data = self.run_monte_carlo(R_star, Rse, M_star, Mse, target, target_name, rv_lim) + ([target[i][0] for i in range(len(target))], [target[i][1] for i in range(len(target))], [target[i][2] for i in range(len(target))], [target[i][4] for i in range(len(target))])
+        data = self.run_monte_carlo(R_star, Rse, M_star, Mse, target, target_name, limits) + ([target[i][0] for i in range(len(target))], [target[i][1] for i in range(len(target))], [target[i][2] for i in range(len(target))], [target[i][4] for i in range(len(target))])
 
         return data
     
@@ -297,7 +303,7 @@ class dynamite:
 
 
 
-    def set_up(self, targets_dict, target):
+    def set_up(self, targets_dict, limits_dict, target):
         """Sets up target"""
 
         #def get_arccos(star_pars, planet_pars):
@@ -305,6 +311,7 @@ class dynamite:
             #return round(np.arccos(planet_pars[0]/(((self.G*star_pars[2]*self.M_sun/(4*math.pi**2))**(1/3)*(planet_pars[1]*self.seconds_per_day)**(2/3))/(star_pars[0]*self.R_sun)))*180/math.pi, 3)
 
         t = list(targets_dict[target])
+        limits = list(limits_dict[target])
 
         for x in range(len(t)):
             if x == 0:
@@ -343,7 +350,10 @@ class dynamite:
                     low = self.mr_convert(t[x][1][0] + t[x][1][2], "mass", flow) - val if t[x][1][2] != "?" else "?"
                     t[x][2] = (val, upp, low)
 
-        return t[0][0], t[0][1], t[0][2], t[0][3], list([t[i][:-1] for i in range(1, len(t))]), target, t[0][5]
+                if x > 0:
+                    limits.append([target, "ttv", t[x][0], t[x][-1], ""])
+
+        return t[0][0], t[0][1], t[0][2], t[0][3], list([t[i][:-1] for i in range(1, len(t))]), target, limits)
 
 
 
@@ -387,7 +397,7 @@ class dynamite:
 
 
 
-    def run_monte_carlo(self, R_star, Rse, M_star, Mse, target, target_name, rv_lim):
+    def run_monte_carlo(self, R_star, Rse, M_star, Mse, target, target_name, limits):
         """Runs the Monte Carlo analysis."""
 
         GMfp213 = (self.G*M_star*self.M_sun/(4*math.pi**2))**(1/3)
@@ -467,7 +477,7 @@ class dynamite:
         inc_tup = [target[i][3] for i in range(len(target))]
         ecc_tup = [target[i][4] for i in range(len(target))]
 
-        stable, val, tim, _Pk, _Rk, _ek, _ik = self.ppr.create_processes("mc_test", (P, R, inew, ib, il, el, cdfP, cdfR, cdfi, cdfe, per_tup, rad_tup, mas_tup, inc_tup, ecc_tup, GMfp213, R_star, M_star, rv_lim), -int(self.interation_list[self.node_number - 1]), self.process_mc_data)
+        stable, val, tim, _Pk, _Rk, _ek, _ik = self.ppr.create_processes("mc_test", (P, R, inew, ib, il, el, cdfP, cdfR, cdfi, cdfe, per_tup, rad_tup, mas_tup, inc_tup, ecc_tup, GMfp213, R_star, M_star, limits), -int(self.interation_list[self.node_number - 1]), self.process_mc_data)
 
         for a in range(len(stable)):
             if stable[a] == "YES":
@@ -751,7 +761,7 @@ class dynamite:
 
 
 
-    def mc_test(self, P, R, inew, ib, il, el, cdfP, cdfR, cdfi, cdfe, per_tup, rad_tup, mas_tup, inc_tup, ecc_tup, GMfp213, R_star, M_star, rv_lim, k):
+    def mc_test(self, P, R, inew, ib, il, el, cdfP, cdfR, cdfi, cdfe, per_tup, rad_tup, mas_tup, inc_tup, ecc_tup, GMfp213, R_star, M_star, limits, k):
         """Runs MC in multi-threading."""
 
         np.random.seed(self.seed_start + k + np.random.randint(100000))
@@ -872,14 +882,6 @@ class dynamite:
             for p in range(len(per)):
                 if Pmc > per[p]:
                     mind = p + 1
-                    """
-                    if self.config_parameters["mass_radius"] == "mrexo":
-                        m[p] = pfm(measurement=rad[p], predict='mass', dataset='kepler')[0]
-
-                    elif self.config_parameters["mass_radius"] == "otegi": 
-                        m[p] = self.otegi_mr(rad[p], "mass")
-                    """
-                    #sim.add(m=m[p]*self.M_earth/self.M_sun, a=GMfp213*(per[p]*self.seconds_per_day)**(2/3)/self.au, e=ecc[p], inc=inc[p]*math.pi/180)
                     pf[p] = per[p]
                     mf[p] = mas[p]
                     incf[p] = inc[p]*math.pi/180
@@ -894,14 +896,7 @@ class dynamite:
                         eccf[p] = emc
                         sim.add(m=Mmc*self.M_earth/self.M_sun, a=GMfp213*(Pmc*self.seconds_per_day)**(2/3)/self.au, e=emc, inc=imc*math.pi/180)
                         mc_add = True
-                    """
-                    if self.config_parameters["mass_radius"] == "mrexo":
-                        m[p+1] = pfm(measurement=rad[p], predict='mass', dataset='kepler')[0]
 
-                    elif self.config_parameters["mass_radius"] == "otegi": 
-                        m[p+1] = self.otegi_mr(rad[p], "mass")
-                    """
-                    #sim.add(m=m[p+1]*self.M_earth/self.M_sun, a=GMfp213*(per[p]*self.seconds_per_day)**(2/3)/self.au, e=ecc[p], inc=inc[p]*math.pi/180)
                     pf[p+1] = per[p]
                     mf[p+1] = mas[p]
                     incf[p+1] = inc[p]*math.pi/180
@@ -992,39 +987,156 @@ class dynamite:
             if D < 8:
                 accept = "HILL RADIUS"
 
-        if accept == "YES" and rv_lim is not None:
-            if (203.3*Pmc*(1/3)*Mmc*math.sin(imc*math.pi/180)*(M_star+0.0009548*Mmc/317.83)**(-2/3)*(1-emc**2)**-0.5)/317.83 > rv_lim:
-                accept = "RV LIMIT"
+        if accept == "YES" and len(limits) != 0:
+            for l in limits:
+                ttv_lim = []
 
-            # for l in rv_lim:
-                # if Pmc > l[0] and (203.3*Pmc*(1/3)*Mmc*math.sin(imc*math.pi/180)*(M_star+0.0009548*Mmc/317.83)**(-2/3)*(1-emc**2)**-0.5)/317.83 > l[1]:
-                    # accept = "RV LIMIT"
-                    # break
-        """
-        if accept == "YES" and ttv_lim is not None:
-            ttvaa = []
+                if l[1] == "rv":
+                    if Pmc < l[2] and (203.3*Pmc*(1/3)*Mmc*math.sin(imc*math.pi/180)*(M_star+0.0009548*Mmc/317.83)**(-2/3)*(1-emc**2)**-0.5)/317.83 > l[3]:
+                        accept = "RV LIMIT"
 
-            for i in range(1000):
-                lana = [np.random.rand()*2*math.pi - math.pi for j in range(len(pf))
-                apa = [np.random.rand()*2*math.pi - math.pi for j in range(len(pf))
-                params = [M_star]
-
-                for j in range(len(pf)):
-                    params.append(mf[j]*self.M_earth/self.M_sun, pf[j], eccf[j]*math.cos(apa[j]), incf[j], lana[j], eccf[j]*math.sin(apa[j]), ##)                    
-
-                tts = run_ttvfaster(len(pf), params, 0.0, 1000.0, 6)
+                elif l[1] == "transit":
+                    if Pmc < l[2] and imc*math.pi/180 < (math.pi/2 - math.atan((R_star*self.R_sun + Rmc*self.R_earth)/(GMfp213*(Pmc*self.seconds_per_day)**(2/3)))):
+                        accept = "TRANSIT LIMIT"
                 
-                for p in range(len(tts)):
-                    for t in range(len(p)):
-                        tts[p][j] -= j*p
+                elif l[1] == "ttv":
+                    ttv_lim.append(l[3])
 
-                ttvaa.append([max(tts[p])*1440 for p in range(len(tts))])            
+            if len(ttv_lim) > 0:
+                good_mode = False
+                es = 0
+                ttvmode = self.config_parameters["ttv_mode"]
 
-            for l in ttv_lim:
-                if np.random.rand() > np.percentile(ttvaa, l):
-                    accept = "TTV LIMIT"
-                    break
-            """
+                while not good_mode:
+                    if ttvmode == "rebound":
+                        try:
+                            import rebound
+                            good_mode = True
+
+                        except:
+                            print("REBOUND is not installed on this machine - trying TTVFaster or not running TTV analysis")
+                            es += 1
+                            ttvmode == "ttvfaster"
+
+                    if ttvmode == "ttvfaster";
+                        try:
+                            from ttvfaster import run_ttvfaster
+                            good_mode = True
+
+                        except:
+                            print("TTVFaster is not installed on this machine - trying REBOUND or not running TTV analysis")
+                            es += 1
+                            ttvmode == "rebound"
+
+                    if es == 2:
+                        break
+
+                if good_mode and ttvmode == "rebound":
+                    print(datetime.datetime.now(), "TESTING TTVS WITH REBOUND")
+
+                    sim = rebound.Simulation()
+                    sim.units = ('day', 'au', 'Msun')
+                    sim.integrator = "mercurius"
+                    sim.add(m=M_star)
+                    pf = np.zeros(len(per) + 1)
+                    mf = np.zeros(len(per) + 1)
+                    incf = np.zeros(len(per) + 1)
+                    eccf = np.zeros(len(per) + 1)
+                    mind = 0
+                    mc_add = False
+                
+                    for p in range(len(per)):
+                        if Pmc > per[p]:
+                            mind = p + 1
+                            pf[p] = per[p]
+                            mf[p] = mas[p]
+                            incf[p] = inc[p]*math.pi/180
+                            eccf[p] = ecc[p]
+                            sim.add(m=mas[p]*self.M_earth/self.M_sun, a=GMfp213*(per[p]*self.seconds_per_day)**(2/3)/self.au, e=ecc[p], inc=inc[p]*math.pi/180)
+
+                        else:
+                            if not mc_add:
+                                pf[p] = Pmc
+                                mf[p] = Mmc
+                                incf[p] = imc*math.pi/180
+                                eccf[p] = emc
+                                sim.add(m=Mmc*self.M_earth/self.M_sun, a=GMfp213*(Pmc*self.seconds_per_day)**(2/3)/self.au, e=emc, inc=imc*math.pi/180)
+                                mc_add = True
+
+                            pf[p+1] = per[p]
+                            mf[p+1] = mas[p]
+                            incf[p+1] = inc[p]*math.pi/180
+                            eccf[p+1] = ecc[p]
+                            sim.add(m=mas[p]*self.M_earth/self.M_sun, a=GMfp213*(per[p]*self.seconds_per_day)**(2/3)/self.au, e=ecc[p], inc=inc[p]*math.pi/180)
+
+                    sim.dt = per[0]/5
+                    sim.move_to_com()
+                    sim.save("beginning.bin")
+
+                    N = 200
+                    tts = np.zeros((len(per), N))
+
+                    for p in range(len(per)):
+                        del sim
+                        sim = rebound.Simulation("beginning.bin")
+                        ps = sim.particles
+                        nn = 0
+
+                        while nn < N:
+                            yo = ps[p+1].y - ps[0].y
+                            to = sim.t
+                            sim.integrate(sim.t + sim.dt)
+                            tn = sim.t
+
+                            if yo*(ps[p+1].y - ps[0]].y) < 0 and ps[p+1].x - ps[0].x > 0:
+                                while tn - to < 1e-5:
+                                    if yo*(ps[p+1].y - ps[0].y) < 0:
+                                        tn = sim.t
+
+                                    else:
+                                        to = sim.t
+
+                                    sim.integrate((tn+to)/2)
+
+                                tts[p, nn] = sim.t
+                                nn += 1
+                                sim.integrate(sim.t + sim.dt)
+
+                    A = np.vstack([np.ones(N), range(N)]).T
+
+                    for l in range(len(ttv_lim)):
+                        c, m = np.linalg.lstsq(A, tts[l], rcond=-1)[0]
+                        ttvs = tts[l] - (m*np.array(range(N))-c)*3600/(2*math.pi)
+
+                        if np.random.rand() > np.percentile(ttvs, l):
+                            accept = "TTV LIMIT"
+                            break
+
+                elif good_mode and ttvmode == "ttvfaster":
+                    print(datetime.datetime.now(), "TESTING TTVS WITH TTVFASTER")
+                    ttvaa = []
+
+                    for i in range(1000):
+                        lana = [np.random.rand()*2*math.pi - math.pi for j in range(len(pf))
+                        apa = [np.random.rand()*2*math.pi - math.pi for j in range(len(pf))
+                        params = [M_star]
+
+                        for j in range(len(pf)):
+                            params.append(mf[j]*self.M_earth/self.M_sun, pf[j], eccf[j]*math.cos(apa[j]), incf[j], lana[j], eccf[j]*math.sin(apa[j]), ##)                    
+
+                        tts = run_ttvfaster(len(pf), params, 0.0, 1000.0, 6)
+                        
+                        for p in range(len(tts)):
+                            for t in range(len(p)):
+                                tts[p][j] -= j*p
+
+                        ttvaa.append([max(tts[p])*1440 for p in range(len(tts))])            
+
+                    for l in ttv_lim:
+                        if np.random.rand() > np.percentile(ttvaa, l):
+                            accept = "TTV LIMIT"
+                            break
+
         return (accept, val, tim, Pmc, Rmc, emc, imc)
 
 
