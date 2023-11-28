@@ -488,7 +488,7 @@ class DynamiteGUI:
                 dbconn.close()
             self.config_entries["targets_db"] = Tkinter.StringVar(value = self.dbname) 
             self.config_entries["exoplanetarchive_csv"] = Tkinter.StringVar(value ="")
-            self.config_entries["ecofop_csv"] = Tkinter.StringVar(value ="") 
+            self.config_entries["exofop_csv"] = Tkinter.StringVar(value ="") 
             self.root.title("DYNAMITE ---> " + self.config_file + " ---> " + self.dbname if self.dbname != None else "")
         except:
             tkMB.showerror(title="DATABASE REQUESTED", message= " Cannot be loaded!! " + self.dbname)
@@ -525,7 +525,7 @@ class DynamiteGUI:
                     e.destroy()
                 self.dbarchive_editors = {}
         self.editors = self.dbarchive_editors
-        thread = threading.Thread(target=self.execute_program, args=("DBARCHIVE", "DBarchive.py " + self.dbname + " " + self.config_parameters["exoplanetarchive_csv"] + " " + self.config_parameters["ecofop_csv"]))
+        thread = threading.Thread(target=self.execute_program, args=("DBARCHIVE", "DBarchive.py " + self.dbname + " " + self.config_parameters["exoplanetarchive_csv"] + " " + self.config_parameters["exofop_csv"]))
         thread.daemon = True
         thread.start()
     
