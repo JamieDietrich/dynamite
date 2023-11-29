@@ -84,8 +84,8 @@ class PPR(object):
             for pool in self.pool_dict.values():
                 pool.close() 
                 pool.terminate()
-                try:socket.socket(socket.AF_INET, socket.SOCK_STREAM).connect(("127.0.0.1", 65000))
-                except: pass
+            try:socket.socket(socket.AF_INET, socket.SOCK_STREAM).connect(("127.0.0.1", 65000))
+            except: pass
         except: pass
         if remote_terminate: os._exit(0)
     
