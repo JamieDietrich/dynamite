@@ -100,7 +100,7 @@ class dynamite:
                 self.write_bf_pred_file((self.G*merged_data[-4][2]*self.M_sun/(4*math.pi**2))**(1/3), merged_data[0], merged_data[3], merged_data[6], merged_data[9], merged_data[-3], merged_data[-2], merged_data[-1], merged_data[11], merged_data[-5][0], merged_data[-4], True)
 
             with np.load("saved_data_" + target_system.replace(" ", "_") if self.config_parameters["mode"] == "single" else self.config_parameters["mode"] + ".npz", allow_pickle=True) as data:
-                Pk, P, PP, Rk, R, PR, ik, il, Pinc, ek, el, Pecc, deltas, ratios, tdm, tdle, tdue, tpm, tple, tpue, targets, starvs, pers, rads, mass, eccs = data["data"]
+                Pk, P, PP, Rk, R, PR, ik, il, Pinc, ek, el, Pecc, deltas, tdm, tdle, tdue, tpm, tple, tpue, targets, starvs, pers, rads, mass, eccs = data["data"]
 
             if self.config_parameters["plot"] == "True":
                 self.run_plots(data)
@@ -137,7 +137,7 @@ class dynamite:
                     print("Error: No targets selected!")
                     exit()
                 targlist = [tn for tn in targets_dict.keys()]
-                Pk, P, PP, Rk, R, PR, ik, il, Pinc, ek, el, Pecc, deltas, ratios, tdm, tdle, tdue, tpm, tple, tpue, targets, starvs, pers, rads, mass, eccs = datavars = self.ppr.create_processes("mt_mc", (targets_dict, limits_dict, targlist), -len(targlist), self.process_data)
+                Pk, P, PP, Rk, R, PR, ik, il, Pinc, ek, el, Pecc, deltas, tdm, tdle, tdue, tpm, tple, tpue, targets, starvs, pers, rads, mass, eccs = datavars = self.ppr.create_processes("mt_mc", (targets_dict, limits_dict, targlist), -len(targlist), self.process_data)
             
                 if self.num_of_nodes == 1:
                     np.savez("saved_data_" + mode + ".npz", data=datavars)
@@ -176,7 +176,7 @@ class dynamite:
     def saved_writing(self, datavars, targsys):
         """Writes the files and runs the plots from saved data."""
 
-        Pk, P, PP, Rk, R, PR, ik, il, Pinc, ek, el, Pecc, deltas, ratios, tdm, tdle, tdue, tpm, tple, tpue, targets, starvs, pers, rads, mass, eccs = datavars
+        Pk, P, PP, Rk, R, PR, ik, il, Pinc, ek, el, Pecc, deltas, tdm, tdle, tdue, tpm, tple, tpue, targets, starvs, pers, rads, mass, eccs = datavars
 
         try:
             if len(targets[0]) > 1:
@@ -188,8 +188,6 @@ class dynamite:
 
         if self.config_parameters["plot"] == "True":
             self.run_plots(datavars, targsys)
-
-        print(datetime.now(), "Finishing DYNAMITE")
 
 
 
@@ -274,9 +272,9 @@ class dynamite:
     def run_plots(self, data, targsys):
         """Runs the plotting program."""
 
-        Pk, P, PP, Rk, R, PR, ik, il, Pinc, ek, el, Pecc, deltas, ratios, tdm, tdle, tdue, tpm, tple, tpue, targets, starvs, pers, rads, mass, eccs = data
+        Pk, P, PP, Rk, R, PR, ik, il, Pinc, ek, el, Pecc, deltas, tdm, tdle, tdue, tpm, tple, tpue, targets, starvs, pers, rads, mass, eccs = data
         print(datetime.now(), "Creating Plots")
-        dynamite_plots(Pk, P, PP, Rk, R, PR, ik, il, Pinc, ek, el, Pecc, deltas, ratios, tdm, tdle, tdue, tpm, tple, tpue, targets, starvs, pers, rads, mass, eccs, targsys, self.cfname, self.ppr)
+        dynamite_plots(Pk, P, PP, Rk, R, PR, ik, il, Pinc, ek, el, Pecc, deltas, tdm, tdle, tdue, tpm, tple, tpue, targets, starvs, pers, rads, mass, eccs, targsys, self.cfname, self.ppr)
 
 
 
@@ -409,27 +407,24 @@ class dynamite:
 
         for i in range(len(mas)):
             if mts[i] == "Msini" and inc[i] != "?":
-                mas[i] = (mas[i]/np.sin(inc[i]*math.pi/180) if inc[i] != 0 else M_star*self.M_sun/self.M_earth)
+                mas[i] = min(mas[i]/np.sin(inc[i]*math.pi/180) if inc[i] != 0 and inc[i] != 180 else M_star*self.M_sun/self.M_earth, M_star*self.M_sun/self.M_earth) 
                 mts[i] = "Msin(i)/sin(i)"
 
-        ratios = []
-
-        for i in range(1, len(per)):
-            ratios.append(per[i]/per[i-1])
+        print(mas, mts)
 
         if target_name == "Inner Solar System":
-            P = np.arange(0.5, 4331.1, 0.1)
+            P = np.hstack([np.arange(0.5, 10, 0.1), np.arange(10, 4331.5, 0.5)])
 
         elif target_name == "eps Eri":
-            P = np.arange(100, 4331.1, 0.1)
+            P = np.arange(100, 4331.5, 0.5)
 
         elif target_name == "Proxima Centauri":
-            P = np.arange(0.5, 1412.3, 0.1)
+            P = np.hstack([np.arange(0.5, 10, 0.1), np.arange(10, 1412.5, 0.5)])
 
         else:
-            P = np.arange(0.5, 730.1, 0.1)
+            P = np.hstack([np.arange(0.5, 10, 0.1), np.arange(10, 730.5, 0.5)])
 
-        print(datetime.now(), "Creating Inclination Distributions for", target_name)
+        print(datetime.now(), "Creating Inclination Prior Distribution for", target_name)
 
         if self.config_parameters["inclination"] == "rayleigh_iso":
             il, Pinc, cdfi, inew, ib = self.rayleigh_iso_incs(inc, per, GMfp213, R_star)
@@ -437,7 +432,7 @@ class dynamite:
         elif self.config_parameters["inclination"] == "syssim":
             il, Pinc, cdfi, inew, ib = self.syssim_incs(inc, per, GMfp213, R_star)
 
-        print(datetime.now(), "Creating Eccentricity Distributions for", target_name)
+        print(datetime.now(), "Creating Eccentricity Prior Distribution for", target_name)
 
         if self.config_parameters["eccentricity"] == "rayleigh":
             el, Pecc, cdfe = self.rayleigh_eccs()
@@ -445,25 +440,8 @@ class dynamite:
         elif self.config_parameters["eccentricity"] == "syssim":
             el, Pecc, cdfe = self.syssim_eccs(len(ecc))
 
-        print(datetime.now(), "Creating Planet Radius Distributions for", target_name)
+        em = np.median(Pecc)
 
-        if self.config_parameters["radius"] == "epos":
-            r1 = min(rad)
-            r2 = max(rad)
-            R, PR, cdfR = self.epos_rads(r1, r2)
-
-        elif self.config_parameters["radius"] == "syssim":
-            R, PR, cdfR = self.syssim_rads(rad)
-
-        print(datetime.now(), "Creating Period Distributions for", target_name)
-
-        if self.config_parameters["period"] == "epos":
-            PP, deltas, cdfP = self.epos_pers(min(per), per, mas, ecc, P, R, cdfR, Pecc, cdfe, M_star, GMfp213)
-
-        elif self.config_parameters["period"] == "syssim":
-            PP, deltas, cdfP = self.syssim_pers(per, mas, ecc, P, R, cdfR, Pecc, cdfe, M_star, GMfp213)
-
-        print(datetime.now(), "Running Monte Carlo for", target_name)
         Pk = []
         Rk = []
         ek = []
@@ -481,7 +459,93 @@ class dynamite:
         inc_tup = [target[i][3] for i in range(len(target))]
         ecc_tup = [target[i][4] for i in range(len(target))]
 
-        stable, val, tim, _Pk, _Rk, _ek, _ik = self.ppr.create_processes("mc_test", (P, R, inew, ib, il, el, cdfP, cdfR, cdfi, cdfe, per_tup, rad_tup, mas_tup, inc_tup, ecc_tup, GMfp213, R_star, M_star, limits), -int(self.interation_list[self.node_number - 1]), self.process_mc_data)
+        indq = False
+
+        for i in range(len(inc_tup)):
+            if inc_tup[i][0] == "?" and mas_tup[i][3] == "Msini":
+                indq = True
+
+        fP = []
+
+        if not indq and np.all([i[0] != "?" for i in rad_tup]):
+            print(datetime.now(), "Creating Radius Prior Distribution for", target_name)
+
+            if self.config_parameters["radius"] == "epos":
+                R, PR, cdfR = self.epos_rads(min(rad), max(rad))
+
+            elif self.config_parameters["radius"] == "syssim":
+                R, PR, cdfR = self.syssim_rads(rad)
+
+            print(datetime.now(), "Creating Period Prior Distribution for", target_name)
+
+            if self.config_parameters["period"] == "epos":
+                fP = self.create_fP(P, per)
+                PP, deltas, cdfP = self.epos_pers(fP, per, mas, [], ecc, P, R, cdfR, il, Pinc, Pecc, em, cdfe, M_star, GMfp213)
+
+            elif self.config_parameters["period"] == "syssim":
+                PP, deltas, cdfP = self.syssim_pers(per, mas, [], ecc, P, R, cdfR, il, Pinc, Pecc, em, cdfe, M_star, GMfp213)
+
+        else:
+            """
+            PP = []
+            deltas = []
+            cdfP = []
+            R = []
+            PR = []
+            cdfR = []
+            
+            if self.config_parameters["period"] == "epos":
+                fP = self.create_fP(P, per)
+            """
+            Ms = np.zeros((len(il), len(mas)))
+            Rs = np.zeros((len(il), len(mas)))
+            PR = []
+
+            print(datetime.now(), "Creating Radius Prior Distribution for", target_name)
+
+            for n in range(len(il)):
+                for m in range(len(mas)):
+                    if rad[m] == "?" or (mts[m] == "Msini" and inc[m] == "?"):
+                        Ms[n, m] = min(mas[m]/np.sin(il[n]*math.pi/180) if il[n] != 0 and il[n] != 180 else M_star*self.M_sun/self.M_earth, M_star*self.M_sun/self.M_earth)
+                        Rs[n, m] = self.mr_convert(Ms[n, m], "radius")
+
+                    elif rad[m] != "?":
+                        Rs[n, m] = rad[m]
+                        Ms[n, m] = self.mr_convert(rad[m], "mass")
+
+                    elif mts[m] == "Mass":
+                        Ms[n, m] = mas[m]
+                        Rs[n, m] = self.mr_convert(mas[m], "radius")
+                
+                if self.config_parameters["radius"] == "epos":
+                    R, fR, _ = self.epos_rads(Rs[n])
+
+                elif self.config_parameters["radius"] == "syssim":
+                    R, fR, _ = self.syssim_rads(Rs[n])
+
+                PR.append(fR)
+
+            PR = np.average(PR, axis=0, weights=Pinc)
+            cdfR = np.cumsum(PR)
+            cdfR = cdfR/cdfR[-1]
+
+            print(datetime.now(), "Creating Period Prior Distribution for", target_name)
+
+            if self.config_parameters["period"] == "epos":
+                fP = self.create_fP(P, per)
+                PP, deltas, cdfP = self.epos_pers(fP, per, mas, Ms, ecc, P, R, cdfR, il, Pinc, Pecc, em, cdfe, M_star, GMfp213)
+
+            elif self.config_parameters["period"] == "syssim":
+                PP, deltas, cdfP = self.syssim_pers(per, mas, Ms, ecc, P, R, cdfR, il, Pinc, Pecc, em, cdfe, M_star, GMfp213)
+
+        print(datetime.now(), "Running Monte Carlo for", target_name)
+
+        PPi, PRi, Ri, deltasi, stable, val, tim, _Pk, _Rk, _ek, _ik = self.ppr.create_processes("mc_test", (P, fP, PP, cdfP, deltas, R, PR, cdfR, inew, ib, il, cdfi, el, Pecc, em, cdfe, per_tup, rad_tup, mas_tup, inc_tup, ecc_tup, GMfp213, R_star, M_star, limits, indq), -int(self.interation_list[self.node_number - 1]), self.process_mc_data)
+
+        R = Ri[0]
+        PP = np.mean(PPi, axis=0)
+        PR = np.mean(PRi, axis=0)
+        deltas = np.mean(deltasi, axis=0)
 
         for a in range(len(stable)):
             if stable[a] == "YES":
@@ -511,7 +575,7 @@ class dynamite:
 
         tdm, tdle, tdue, tpm, tpue, tple, target_values = self.write_bf_pred_file(GMfp213, Pk, Rk, ik, ek, per, rad, mas, ecc, Pecc, target_name, star_values, (True if self.num_of_nodes == 1 else False))
 
-        return Pk, P, PP, Rk, R, PR, ik, il, Pinc, ek, el, Pecc, deltas, ratios, tdm, tdle, tdue, tpm, tpue, tple, target_values, star_values
+        return Pk, P, PP, Rk, R, PR, ik, il, Pinc, ek, el, Pecc, deltas, tdm, tdle, tdue, tpm, tpue, tple, target_values, star_values
 
 
 
@@ -782,14 +846,11 @@ class dynamite:
 
 
 
-    def mc_test(self, P, R, inew, ib, il, el, cdfP, cdfR, cdfi, cdfe, per_tup, rad_tup, mas_tup, inc_tup, ecc_tup, GMfp213, R_star, M_star, limits, k):
+    def mc_test(self, P, fP, PP, cdfP, deltas, R, PR, cdfR, inew, ib, il, cdfi, el, Pecc, em, cdfe, per_tup, rad_tup, mas_tup, inc_tup, ecc_tup, GMfp213, R_star, M_star, limits, indq, k):
         """Runs MC in multi-threading."""
 
         np.random.seed(self.seed_start + k + np.random.randint(100000))
 
-        per = [self.random_val_from_tup(i) for i in per_tup]
-        rad = [self.random_val_from_tup(i) for i in rad_tup]
-        mas = [self.random_val_from_tup(i) for i in mas_tup]
         inc = []
         ecc = []
 
@@ -797,12 +858,6 @@ class dynamite:
             inc.append(self.random_val_from_tup(inc_tup[i]) if inc_tup[i][0] != "?" else "?")
             ecc.append(self.random_val_from_tup(ecc_tup[i]) if ecc_tup[i][0] != "?" else "?")
 
-        accept = "YES"
-        val = 0
-        tim = 0
-
-        Pmc = self.cdf_draw(P, np.random.rand(), cdfP)
-        Rmc = self.cdf_draw(R, np.random.rand(), cdfR)
         emc = self.cdf_draw(el, np.random.rand(), cdfe)
 
         for j in range(len(ecc)):
@@ -835,42 +890,92 @@ class dynamite:
                 if inc[j] == "?":
                     inc[j] = self.inc_draw(inc, cdfi, inew, ib, il)
 
+                if inc[j] < 0:
+                    inc[j] = -inc[j]
+
             imc = self.inc_draw(inc, cdfi, inew, ib, il)
+
+            if imc < 0:
+                imc = -imc
 
         elif self.config_parameters["inclination"] == "syssim":
             for j in range(len(inc)):
                 if inc[j] == "?":
                     inc[j] = self.cdf_draw(il, np.random.rand(), cdfi)
 
+                if inc[j] < 0:
+                    inc[j] = -inc[j]
+
             imc = self.cdf_draw(il, np.random.rand(), cdfi)
 
-        pind = 0
+            if imc < 0:
+                imc = -imc
 
-        for p in range(len(per) - 1):
-            if Pmc > per[p]*np.sqrt(per[p+1]/per[p]):
-                pind = p+1
+        per = [self.random_val_from_tup(i) for i in per_tup]
+        mas = [self.random_val_from_tup(mas_tup[i]) if mas_tup[i][3] != "Msini" else (self.random_val_from_tup(mas_tup[i])/np.sin(inc[i]*math.pi/180) if inc[i] != 0 else M_star*self.M_sun/self.M_earth) for i in range(len(mas_tup))]
+        rad = [self.random_val_from_tup(rad_tup[i]) if mas_tup[i][3] != "Msini" else self.mr_convert(mas[i], "radius") for i in range(len(rad_tup))]
 
-        permc = per[pind]
-        radmc = rad[pind]
-        eccmc = ecc[pind]
+        accept = "YES"
+        val = 0
+        tim = 0
+        """
+        if indq or np.any([i[0] == "?" for i in rad_tup]):
+            if self.config_parameters["radius"] == "epos":
+                r1 = min(rad)
+                r2 = max(rad)
+                R, PR, cdfR = self.epos_rads(r1, r2)
 
-        if self.config_parameters["mass_radius"] == "mrexo":
-            Mmc = pfm(measurement=Rmc, predict='mass', dataset='kepler')[0]
-            masmc = pfm(measurement=radmc, predict='mass', dataset='kepler')[0]
+            elif self.config_parameters["radius"] == "syssim":
+                R, PR, cdfR = self.syssim_rads(rad)
 
-        elif self.config_parameters["mass_radius"] == "otegi": 
-            Mmc = self.otegi_mr(Rmc, "mass")
-            masmc = self.otegi_mr(radmc, "mass")
-            
-        a1 = GMfp213*(Pmc*self.seconds_per_day if Pmc < permc else permc*self.seconds_per_day)**(2/3)
-        a2 = GMfp213*(permc*self.seconds_per_day if Pmc < permc else Pmc*self.seconds_per_day)**(2/3)
-        e1 = emc if Pmc < permc else eccmc
-        e2 = eccmc if Pmc < permc else emc
-        D = 2*(a2*(1 - e2) - a1*(1 + e1))/(a2 + a1) * ((Mmc + masmc)*self.M_earth/(3*M_star*self.M_sun))**(-1/3)
+            if self.config_parameters["period"] == "epos":
+                PP, deltas, cdfP = self.epos_pers(fP, per, mas, [], ecc, P, R, cdfR, il, Pinc, Pecc, em, cdfe, M_star, GMfp213)
+
+            elif self.config_parameters["period"] == "syssim":
+                PP, deltas, cdfP = self.syssim_pers(per, mas, [], ecc, P, R, cdfR, il, Pinc, Pecc, em, cdfe, M_star, GMfp213)
+        """
+        Pmc = self.cdf_draw(P, np.random.rand(), cdfP)
+        Rmc = self.cdf_draw(R, np.random.rand(), cdfR)
+        Mmc = self.mr_convert(Rmc, "mass")
+
+        if Pmc < per[0]:
+            pns = [per[0]]
+            rns = [rad[0]]
+            ens = [ecc[0]]
+
+        elif Pmc > per[-1]:
+            pns = [per[-1]]
+            rns = [rad[-1]]
+            ens = [ecc[-1]]
+
+        else:
+            pind = np.where(per < Pmc)[0][-1]
+            pns = [per[pind], per[pind+1]]
+            rns = [rad[pind], rad[pind+1]]
+            ens = [ecc[pind], ecc[pind+1]]
+
+        D = np.zeros(len(pns))
+
+        for i in range(len(D)):
+            permc = pns[i]
+            radmc = rns[i]
+            eccmc = ens[i]
+            masmc = self.mr_convert(radmc, "mass")
+            a1 = GMfp213*(Pmc*self.seconds_per_day if Pmc < permc else permc*self.seconds_per_day)**(2/3)
+            a2 = GMfp213*(permc*self.seconds_per_day if Pmc < permc else Pmc*self.seconds_per_day)**(2/3)
+            e1 = emc if Pmc < permc else eccmc
+            e2 = eccmc if Pmc < permc else emc
+            D[i] = 2*(a2*(1 - e2) - a1*(1 + e1))/(a2 + a1) * ((Mmc + masmc)*self.M_earth/(3*M_star*self.M_sun))**(-1/3)
         
         stability = self.config_parameters["stability"]
 
-        if stability == "spock" or stability == "specfrac" and D < 1000:
+        if stability == "hill":
+            dlim = spst.lognorm.rvs(spst.norm.rvs(0.40, 0.02, 1), loc=0, scale=np.exp(spst.norm.rvs(1.97, 0.03, 1)), size=1)
+
+            if np.any(D < dlim):
+                accept = "HILL RADIUS"
+
+        if stability == "spock" or stability == "specfrac" and np.any(D) < 100:
             try:
                 import rebound
 
@@ -888,7 +993,7 @@ class dynamite:
                     if k == 0:
                         print("WARNING: SPOCK not installed on this machine - not performing N body integration dynamical stability analysis")
 
-        if stability == "spock" or stability == "specfrac" and D < 1000:
+        if stability == "spock" or stability == "specfrac" and np.any(D) < 100:
             sim = rebound.Simulation()
             sim.units = ('day', 'au', 'Msun')
             sim.integrator = "mercurius"
@@ -1003,10 +1108,6 @@ class dynamite:
                             ps = "INJECTED PLANET"
 
                         print("SYSTEM ITERATION " + str(k) + ":", ps, "UNSTABLE VIA SPECTRAL FRACTION")
-
-        else:
-            if D < 8:
-                accept = "HILL RADIUS"
 
         if accept == "YES" and len(limits) != 0:
             for l in limits:
@@ -1159,7 +1260,7 @@ class dynamite:
                 elif not good_mode:
                     print("CANNOT RUN TTV ANALYSIS - REBOUND AND TTVFASTER MODULES NOT INSTALLED")
 
-        return (accept, val, tim, Pmc, Rmc, emc, imc)
+        return (PP, PR, R, deltas, accept, val, tim, Pmc, Rmc, emc, imc)
 
 
 
@@ -1202,12 +1303,10 @@ class dynamite:
 
 
 
-    def epos_pers(self, p0, per, mas, ecc, P, R, PR, Pecc, cdfe, M_star, GMfp213):
-        """Generates probability of periods using dimensionless spacing in period ratios from EPOS (Mulders et al. 2018)"""
+    def create_fP(self, P, per):
+        """Creates the initial fP distribution for the EPOS period ratio distribution."""
 
         fP = np.zeros(len(P))
-        cdfP = np.zeros(len(P))
-        fD = np.zeros(len(P))
         ind = 0
         logD = -0.9
         sigma = 0.41
@@ -1221,14 +1320,12 @@ class dynamite:
         j = 0
 
         for i in range(len(P)):
-            if P[i] < p0:
-                fP[i] = ((P[i]/12)**1.6 if P[i] < 12 else (P[i]/12)**-0.9)*np.interp(p0/P[i], PRgrid, pdfPR)
+            if P[i] < min(per):
+                fP[i] = ((P[i]/12)**1.6 if P[i] < 12 else (P[i]/12)**-0.9)*np.interp(min(per)/P[i], PRgrid, pdfPR)
 
             else:
                 ind = i
                 break
-
-        #print(datetime.now(), "BEFORE FP > P0 CREATION")
 
         for i in range(ind, len(fP)):
             if j < len(per) - 1 and P[i] > per[j+1]:
@@ -1239,71 +1336,69 @@ class dynamite:
             if j != len(per) - 1:
                 fP[i] *= np.interp(per[j+1]/P[i], PRgrid, pdfPR)
 
-        #print(datetime.now(), "AFTER FP > P0 CREATION")
-                    
-        if len(R) == 1:
-            m2 = self.mr_convert(np.median(PR), "mass")
+        return fP
 
-        else:
-            m2 = self.mr_convert(R[np.where(PR >= 0.5)[0][0]], "mass")
 
-        em = np.median(Pecc)
-        dc = 8
-        rats = [math.sqrt(per[k+1]/per[k]) for k in range(len(per) - 1)]
-        k = 0
 
-        #print(datetime.now(), "BEFORE FP UPDATE")
+    def epos_pers(self, fP, per, mas, Ms, ecc, P, R, cdfR, il, Pinc, Pecc, em, cdfe, M_star, GMfp213):
+        """Generates probability of periods using dimensionless spacing in period ratios from EPOS (Mulders et al. 2018)"""
+
+        m2 = self.mr_convert(R[np.where(cdfR > 0.5)[0][0]], "mass")
+        #dc = 8
+        l = 0
+
+        Dv = np.zeros(len(P))
+        Ds = np.zeros(len(il))
+        pdfP = np.zeros(len(il))
+
+        print(datetime.now(), "BEFORE")
 
         for i in range(len(P)):
-            if k < len(per) - 1 and P[i] > per[k]*rats[k] and P[i] < per[k+1]:
-                k += 1
+            if l < len(per) - 1 and P[i] > per[l]*math.sqrt(per[l+1]/per[l]) and P[i] < per[l+1]:
+                l += 1
 
-            a1 = GMfp213*(P[i]*self.seconds_per_day if P[i] < per[k] else per[k]*self.seconds_per_day)**(2/3)
-            a2 = GMfp213*(per[k]*self.seconds_per_day if P[i] < per[k] else P[i]*self.seconds_per_day)**(2/3)
-            ev = ecc[k] if ecc[k] != "?" else np.median(Pecc)
-            e1 = em if P[i] < per[k] else ev
-            e2 = ev if P[i] < per[k] else em
-            m1 = mas[k]
-            fD[i] = 2*(a2*(1 - e2) - a1*(1 + e1))/(a2 + a1) * ((m1 + m2)*self.M_earth/(3*M_star*self.M_sun))**(-1/3)
+            a1 = GMfp213*((P[i] if P[i] < per[l] else per[l])*self.seconds_per_day)**(2/3)
+            a2 = GMfp213*((per[l] if P[i] < per[l] else P[i])*self.seconds_per_day)**(2/3)
+            e1 = em if P[i] < per[l] else (ecc[l] if ecc[l] != "?" else em)
+            e2 = (ecc[l] if ecc[l] != "?" else em) if P[i] < per[l] else em
+            aet = 2*(a2*(1 - e2) - a1*(1 + e1))/(a2 + a1)
 
-            if fD[i] < 0:
-                fD[i] = 0
+            if Ms == []:
+                Dv[i] = max(0, aet * ((mas[l] + m2)*(self.M_earth/(3*M_star*self.M_sun)))**(-1/3))
+                fP[i] *= spst.lognorm.cdf(Dv[i], spst.norm.rvs(0.4, 0.02, 1), loc=0, scale=np.exp(spst.norm.rvs(1.97, 0.03, 1)))
+    
+            else:
+                for n in range(len(il)):
+                    Ds[n] = max(0, aet * ((Ms[n, l] + m2)*(self.M_earth/(3*M_star*self.M_sun)))**(-1/3))
+                    pdfP[n] = spst.lognorm.cdf(Ds[n], spst.norm.rvs(0.4, 0.02, 1), loc=0, scale=np.exp(spst.norm.rvs(1.97, 0.03, 1)))
 
-            fP[i] *= spst.norm.cdf(fD[i], loc=dc)
+                fP[i] *= np.average(pdfP, weights=Pinc)
+                Dv[i] = np.average(Ds, weights=Pinc)
 
-        #print(datetime.now(), "AFTER FP UPDATE")
+        print(datetime.now(), "AFTER")
 
-        Du = np.arange(0, max(fD) + 1)
+        Du = np.arange(0, 1000)
         fDu = np.zeros(len(Du))
-        trap = np.trapz(fP, P)
 
-        for i in range(len(fD)):
-            j = int(fD[i])
-            fDu[j] += fP[i]/trap
+        for i in range(len(Dv)):
+            j = int(Dv[i])
+            fDu[j] += fP[i]
 
-        #print(datetime.now(), "BEFORE CDFP CREATION")
+        cdfP = np.cumsum(fP)
 
-        for i in range(len(cdfP)):
-            cdfP[i] = np.trapz(fP[:i+1], P[:i+1])/trap
-
-        #print(datetime.now(), "AFTER CDFP CREATION")
-
-        return fP/trap, fDu, cdfP
+        return fP/cdfP[-1], fDu/cdfP[-1], cdfP/cdfP[-1]
 
 
 
-    def syssim_pers(self, per, mas, ecc, P, R, cdfR, Pecc, cdfE, M_star, GMfp213):
+    def syssim_pers(self, per, mas, Ms, ecc, P, R, cdfR, il, Pinc, Pecc, em, cdfE, M_star, GMfp213):
         """Generates probability of periods using clustered periods from He, Ford, and Ragozzine (2019)"""
 
         sigmap = 0.2
         Np = len(per)
-        PR = [per[i]/per[i-1] for i in range(1,len(per))]
         bools = []
 
-        print(datetime.now(), "BEFORE BOOLS CREATION")
-
-        for i in range(len(PR)):
-            if PR[i] > spst.lognorm.ppf(0.95, Np*sigmap):
+        for i in range(len(per) - 1):
+            if per[i+1]/per[i] > spst.lognorm.ppf(0.95, Np*sigmap):
                 bools.append(1)
 
             else:
@@ -1321,7 +1416,7 @@ class dynamite:
                         kt_cluster[kt_cluster_count] = [kt_planets[i], kt_planets[i+1]]
 
                     else:
-                        found_in_key = [ k for (k,v) in kt_cluster.items() if kt_planets[i] in v][0]
+                        found_in_key = [k for (k,v) in kt_cluster.items() if kt_planets[i] in v][0]
                         kt_cluster[found_in_key].append(kt_planets[i+1])
 
                 else:
@@ -1337,19 +1432,13 @@ class dynamite:
 
             return len(kt_cluster), list(kt_cluster.values())
 
-        print(datetime.now(), "AFTER BOOLS CREATION")
-
         Nc, Np = calc_bools_dict_value(bools)
 
-        print(datetime.now(), "AFTER BOOLS EVALUATION")
-
         if Nc == 1:
-            Pcb = np.round(Pcbs[np.argmax([np.sum(spst.lognorm.pdf(per[k] / P[i], len(per) * sigmap) for k in range(len(per))) for i in range(len(P))])], 1)
+            Pcb = np.round(P[np.argmax([np.sum(spst.lognorm.pdf(per[k]/P[i], len(per)*sigmap) for k in range(len(per))) for i in range(len(P))])], 1)
 
         else:
-            Pcb = np.round([P[np.argmax([np.sum(spst.lognorm.pdf(per[j - 1] / Pk, len(Np[i]) * sigmap) for j in Np[i]) for Pk in P])] for i in range(Nc)], 1)
-
-        print(datetime.now(), "AFTER CLUSTER CREATION")
+            Pcb = np.round([P[np.argmax([np.sum(spst.lognorm.pdf(per[j-1]/P, len(Np[i])*sigmap) for j in Np[i])])] for i in range(Nc)], 1)
 
         Pip = np.linspace(math.sqrt(min(P)/max(P)), math.sqrt(max(P)/min(P)), 1001)
         fPip = []
@@ -1357,112 +1446,78 @@ class dynamite:
         for i in range(Nc):
             fPip.append(spst.lognorm.pdf(Pip, (len(per) if Nc == 1 else len(Np[i]))*sigmap))
 
-        print(datetime.now(), "AFTER FPIP CREATION")
+        fP = np.array([max([np.interp(P[i], (Pcb if Nc == 1 else Pcb[j])*Pip, fPip[j]) for j in range(Nc)]) for i in range(len(P))])
+        m2 = self.mr_convert(R[np.where(cdfR > 0.5)[0][0]], "mass")
+        l = 0
 
-        fP = np.zeros(len(P))
-        fD = np.zeros(len(P))
-        cdfP = np.zeros(len(P))
+        Dv = np.zeros(len(P))
+        Ds = np.zeros(len(il))
+        pdfP = np.zeros(len(il))
 
-        for i in range(len(fP)):
-            f = []
-
-            for j in range(Nc):
-                f.append(np.interp(P[i], (Pcb if Nc == 1 else Pcb[j])*Pip, fPip[j]))
-
-            try:
-                fP[i] = max(f)
-
-            except:
-                fP[i] = 1
-
-        print(datetime.now(), "AFTER FP CREATION")
-
-        if len(R) == 1:
-            m2 = self.mr_convert(np.median(cdfR), "mass")
-
-        else:
-            m2 = self.mr_convert(R[np.where(cdfR > 0.5)[0][0]], "mass")
-
-        em = np.median(Pecc)
-        dc = 8
-        rats = [math.sqrt(per[k+1]/per[k]) for k in range(len(per) - 1)]
-        k = 0
-
-        print(datetime.now(), "BEFORE FP UPDATE")
+        print(datetime.now(), "BEFORE")
 
         for i in range(len(P)):
-            if k < len(per) - 1 and P[i] > per[k]*rats[k] and P[i] < per[k+1]:
-                k += 1
+            if l < len(per) - 1 and P[i] > per[l]*math.sqrt(per[l+1]/per[l]) and P[i] < per[l+1]:
+                l += 1
 
-            a1 = GMfp213*(P[i]*self.seconds_per_day if P[i] < per[k] else per[k]*self.seconds_per_day)**(2/3)
-            a2 = GMfp213*(per[k]*self.seconds_per_day if P[i] < per[k] else P[i]*self.seconds_per_day)**(2/3)
-            ev = ecc[k] if ecc[k] != "?" else np.median(Pecc)
-            e1 = em if P[i] < per[k] else ev
-            e2 = ev if P[i] < per[k] else em
-            m1 = mas[k]
-            fD[i] = 2*(a2*(1 - e2) - a1*(1 + e1))/(a2 + a1) * ((m1 + m2)*(self.M_earth/(3*M_star*self.M_sun)))**(-1/3)
+            a1 = GMfp213*((P[i] if P[i] < per[l] else per[l])*self.seconds_per_day)**(2/3)
+            a2 = GMfp213*((per[l] if P[i] < per[l] else P[i])*self.seconds_per_day)**(2/3)
+            e1 = em if P[i] < per[l] else (ecc[l] if ecc[l] != "?" else em)
+            e2 = (ecc[l] if ecc[l] != "?" else em) if P[i] < per[l] else em
+            aet = 2*(a2*(1 - e2) - a1*(1 + e1))/(a2 + a1)
 
-            if fD[i] < 0:
-                fD[i] = 0
+            if Ms == []:
+                Dv[i] = max(0, aet * ((mas[l] + m2)*(self.M_earth/(3*M_star*self.M_sun)))**(-1/3))
+                fP[i] *= spst.lognorm.cdf(Dv[i], spst.norm.rvs(0.4, 0.02, 1), loc=0, scale=np.exp(spst.norm.rvs(1.97, 0.03, 1)))
+    
+            else:
+                for n in range(len(il)):
+                    Ds[n] = max(0, aet * ((Ms[n, l] + m2)*(self.M_earth/(3*M_star*self.M_sun)))**(-1/3))
+                    pdfP[n] = spst.lognorm.cdf(Ds[n], spst.norm.rvs(0.4, 0.02, 1), loc=0, scale=np.exp(spst.norm.rvs(1.97, 0.03, 1)))
 
-            fP[i] *= spst.norm.cdf(fD[i], loc=dc)
+                fP[i] *= np.average(pdfP, weights=Pinc)
+                Dv[i] = np.average(Ds, weights=Pinc)
 
-        print(datetime.now(), "AFTER FP UPDATE")
+        print(datetime.now(), "AFTER")
 
-        Du = np.arange(0, max(fD) + 1)
+        Du = np.arange(0, 1000)
         fDu = np.zeros(len(Du))
-        trap = np.trapz(fP, P)
 
-        for i in range(len(fD)):
-            j = int(fD[i])
-            fDu[j] += fP[i]/trap
+        for i in range(len(Dv)):
+            j = int(Dv[i])
+            fDu[j] += fP[i]
 
-        print(datetime.now(), "BEFORE CDFP CREATION")
+        cdfP = np.cumsum(fP)
 
-        for i in range(len(P)):
-            cdfP[i] = np.trapz(fP[:i + 1], P[:i + 1])/np.trapz(fP, P)
-
-        print(datetime.now(), "AFTER CDFP CREATION")
-
-        return fP/trap, fDu, cdfP
+        return fP/cdfP[-1], fDu/cdfP[-1], np.cumsum(fP)/cdfP[-1]
 
 
     def epos_rads(self, r1, r2):
         """Generates probability of radius from uniform distribution between minimum and maximum planet radii in system (similar to same-R from Mulders et al. 2018)"""
 
-        R = np.arange(r1, r2, 0.01)
-        fR = np.ones(len(R))/(r2 - r1)
+        R = np.arange(r1, r2, 0.025)
+        pdfR = spst.uniform(r1, r2-r1).pdf(R)
         cdfR = spst.uniform(r1, r2-r1).cdf(R)
     
-        return R, fR/np.trapz(fR, R), cdfR
+        return R, pdfR, cdfR
 
 
 
     def syssim_rads(self, rad):
         """Generates probability of radius using powerlaw or clustered radii from He, Ford, and Ragozzine (2019)"""
 
-        Rmin = float(self.config_parameters["radmin"])
-        Rmax = float(self.config_parameters["radmax"])
-        Rbreak = 3
-        R = np.arange(Rmin, Rmax + 0.01, 0.01)
-        pdfR = np.zeros(len(R))
-        cdfR = np.zeros(len(R))
+        R = np.arange(float(self.config_parameters["radmin"]), float(self.config_parameters["radmax"]) + 0.025, 0.025)
 
         if self.config_parameters["radtype"] == "powerlaw":
             R1 = -1
             R2 = -5
-
-            for i in range(len(R)):
-                pdfR[i] = (R[i]/Rbreak)**R1 if R[i] < Rbreak else (R[i]/Rbreak)**R2
-
-            pdfR = pdfR/np.trapz(pdfR, R)
+            Rbreak = 3
+            pdfR = [(i/Rbreak)**R1 if i < Rbreak else (i/Rbreak)**R2 for i in R]
 
         elif self.config_parameters["radtype"] == "clustered":
             sigmaR = 0.3
             pairwise = [p for p in itertools.combinations(np.arange(len(rad)), 2)]
             allR = []
-
-            print(datetime.now(), "BEFORE ALLR CREATION")
 
             for i in range(len(rad) - 1):
                 for j in range(i + 1, len(rad)):
@@ -1503,74 +1558,30 @@ class dynamite:
                                 reachability_dict[reachability_count].append(sl_pair[0])
                                 changed = True
 
-                return (len(reachability_dict), [ sorted([p+1 for p in cl]) for cl in reachability_dict.values()])
-
-            print(datetime.now(), "BEFORE RAD CLUSTER CREATION")
+                return (len(reachability_dict), [sorted([p+1 for p in cl]) for cl in reachability_dict.values()])
 
             Nc, Np = calc_rad_clusters(np.arange(len(rad)), pairwise, allR)
 
-            print(datetime.now(), "AFTER RAD CLUSTER CREATION")
-
             if Nc == 1:
-                Rcbs = []
-                fRcb = []
-
-                for i in range(len(R)):
-                    test = 0
-
-                    for j in range(len(rad)):
-                        test += spst.lognorm.pdf(rad[j], sigmaR, scale=np.exp(R[i]))
-
-                    Rcbs.append(R[i])
-                    fRcb.append(test)
-
-                Rcb = round(Rcbs[np.where(fRcb == max(fRcb))[0][0]], 2)
+                Rcb = np.round(R[np.argmax([np.sum(spst.lognorm.pdf(rad[k], sigmaR, scale=np.exp(R[i])) for k in range(len(rad))) for i in range(len(R))])], 1)
 
             else:
-                Rcb = []
+                Rcb = np.round([R[np.argmax([np.sum(spst.lognorm.pdf(rad[j-1], sigmaR, scale=np.exp(Ri)) for j in Np[i] for Ri in R)])] for i in range(Nc)], 1)
 
-                for i in range(Nc):
-                    Rcbs = []
-                    fRcb = []
+            
+            fRi = [spst.lognorm.pdf(R, sigmaR, scale=np.exp(Rcb) if Nc == 1 else np.exp(Rcb[i])) for i in range(Nc)]
+            pdfR = [max([fRi[j][i] for j in range(len(fRi))]) for i in range(len(R))]
 
-                    for k in range(len(R)):
-                        test = 0
+        cdfR = np.cumsum(pdfR)
 
-                        for j in Np[i]:
-                            test += spst.lognorm.pdf(rad[j - 1], sigmaR, scale=np.exp(R[k]))
-
-                        Rcbs.append(R[k])
-                        fRcb.append(test)
-
-                    Rcb.append(Rcbs[np.where(fRcb == max(fRcb))[0][0]])
-
-                Rcb = np.array([round(Rcb[i], 2) for i in range(len(Rcb))])
-
-            print(datetime.now(), "AFTER RCB CREATION")
-
-            fRi = []
-
-            for i in range(Nc):
-                fRi.append(spst.lognorm.pdf(R, sigmaR, scale=np.exp(Rcb) if Nc == 1 else np.exp(Rcb[i])))
-
-            for i in range(len(R)):
-                pdfR[i] = max([fRi[j][i] for j in range(len(fRi))])
-
-        print(datetime.now(), "BEFORE CDFR CREATION")
-
-        for i in range(len(R)):
-            cdfR[i] = np.trapz(pdfR[:i + 1], R[:i + 1])/np.trapz(pdfR, R)
-
-        print(datetime.now(), "AFTER CDFR CREATION")
-
-        return R, pdfR/np.trapz(pdfR, R), cdfR
+        return R, pdfR/cdfR[-1], cdfR/cdfR[-1]
 
 
 
     def rayleigh_iso_incs(self, inc, per, GMfp213, R_star):
         """Uses the Rayleigh distribution method from Fabrycky (2015) and the isotropic fraction from Mulders et al. (2018) to determine the system inclination and the distribution of mutual inclinations."""
 
-        il = np.linspace(0, 180.1, 1802)
+        il = np.linspace(0, 180, 361)
         fi = np.zeros(len(il))
         rylgh = 2
         ibs = []
@@ -1582,14 +1593,14 @@ class dynamite:
         if incq == []:
             Pinc = np.sin(il*math.pi/180)
             li = round(np.arccos(R_star*self.R_sun/(GMfp213*(per[0]*self.seconds_per_day)**(2/3)))*180/math.pi, 1)
-            """
+
             for i in range(len(il)):
                 if il[i] >= li and il[i] <= 180 - li:
                     Pinc[i] = 0
-            """
-            Pinc = Pinc/np.trapz(Pinc, il)
 
-            return il, Pinc, np.cumsum(Pinc)*(il[1]-il[0]), np.linspace(0, 180-li, int((180-li)*10)), li
+            cdfi = np.cumsum(Pinc)
+
+            return il, Pinc/cdfi[-1], cdfi/cdfi[-1], np.linspace(0, 180-li, int((180-li)*10)), li
 
         else:
             for case in [[False] + list(t) for t in list(itertools.product([False,True], repeat=len(incq)-1))]:
@@ -1639,11 +1650,9 @@ class dynamite:
         for j in range(len(finew)):
             fi[j] += finew[j]
 
-        fi = fi/np.trapz(fi, il)
-        cdfi = np.cumsum(fi)*(il[1]-il[0])
-        Pinc = fi
+        cdfi = np.cumsum(fi)
 
-        return il, Pinc, cdfi, inew, ib
+        return il, fi/cdfi[-1], cdfi/cdfi[-1], inew, ib
 
 
 
@@ -1681,7 +1690,7 @@ class dynamite:
     def syssim_incs(self, inc, per, GMfp213, R_star):
         """Uses the power-law distributions from He et al. (2020) to determine the median of the mutual inclination lognormal distribution."""
 
-        il = np.linspace(0, 180.1, 1802)
+        il = np.linspace(0, 180, 361)
         fi = np.zeros(len(il))
         ibs = []
         fib = []
@@ -1693,14 +1702,14 @@ class dynamite:
         if incq == []:
             Pinc = np.sin(il*math.pi/180)
             li = round(np.arccos(R_star*self.R_sun/(GMfp213*(per[0]*self.seconds_per_day)**(2/3)))*180/math.pi, 1)
-            """
+
             for i in range(len(il)):
                 if il[i] >= li and il[i] <= 180 - li:
                     Pinc[i] = 0
-            """
-            Pinc = Pinc/np.trapz(Pinc, il)
 
-            return il, Pinc, np.cumsum(Pinc)*(il[1]-il[0]), np.linspace(0, 180-li, int((180-li)*10)), li
+            cdfi = np.cumsum(Pinc)
+
+            return il, Pinc, cdfi/cdfi[-1], np.linspace(0, 180-li, int((180-li)*10)), li
 
         else:
             for case in [[False] + list(t) for t in list(itertools.product([False,True], repeat=len(incq)-1))]:
@@ -1724,11 +1733,9 @@ class dynamite:
         for j in range(len(finew)):
             fi[j] += finew[j]
 
-        fi = fi/np.trapz(fi, il)
-        cdfi = np.cumsum(fi)*(il[1]-il[0])
-        Pinc = fi
+        cdfi = np.cumsum(fi)
 
-        return il, Pinc, cdfi, inew, ib
+        return il, fi/cdfi[-1], cdfi/cdfi[-1], inew, ib
 
 
 
