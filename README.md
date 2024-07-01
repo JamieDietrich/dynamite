@@ -2,7 +2,7 @@
 
 DYNAMITE uses population-level statistics to test models and predict the presence and some characteristics of currently unknown planets in multi-planet systems. The Python source code is located in the "src" directory.
 
-# NEW IN VERSION 3.0
+# New in Version 3.0
 
 Please run dynamite_targets_db.py to create a target database, which if no database or CSV files are created will automatically create one from the NASA Exoplanet Archive table and the ExoFOP-TESS table.
 
