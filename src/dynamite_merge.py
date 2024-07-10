@@ -1,7 +1,7 @@
 ### DYNAmical Multi-planet Injection TEster (DYNAMITE) ###
 ### HPC Multi-Core Merging Capabilities ###
-### Jeremy Dietrich ###
-### jdietrich1@email.arizona.edu ###
+### Jamie Dietrich ###
+### jdietrich@asu.edu ###
 ### 2024 July 1 ###
 ### Version 3.0 ###
 ### Dietrich & Apai (2020), AJ, 160, 107D ###
