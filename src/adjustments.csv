@@ -1,0 +1,25 @@
+tname,pname,dbattr,value,comment
+GJ 414 A,b,pradius,null,"Values predicted in paper, not measured"
+GJ 414 A,b,pradius_unc_upper,null,"Values predicted in paper, not measured"
+GJ 414 A,b,pradius_unc_lower,null,"Values predicted in paper, not measured"
+GJ 414 A,c,pradius,null,"Values predicted in paper, not measured"
+GJ 414 A,c,pradius_unc_upper,null,"Values predicted in paper, not measured"
+GJ 414 A,c,pradius_unc_lower,null,"Values predicted in paper, not measured"
+iot Dra,b,pmass,4970,Msini given but sin(i) known
+iot Dra,b,pmass_type,Msin(i)/sin(i),Msini given but sin(i) known
+iot Dra,c,pmass,5222,Msini given but sin(i) known
+iot Dra,c,pmass_type,Msin(i)/sin(i),Msini given but sin(i) known
+TIC 279401253,,tic_id,279401253,Exoplanet Archive
+TIC 279401253,c,pmass_type,Msin(i)/sin(i),Msini given but sin(i) known
+TOI-431,c,pinc,null,upper limit not parsed correctly
+TOI-431,c,pinc_unc_upper,null,upper limit not parsed correctly
+TOI-431,c,pinc_unc_lower,null,upper limit not parsed correctly
+TOI-487,,smass,0.997,weighted user input from TFOP
+TOI-487,,smass_unc_upper,0.109,weighted user input from TFOP
+TOI-487,,smass_unc_lower,-0.109,weighted user input from TFOP
+TOI-487,2,pradius,2.056,inferred from transit depth and uncertain radius of 01
+TOI-487,2,pradius_unc_upper,2.056,inferred from transit depth and uncertain radius of 01
+TOI-487,2,pradius_unc_lower,-2.056,inferred from transit depth and uncertain radius of 01
+TOI-703,,smass,0.939,weighted user input from TFOP
+TOI-703,,smass_unc_upper,0.133,weighted user input from TFOP
+TOI-703,,smass_unc_lower,-0.133,weighted user input from TFOP
