@@ -1540,7 +1540,7 @@ class dynamite:
 
 
 
-    def inc_test(self, inc, il, incn, sigmas, ):
+    def inc_test(self, inc, il, incn, sigmas, j):
         """Tests the best system inclination."""
 
         ibs = []
