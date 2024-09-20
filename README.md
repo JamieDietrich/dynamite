@@ -4,7 +4,7 @@ DYNAMITE uses population-level statistics to test models and predict the presenc
 
 ## New in Version 3.0
 
-Please run DBArchive.py to create the target database and the CSV files from the NASA Exoplanet Archive table and the ExoFOP-TESS table.
+Please run DBArchive.py first to create the target database and the CSV files from the NASA Exoplanet Archive table and the ExoFOP-TESS table.
 
 Papers:
 
