@@ -1482,10 +1482,10 @@ class dynamite:
         else:
             for case in [[False] + list(t) for t in list(itertools.product([False,True], repeat=len(incq)-1))]:
                 incn.append([180-incq[i] if case[i] else incq[i] for i in range(0, len(incq))])
-
-            ibs, fib = self.ppr.create_processes("inc_test", (inc, il, incn), -len(il), self.process_inc_data)
-            x = np.where(fib == max(fib))[0][0]
-            ib = ibs[x]
+                
+            fib = self.inc_test_no_mp(inc, il, incn, sigmas)
+            #ibs, fib = self.ppr.create_processes("inc_test", (inc, il, incn, sigmas), -len(il), self.process_inc_data)
+            ib = il[np.where(fib == max(fib))[0][0]
 
             if len(incq) < len(inc):
                 while ib + 4 > np.arccos(R_star*self.R_sun/(GMfp213*(per[inc.index("?")]*self.seconds_per_day)**(2/3)))*180/math.pi:
@@ -1540,12 +1540,11 @@ class dynamite:
 
 
 
-    def inc_test(self, inc, il, incn, j):
+    def inc_test(self, inc, il, incn, sigmas, ):
         """Tests the best system inclination."""
 
         ibs = []
         fib = []
-        sigmas = [0.84, 0.85, 0.86, 0.86, 0.85, 0.84, 0.81, 0.79, 0.77]
 
         for k in range(len(incn)):
             test = 0
@@ -1564,7 +1563,24 @@ class dynamite:
 
 
 
-    def syssim_incs(self, inc, per, GMfp213, R_star):
+    def inc_test_no_mp(self, inc, il, incn, sigmas):
+        """Tests the best system inclination."""
+        
+        for k in range(len(incn)):
+            test = 0
+
+            for m in range(len(incn[k])):
+                if self.config_parameters["inclination"] == "rayleigh_iso":
+                    test += spst.rayleigh.pdf(abs(incn[k][m]-il[j]), 2)
+
+                elif self.config_parameters["inclination"] == "syssim":
+                    test += spst.lognorm.pdf(abs(incn[k][m]-il[j]), sigmas[len(inc)-1], scale=1.1*((len(inc)+1)/5)**-1.73)
+        
+        return test
+        
+        
+        
+        def syssim_incs(self, inc, per, GMfp213, R_star):
         """Uses the power-law distributions from He et al. (2020) to determine the median of the mutual inclination lognormal distribution."""
 
         il = np.linspace(0, 180, 361)
@@ -1591,10 +1607,11 @@ class dynamite:
         else:
             for case in [[False] + list(t) for t in list(itertools.product([False,True], repeat=len(incq)-1))]:
                 incn.append([180-incq[i] if case[i] else incq[i] for i in range(0, len(incq))])
-
-            ibs, fib = self.ppr.create_processes("inc_test", (inc, il, incn), -len(il), self.process_inc_data)
-            ib = ibs[np.where(fib == max(fib))[0][0]]
-
+                
+            fib = self.inc_test_no_mp(inc, il, incn, sigmas)
+            #ibs, fib = self.ppr.create_processes("inc_test", (inc, il, incn, sigmas), -len(il), self.process_inc_data)
+            ib = il[np.where(fib == max(fib))[0][0]]
+            
         if ib > 90:
             ilb = ib
             ib = 180 - ib
