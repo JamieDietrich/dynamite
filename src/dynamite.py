@@ -1485,7 +1485,7 @@ class dynamite:
                 
             fib = self.inc_test_no_mp(inc, il, incn, sigmas)
             #ibs, fib = self.ppr.create_processes("inc_test", (inc, il, incn, sigmas), -len(il), self.process_inc_data)
-            ib = il[np.where(fib == max(fib))[0][0]
+            ib = il[np.where(fib == max(fib))[0][0]]
 
             if len(incq) < len(inc):
                 while ib + 4 > np.arccos(R_star*self.R_sun/(GMfp213*(per[inc.index("?")]*self.seconds_per_day)**(2/3)))*180/math.pi:
@@ -1571,16 +1571,16 @@ class dynamite:
 
             for m in range(len(incn[k])):
                 if self.config_parameters["inclination"] == "rayleigh_iso":
-                    test += spst.rayleigh.pdf(abs(incn[k][m]-il[j]), 2)
+                    test += spst.rayleigh.pdf(abs(incn[k][m]-il), 2)
 
                 elif self.config_parameters["inclination"] == "syssim":
-                    test += spst.lognorm.pdf(abs(incn[k][m]-il[j]), sigmas[len(inc)-1], scale=1.1*((len(inc)+1)/5)**-1.73)
+                    test += spst.lognorm.pdf(abs(incn[k][m]-il), sigmas[len(inc)-1], scale=1.1*((len(inc)+1)/5)**-1.73)
         
         return test
         
         
         
-        def syssim_incs(self, inc, per, GMfp213, R_star):
+    def syssim_incs(self, inc, per, GMfp213, R_star):
         """Uses the power-law distributions from He et al. (2020) to determine the median of the mutual inclination lognormal distribution."""
 
         il = np.linspace(0, 180, 361)
