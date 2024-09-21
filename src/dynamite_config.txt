@@ -30,7 +30,7 @@
 
 MC_chain:100000
 mode:single
-system:"HD 219134"
+system:"HR 858"
 period:epos
 radius:syssim
 radtype:clustered
@@ -99,7 +99,7 @@ add_unconfirmed:False
 # toi_csv: the full pathname (if needed) to the Exoplanet Archive TOI Table CSV
 # exofop_csv: the full pathname (if needed) to the ExoFOP CSV
 
-targets_db:
+targets_db:targets.db
 exoplanetarchive_csv:
 comppars_csv:
 toi_csv:
