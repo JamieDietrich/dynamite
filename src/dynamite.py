@@ -19,6 +19,7 @@ import socket
 import rebound
 import itertools
 import numpy as np
+import multiprocessing
 import scipy.stats as spst
 import matplotlib.pyplot as plt
 
@@ -74,8 +75,8 @@ class dynamite:
             self.node_number = 1
             self.num_of_nodes = 1
  
-        interations = int(self.config_parameters["MC_chain"])
-        self.interation_list = [interations // self.num_of_nodes + (1 if x < interations % self.num_of_nodes else 0) for x in range(self.num_of_nodes)]
+        self.interations = int(self.config_parameters["MC_chain"])
+        self.interation_list = [self.interations // self.num_of_nodes + (1 if x < self.interations % self.num_of_nodes else 0) for x in range(self.num_of_nodes)]
         self.seed_start = 0
 
         for node in range(self.node_number - 1):
@@ -98,7 +99,7 @@ class dynamite:
             except:
                 self.write_bf_pred_file((self.G*merged_data[-4][2]*self.M_sun/(4*math.pi**2))**(1/3), merged_data[0], merged_data[3], merged_data[6], merged_data[9], merged_data[-3], merged_data[-2], merged_data[-1], merged_data[11], merged_data[-5][0], merged_data[-4], True)
 
-            with np.load("saved_data_" + target_system.replace(" ", "_") if self.config_parameters["mode"] == "single" else self.config_parameters["mode"] + ".npz", allow_pickle=True) as data:
+            with np.load("saved_data_" + self.config_parameters["system"].replace(" ", "_") if self.config_parameters["mode"] == "single" else self.config_parameters["mode"] + ".npz", allow_pickle=True) as data:
                 Pk, P, PP, Rk, R, PR, ik, il, Pinc, ek, el, Pecc, deltas, tdm, tdle, tdue, tpm, tple, tpue, targets, starvs, pers, rads, mass, eccs = [data["arr_" + str(i)] for i in range(len(data))]
 
             if self.config_parameters["plot"] == "True":
@@ -127,8 +128,8 @@ class dynamite:
                             self.run_plots(data, i)
 
             else:
-                targets_dict = dynamite_targets_db(self.config_parameters["targets_db"]).get_targets(self.config_parameters["mode"], targsys, self.config_parameters["radmax"], self.config_parameters["removed"])
-                limits_dict = dynamite_targets_db(self.config_parameters["targets_db"]).get_limits(self.config_parameters["mode"], targsys, self.config_parameters["radmax"])
+                targets_dict = dynamite_targets_db(self.config_parameters["targets_db"]).get_targets(self.config_parameters["mode"], self.config_parameters["system"], self.config_parameters["radmax"], self.config_parameters["removed"])
+                limits_dict = dynamite_targets_db(self.config_parameters["targets_db"]).get_limits(self.config_parameters["mode"], self.config_parameters["system"], self.config_parameters["radmax"])
 
                 if targets_dict == None or len(targets_dict) == 0:
                     print("Error: No targets selected!")
@@ -137,10 +138,10 @@ class dynamite:
                 Pk, P, PP, Rk, R, PR, ik, il, Pinc, ek, el, Pecc, deltas, tdm, tdle, tdue, tpm, tple, tpue, targets, starvs, pers, rads, mass, eccs = datavars = self.ppr.create_processes("mt_mc", (targets_dict, limits_dict, targlist), -len(targlist), self.process_data)
             
                 if self.num_of_nodes == 1:
-                    np.savez_compressed("saved_data_" + mode + ".npz", *datavars)
+                    np.savez_compressed("saved_data_" + self.config_parameters["mode"] + ".npz", *datavars)
 
                 else:
-                    np.savez_compressed("saved_data_" + mode + "_" + str(self.node_number) + ".npz", *datavars)
+                    np.savez_compressed("saved_data_" + self.config_parameters["mode"] + "_" + str(self.node_number) + ".npz", *datavars)
 
                 if self.config_parameters["plot"] == "True":
                     self.run_plots(datavars)
@@ -499,7 +500,19 @@ class dynamite:
 
         print(datetime.now(), "Running Monte Carlo for", target_name)
 
-        PPi, PRi, Ri, deltasi, stable, val, tim, _Pk, _Rk, _ek, _ik = self.ppr.create_processes("mc_test", (P, fP, PP, cdfP, deltas, R, PR, cdfR, inew, ib, il, cdfi, el, Pecc, em, cdfe, per_tup, rad_tup, mas_tup, inc_tup, ecc_tup, GMfp213, R_star, M_star, limits, indq), -int(self.interation_list[self.node_number - 1]), self.process_mc_data)
+        #PPi, PRi, Ri, deltasi, stable, val, tim, _Pk, _Rk, _ek, _ik = self.ppr.create_processes("mc_test", (P, fP, PP, cdfP, per, deltas, R, PR, cdfR, inew, ib, il, cdfi, el, Pecc, em, cdfe, per_tup, rad_tup, mas_tup, inc_tup, ecc_tup, GMfp213, R_star, M_star, limits, indq), -int(self.interation_list[self.node_number - 1]), self.process_mc_data)
+        res = self.run_new_mp(self.mc_test, np.arange(self.interations), (P, fP, PP, cdfP, per, deltas, R, PR, cdfR, inew, ib, il, cdfi, el, Pecc, em, cdfe, per_tup, rad_tup, mas_tup, inc_tup, ecc_tup, GMfp213, R_star, M_star, limits, indq))
+        results = []
+
+        for j in range(len(res[0])):
+            res1 = []
+
+            for i in range(len(res)):
+                res1.append(res[i][j])
+
+            results.append(res1)
+
+        PPi, PRi, Ri, deltasi, stable, val, tim, _Pk, _Rk, _ek, _ik = results
 
         R = Ri[0]
         PP = np.mean(PPi, axis=0)
@@ -806,9 +819,28 @@ class dynamite:
 
 
 
-    def mc_test(self, P, fP, PP, cdfP, deltas, R, PR, cdfR, inew, ib, il, cdfi, el, Pecc, em, cdfe, per_tup, rad_tup, mas_tup, inc_tup, ecc_tup, GMfp213, R_star, M_star, limits, indq, k):
-        """Runs MC in multi-threading."""
+    def run_new_mp(self, func, arr, mp_args):
+        """Runs new multiprocessing code needed for iOS users."""
 
+        results = []
+
+        if __name__ == "__main__":
+            with multiprocessing.Pool(processes=os.cpu_count()) as pool:
+                args = [(i, mp_args) for i in arr]
+                results = pool.starmap(func, args)
+
+            return results
+
+
+
+    #def mc_test(self, P, fP, PP, cdfP, per, deltas, R, PR, cdfR, inew, ib, il, cdfi, el, Pecc, em, cdfe, per_tup, rad_tup, mas_tup, inc_tup, ecc_tup, GMfp213, R_star, M_star, limits, indq, k):
+
+
+
+    def mc_test(self, k, args):
+        """Runs Monte Carlo in multi-threading."""
+
+        P, fP, PP, cdfP, per, deltas, R, PR, cdfR, inew, ib, il, cdfi, el, Pecc, em, cdfe, per_tup, rad_tup, mas_tup, inc_tup, ecc_tup, GMfp213, R_star, M_star, limits, indq = args
         np.random.seed(self.seed_start + k + np.random.randint(100000))
 
         inc = []
@@ -958,7 +990,7 @@ class dynamite:
 
                     for j in range(0, len(l)):
                         try:
-                            mp = m[j]*self.M_earth
+                            mp = mas[j]*self.M_earth
                             amd[j, it] = Ms*mp/(Ms + mp)*math.sqrt(self.G*(Ms*mp)*l[j].a*self.au)*(1-math.sqrt(1-l[j].e**2)*math.cos(l[j].inc*math.pi/180))
 
                         except ValueError:
@@ -1146,7 +1178,7 @@ class dynamite:
                         if fb:
                             break
 
-        return (PP, PR, R, deltas, accept, val, tim, Pmc, Rmc, emc, imc)
+        return PP, PR, R, deltas, accept, val, tim, Pmc, Rmc, emc, imc
 
 
 
@@ -1193,15 +1225,13 @@ class dynamite:
 
         fP = np.zeros(len(P))
         ind = 0
-        logD = -0.9
-        sigma = 0.41
         PRgrid = np.logspace(0,1)
 
         with np.errstate(divide='ignore'):
             Dgrid = np.log(2.*(PRgrid**(2./3.)-1.)/(PRgrid**(2./3.)+1.))
 
         Dgrid[0] = -4
-        pdfPR = spst.norm(logD, sigma).pdf(Dgrid)
+        pdfPR = spst.norm(-0.9, 0.41).pdf(Dgrid)
         j = 0
 
         for i in range(len(P)):
@@ -1216,7 +1246,7 @@ class dynamite:
             if j < len(per) - 1 and P[i] > per[j+1]:
                 j += 1
 
-            fP[i] = (np.interp(P[i]/per[j], PRgrid, pdfPR) if P[i]/per[j] < 5 else 1)
+            fP[i] = (np.interp(P[i]/per[j], PRgrid, pdfPR) if (P[i]/per[j] < 5 or j == len(per) - 1) else 1)
 
             if j != len(per) - 1:
                 fP[i] *= (np.interp(per[j+1]/P[i], PRgrid, pdfPR) if per[j+1]/P[i] < 5 else 1)
@@ -1482,10 +1512,18 @@ class dynamite:
         else:
             for case in [[False] + list(t) for t in list(itertools.product([False,True], repeat=len(incq)-1))]:
                 incn.append([180-incq[i] if case[i] else incq[i] for i in range(0, len(incq))])
-                
-            fib = self.inc_test_no_mp(inc, il, incn, sigmas)
-            #ibs, fib = self.ppr.create_processes("inc_test", (inc, il, incn, sigmas), -len(il), self.process_inc_data)
-            ib = il[np.where(fib == max(fib))[0][0]]
+
+            fib = self.run_new_mp(self.inc_test, il, (inc, incn, sigmas))
+            mv = 0
+            ib = 0
+
+            for i in range(len(fib)):
+                if max(fib[i]) > mv:
+                    ib = il[i]
+                    mv = max(fib[i])
+            """
+            ibs, fib = self.ppr.create_processes("inc_test_old", (inc, il, incn, sigmas), -len(il), self.process_inc_data)
+            ib = ibs[np.where(fib == max(fib))[0][0]]
 
             if len(incq) < len(inc):
                 while ib + 4 > np.arccos(R_star*self.R_sun/(GMfp213*(per[inc.index("?")]*self.seconds_per_day)**(2/3)))*180/math.pi:
@@ -1493,7 +1531,7 @@ class dynamite:
                     fib = np.delete(fib, x)
                     x = np.where(fib == max(fib))[0][0]
                     ib = ibs[x]
-
+            """
         if ib > 90:
             ilb = round(ib, 1)
             ib = round(180 - ib, 1)
@@ -1540,9 +1578,8 @@ class dynamite:
 
 
 
-    def inc_test(self, inc, il, incn, sigmas, j):
+    def inc_test_old(self, inc, il, incn, sigmas, j):
         """Tests the best system inclination."""
-
         ibs = []
         fib = []
 
@@ -1563,23 +1600,28 @@ class dynamite:
 
 
 
-    def inc_test_no_mp(self, inc, il, incn, sigmas):
+    def inc_test(self, j, args):
         """Tests the best system inclination."""
-        
+
+        inc, incn, sigmas = args
+        fib = []
+
         for k in range(len(incn)):
             test = 0
 
             for m in range(len(incn[k])):
                 if self.config_parameters["inclination"] == "rayleigh_iso":
-                    test += spst.rayleigh.pdf(abs(incn[k][m]-il), 2)
+                    test += spst.rayleigh.pdf(abs(incn[k][m]-j), 2)
 
                 elif self.config_parameters["inclination"] == "syssim":
-                    test += spst.lognorm.pdf(abs(incn[k][m]-il), sigmas[len(inc)-1], scale=1.1*((len(inc)+1)/5)**-1.73)
-        
-        return test
-        
-        
-        
+                    test += spst.lognorm.pdf(abs(incn[k][m]-j), sigmas[len(inc)-1], scale=1.1*((len(inc)+1)/5)**-1.73)
+
+            fib.append(test)
+            
+        return fib
+
+
+
     def syssim_incs(self, inc, per, GMfp213, R_star):
         """Uses the power-law distributions from He et al. (2020) to determine the median of the mutual inclination lognormal distribution."""
 
@@ -1607,11 +1649,19 @@ class dynamite:
         else:
             for case in [[False] + list(t) for t in list(itertools.product([False,True], repeat=len(incq)-1))]:
                 incn.append([180-incq[i] if case[i] else incq[i] for i in range(0, len(incq))])
-                
-            fib = self.inc_test_no_mp(inc, il, incn, sigmas)
-            #ibs, fib = self.ppr.create_processes("inc_test", (inc, il, incn, sigmas), -len(il), self.process_inc_data)
-            ib = il[np.where(fib == max(fib))[0][0]]
             
+            fib = self.run_new_mp(self.inc_test, il, (inc, incn, sigmas))
+            mv = 0
+            ib = 0
+
+            for i in range(len(fib)):
+                if max(fib[i]) > mv:
+                    ib = il[i]
+                    mv = max(fib[i])
+            
+            #ibs, fib = self.ppr.create_processes("inc_test_old", (inc, il, incn, sigmas), -len(il), self.process_inc_data)
+            #ib = ibs[np.where(fib == max(fib))[0][0]]
+
         if ib > 90:
             ilb = ib
             ib = 180 - ib
