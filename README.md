@@ -17,3 +17,5 @@ Dietrich, Apai, & Malhotra 2022, AJ, 163, 88 https://iopscience.iop.org/article/
 Basant, Dietrich, & Apai 2022, AJ, 164, 12 https://iopscience.iop.org/article/10.3847/1538-3881/ac6f58
 
 Basant, Dietrich, & Apai 2022, RNAAS, 6, 213 https://iopscience.iop.org/article/10.3847/2515-5172/ac9ab8
+
+Dietrich 2024, AJ, 168, 119 https://iopscience.iop.org/article/10.3847/1538-3881/ad60c6
