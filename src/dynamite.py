@@ -18,6 +18,7 @@ import math
 import socket
 import rebound
 import itertools
+import concurrent
 import numpy as np
 import multiprocessing
 import scipy.stats as spst
@@ -822,12 +823,16 @@ class dynamite:
     def run_new_mp(self, func, arr, mp_args):
         """Runs new multiprocessing code needed for iOS users."""
 
-        results = []
-
         if __name__ == "__main__":
-            with multiprocessing.Pool(processes=os.cpu_count()) as pool:
-                args = [(i, mp_args) for i in arr]
-                results = pool.starmap(func, args)
+            if sys.platform == "linux":
+                with multiprocessing.Pool(processes=os.cpu_count()) as pool:
+                    args = [(i, mp_args) for i in arr]
+                    results = pool.starmap(func, args)
+
+            else:
+                with concurrent.futures.ProcessPoolExecutor(max_workers=os.cpu_count()) as executor:
+                    futures = [executor.submit(func, i, mp_args) for i in arr]
+                    results = [future.result() for future in concurrent.futures.as_completed(futures)]
 
             return results
 
