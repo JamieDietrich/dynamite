@@ -18,10 +18,9 @@ import math
 import socket
 import rebound
 import itertools
-import concurrent
 import numpy as np
-import multiprocessing
 import scipy.stats as spst
+import multiprocessing as mp
 import matplotlib.pyplot as plt
 
 from PPR import PPR
@@ -824,15 +823,9 @@ class dynamite:
         """Runs new multiprocessing code needed for iOS users."""
 
         if __name__ == "__main__":
-            if sys.platform == "linux":
-                with multiprocessing.Pool(processes=os.cpu_count()) as pool:
-                    args = [(i, mp_args) for i in arr]
-                    results = pool.starmap(func, args)
-
-            else:
-                with concurrent.futures.ProcessPoolExecutor(max_workers=os.cpu_count()) as executor:
-                    futures = [executor.submit(func, i, mp_args) for i in arr]
-                    results = [future.result() for future in concurrent.futures.as_completed(futures)]
+            with mp.get_context("fork").Pool(processes=os.cpu_count() - 1) as pool:
+                args = [(i, mp_args) for i in arr]
+                results = pool.starmap(func, args)
 
             return results
 
