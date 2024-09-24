@@ -822,12 +822,11 @@ class dynamite:
     def run_new_mp(self, func, arr, mp_args):
         """Runs new multiprocessing code needed for iOS users."""
 
-        if __name__ == "__main__":
-            with mp.get_context("fork").Pool(processes=os.cpu_count() - 1) as pool:
-                args = [(i, mp_args) for i in arr]
-                results = pool.starmap(func, args)
+        with mp.get_context("spawn").Pool(processes=mp.cpu_count() - 1) as pool:
+            args = [(i, mp_args) for i in arr]
+            results = pool.starmap(func, args)
 
-            return results
+        return results
 
 
 
