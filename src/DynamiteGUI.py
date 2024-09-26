@@ -78,12 +78,12 @@ class DynamiteGUI:
         self.root = Tkinter.Tk()
         self.root.minsize(1200, 400)
         self.dbname = dbname 
-        
+
         if (len(sys.argv)  >=  2):
             self.load_config_data(sys.argv[1])
         else:
             self.load_config_data("dynamite_config.txt")
-        
+
         if self.dbname == None:
             self.dbname = self.config_parameters["targets_db"]
         self.load_database()
@@ -707,7 +707,7 @@ class DynamiteGUI:
         try:
             self.config_parameters = {}
             try:
-                config_data = np.loadtxt(filename, dtype = str, delimiter = '::')
+                config_data = np.loadtxt(filename, dtype = str, delimiter = ':')
                 with open(filename) as tfile:
                     data = tfile.readlines()
                 self.tooltips = {}
@@ -836,16 +836,16 @@ class DynamiteGUI:
             with open(self.config_file, "w") as cfile:
                 file_config_entries = []
                 for l in data:
-                    if "::" not in l:
+                    if ":" not in l:
                         cfile.write(l)
                     else:
-                        parts = l.strip().split("::")
+                        parts = l.strip().split(":")
                         file_config_entries.append(parts[0])
                         found = False
                         for entry in self.config_entries.keys():
                             if parts[0] == entry:
                                 found = True
-                                cfile.write(parts[0] + "::" + str(self.config_entries[entry].get()) + "\n")
+                                cfile.write(parts[0] + ":" + str(self.config_entries[entry].get()) + "\n")
                                 break
                         if not found:
                             cfile.write(l)
@@ -856,7 +856,7 @@ class DynamiteGUI:
                             found = True
                             break
                     if not found:
-                        cfile.write(entry + "::" + str(self.config_entries[entry].get()) + "\n")
+                        cfile.write(entry + ":" + str(self.config_entries[entry].get()) + "\n")
         except Exception as e:
             print(e)    
 
@@ -868,8 +868,8 @@ class DynamiteGUI:
             changed = False
             c_count = 0
             for l in data:
-                if "::" in l:
-                    parts = l.strip().split("::")
+                if ":" in l:
+                    parts = l.strip().split(":")
                     c_count += 1
                     for entry in self.config_entries.keys(): 
                         if entry == "plt_colors":
