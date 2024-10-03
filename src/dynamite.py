@@ -501,7 +501,13 @@ class dynamite:
         print(datetime.now(), "Running Monte Carlo for", target_name)
 
         #PPi, PRi, Ri, deltasi, stable, val, tim, _Pk, _Rk, _ek, _ik = self.ppr.create_processes("mc_test", (P, fP, PP, cdfP, per, deltas, R, PR, cdfR, inew, ib, il, cdfi, el, Pecc, em, cdfe, per_tup, rad_tup, mas_tup, inc_tup, ecc_tup, GMfp213, R_star, M_star, limits, indq), -int(self.interation_list[self.node_number - 1]), self.process_mc_data)
-        res = self.run_new_mp(self.mc_test, np.arange(self.interations), (P, fP, PP, cdfP, per, deltas, R, PR, cdfR, inew, ib, il, cdfi, el, Pecc, em, cdfe, per_tup, rad_tup, mas_tup, inc_tup, ecc_tup, GMfp213, R_star, M_star, limits, indq))
+
+        if sys.platform == "darwin":
+            res = [self.mc_test(i, (P, fP, PP, cdfP, per, deltas, R, PR, cdfR, inew, ib, il, cdfi, el, Pecc, em, cdfe, per_tup, rad_tup, mas_tup, inc_tup, ecc_tup, GMfp213, R_star, M_star, limits, indq)) for i in np.arange(self.interations)]
+
+        else:
+            res = self.run_new_mp(self.mc_test, np.arange(self.interations), (P, fP, PP, cdfP, per, deltas, R, PR, cdfR, inew, ib, il, cdfi, el, Pecc, em, cdfe, per_tup, rad_tup, mas_tup, inc_tup, ecc_tup, GMfp213, R_star, M_star, limits, indq))
+
         results = []
 
         for j in range(len(res[0])):
@@ -822,7 +828,7 @@ class dynamite:
     def run_new_mp(self, func, arr, mp_args):
         """Runs new multiprocessing code needed for iOS users."""
 
-        with mp.get_context("spawn").Pool(processes=mp.cpu_count() - 1) as pool:
+        with mp.Pool(processes=mp.cpu_count() - 1) as pool:
             args = [(i, mp_args) for i in arr]
             results = pool.starmap(func, args)
 
@@ -1510,7 +1516,12 @@ class dynamite:
             for case in [[False] + list(t) for t in list(itertools.product([False,True], repeat=len(incq)-1))]:
                 incn.append([180-incq[i] if case[i] else incq[i] for i in range(0, len(incq))])
 
-            fib = self.run_new_mp(self.inc_test, il, (inc, incn, sigmas))
+            if sys.platform == "darwin":
+                fib = [self.inc_test(i, (inc, incn, sigmas)) for i in il]
+
+            else:
+                fib = self.run_new_mp(self.inc_test, il, (inc, incn, sigmas))
+
             mv = 0
             ib = 0
 
@@ -1647,7 +1658,12 @@ class dynamite:
             for case in [[False] + list(t) for t in list(itertools.product([False,True], repeat=len(incq)-1))]:
                 incn.append([180-incq[i] if case[i] else incq[i] for i in range(0, len(incq))])
             
-            fib = self.run_new_mp(self.inc_test, il, (inc, incn, sigmas))
+            if sys.platform == "darwin":
+                fib = [self.inc_test(i, (inc, incn, sigmas)) for i in il]
+
+            else:
+                fib = self.run_new_mp(self.inc_test, il, (inc, incn, sigmas))
+
             mv = 0
             ib = 0
 
