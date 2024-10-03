@@ -88,7 +88,8 @@ class dynamite:
         except:
             processes = None
 
-        self.ppr = PPR((self, None), processes)
+        if sys.platform != "darwin":
+            self.ppr = PPR((self, None), processes)
 
         if merged_data != None:
             try:
@@ -174,7 +175,9 @@ class dynamite:
                         self.saved_writing(datavars, i)
 
         print(datetime.now(), "Finishing DYNAMITE")
-        self.ppr.terminate_PPR()
+
+        if sys.platform != "darwin":
+            self.ppr.terminate_PPR()
 
 
 
@@ -272,7 +275,7 @@ class dynamite:
 
         Pk, P, PP, Rk, R, PR, ik, il, Pinc, ek, el, Pecc, deltas, tdm, tdle, tdue, tpm, tple, tpue, targets, starvs, pers, rads, mass, eccs = data
         print(datetime.now(), "Creating Plots")
-        dynamite_plots(Pk, P, PP, Rk, R, PR, ik, il, Pinc, ek, el, Pecc, deltas, tdm, tdle, tdue, tpm, tple, tpue, targets, starvs, pers, rads, mass, eccs, targsys, self.cfname, self.ppr)
+        dynamite_plots(Pk, P, PP, Rk, R, PR, ik, il, Pinc, ek, el, Pecc, deltas, tdm, tdle, tdue, tpm, tple, tpue, targets, starvs, pers, rads, mass, eccs, targsys, self.cfname, (self.ppr if sys.platform != "darwin" else None))
 
 
 
@@ -502,11 +505,11 @@ class dynamite:
 
         #PPi, PRi, Ri, deltasi, stable, val, tim, _Pk, _Rk, _ek, _ik = self.ppr.create_processes("mc_test", (P, fP, PP, cdfP, per, deltas, R, PR, cdfR, inew, ib, il, cdfi, el, Pecc, em, cdfe, per_tup, rad_tup, mas_tup, inc_tup, ecc_tup, GMfp213, R_star, M_star, limits, indq), -int(self.interation_list[self.node_number - 1]), self.process_mc_data)
 
-        if sys.platform == "darwin":
-            res = [self.mc_test(i, (P, fP, PP, cdfP, per, deltas, R, PR, cdfR, inew, ib, il, cdfi, el, Pecc, em, cdfe, per_tup, rad_tup, mas_tup, inc_tup, ecc_tup, GMfp213, R_star, M_star, limits, indq)) for i in np.arange(self.interations)]
+        #if sys.platform == "darwin":
+        #    res = [self.mc_test(i, (P, fP, PP, cdfP, per, deltas, R, PR, cdfR, inew, ib, il, cdfi, el, Pecc, em, cdfe, per_tup, rad_tup, mas_tup, inc_tup, ecc_tup, GMfp213, R_star, M_star, limits, indq)) for i in np.arange(self.interations)]
 
-        else:
-            res = self.run_new_mp(self.mc_test, np.arange(self.interations), (P, fP, PP, cdfP, per, deltas, R, PR, cdfR, inew, ib, il, cdfi, el, Pecc, em, cdfe, per_tup, rad_tup, mas_tup, inc_tup, ecc_tup, GMfp213, R_star, M_star, limits, indq))
+        #else:
+        res = self.run_new_mp(self.mc_test, np.arange(self.interations), (P, fP, PP, cdfP, per, deltas, R, PR, cdfR, inew, ib, il, cdfi, el, Pecc, em, cdfe, per_tup, rad_tup, mas_tup, inc_tup, ecc_tup, GMfp213, R_star, M_star, limits, indq))
 
         results = []
 
@@ -1516,11 +1519,11 @@ class dynamite:
             for case in [[False] + list(t) for t in list(itertools.product([False,True], repeat=len(incq)-1))]:
                 incn.append([180-incq[i] if case[i] else incq[i] for i in range(0, len(incq))])
 
-            if sys.platform == "darwin":
-                fib = [self.inc_test(i, (inc, incn, sigmas)) for i in il]
+            #if sys.platform == "darwin":
+            #    fib = [self.inc_test(i, (inc, incn, sigmas)) for i in il]
 
-            else:
-                fib = self.run_new_mp(self.inc_test, il, (inc, incn, sigmas))
+            #else:
+            fib = self.run_new_mp(self.inc_test, il, (inc, incn, sigmas))
 
             mv = 0
             ib = 0
@@ -1658,11 +1661,11 @@ class dynamite:
             for case in [[False] + list(t) for t in list(itertools.product([False,True], repeat=len(incq)-1))]:
                 incn.append([180-incq[i] if case[i] else incq[i] for i in range(0, len(incq))])
             
-            if sys.platform == "darwin":
-                fib = [self.inc_test(i, (inc, incn, sigmas)) for i in il]
+            #if sys.platform == "darwin":
+            #    fib = [self.inc_test(i, (inc, incn, sigmas)) for i in il]
 
-            else:
-                fib = self.run_new_mp(self.inc_test, il, (inc, incn, sigmas))
+            #else:
+            fib = self.run_new_mp(self.inc_test, il, (inc, incn, sigmas))
 
             mv = 0
             ib = 0
