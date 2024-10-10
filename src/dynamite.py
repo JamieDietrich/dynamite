@@ -88,7 +88,7 @@ class dynamite:
         except:
             processes = None
 
-        if sys.platform != "darwin":
+        if sys.platform != "darwin" and os.cpu_count() > 16:
             self.ppr = PPR((self, None), processes)
 
         if merged_data != None:
@@ -136,8 +136,13 @@ class dynamite:
                     print("Error: No targets selected!")
                     exit()
                 targlist = [tn for tn in targets_dict.keys()]
-                Pk, P, PP, Rk, R, PR, ik, il, Pinc, ek, el, Pecc, deltas, tdm, tdle, tdue, tpm, tple, tpue, targets, starvs, pers, rads, mass, eccs = datavars = self.ppr.create_processes("mt_mc", (targets_dict, limits_dict, targlist), -len(targlist), self.process_data)
-            
+
+                if sys.platform != "darwin" and os.cpu_count() > 16:
+                    Pk, P, PP, Rk, R, PR, ik, il, Pinc, ek, el, Pecc, deltas, tdm, tdle, tdue, tpm, tple, tpue, targets, starvs, pers, rads, mass, eccs = datavars = self.ppr.create_processes("mt_mc", (targets_dict, limits_dict, targlist), -len(targlist), self.process_data)
+
+                else:
+                    Pk, P, PP, Rk, R, PR, ik, il, Pinc, ek, el, Pecc, deltas, tdm, tdle, tdue, tpm, tple, tpue, targets, starvs, pers, rads, mass, eccs = datavars = self.run_new_mp(self.mt_mc, np.arange(len(targlist)), (targets_dict, limits_dict, targlist))
+
                 if self.num_of_nodes == 1:
                     np.savez_compressed("saved_data_" + self.config_parameters["mode"] + ".npz", *datavars)
 
@@ -157,7 +162,9 @@ class dynamite:
                             datavars.append(data["arr_" + str(i)])
 
                     self.saved_writing(datavars, self.config_parameters["system"])
-                    self.ppr.terminate_PPR()
+
+                    if sys.platform != "darwin" and os.cpu_count() > 16:
+                        self.ppr.terminate_PPR()
 
                 elif isinstance(self.config_parameters["system"], list):
                     with open("table_" + self.config_parameters["mode"] + "_" + self.config_parameters["period"] + "_run_" + self.startdatetime + ".txt", "w") as f:
@@ -176,7 +183,7 @@ class dynamite:
 
         print(datetime.now(), "Finishing DYNAMITE")
 
-        if sys.platform != "darwin":
+        if sys.platform != "darwin" and os.cpu_count() > 16:
             self.ppr.terminate_PPR()
 
 
@@ -210,6 +217,7 @@ class dynamite:
             exit()
 
         alt_name, R_star, Rse, M_star, Mse, target, target_name, limits = self.set_up(targets_dict, limits_dict, targsys)
+        target = [i[:-1] for i in target]
         targ_rem = []
 
         for i in range(len(target) - 1 if len(self.config_parameters["removed"]) > 0 else len(target)):
@@ -275,7 +283,7 @@ class dynamite:
 
         Pk, P, PP, Rk, R, PR, ik, il, Pinc, ek, el, Pecc, deltas, tdm, tdle, tdue, tpm, tple, tpue, targets, starvs, pers, rads, mass, eccs = data
         print(datetime.now(), "Creating Plots")
-        dynamite_plots(Pk, P, PP, Rk, R, PR, ik, il, Pinc, ek, el, Pecc, deltas, tdm, tdle, tdue, tpm, tple, tpue, targets, starvs, pers, rads, mass, eccs, targsys, self.cfname, (self.ppr if sys.platform != "darwin" else None))
+        dynamite_plots(Pk, P, PP, Rk, R, PR, ik, il, Pinc, ek, el, Pecc, deltas, tdm, tdle, tdue, tpm, tple, tpue, targets, starvs, pers, rads, mass, eccs, targsys, self.cfname, (self.ppr if (sys.platform != "darwin" and os.cpu_count() > 16) else None))
 
 
 
@@ -432,6 +440,31 @@ class dynamite:
         mas_tup = [target[i][2] for i in range(len(target))]
         inc_tup = [target[i][3] for i in range(len(target))]
         ecc_tup = [target[i][4] for i in range(len(target))]
+        accept = "NO"
+        itr = 0
+
+        while accept != "YES" and itr < 100:
+            inct = [self.random_val_from_tup(i) if i[0] != "?" else 90 for i in inc_tup]
+            ecct = [self.random_val_from_tup(i) if i[0] != "?" else 0 for i in ecc_tup]
+            pert = [self.random_val_from_tup(i) for i in per_tup]
+            mast = [self.random_val_from_tup(mas_tup[i]) if mas_tup[i][3] != "Msini" else (self.random_val_from_tup(mas_tup[i])/np.sin(inct[i]*math.pi/180) if inct[i] != 0 and inct[i] != "?" else self.random_val_from_tup(mas_tup[i])*self.M_sun/self.M_earth) for i in range(len(mas_tup))]
+            radt = [self.random_val_from_tup(rad_tup[i]) if mas_tup[i][3] != "Msini" else self.mr_convert(mast[i], "radius") for i in range(len(rad_tup))]
+            D = np.zeros(len(pert) - 1)
+
+            for i in range(len(D)):
+                a1 = GMfp213*(pert[i]*self.seconds_per_day)**(2/3)
+                a2 = GMfp213*(pert[i+1]*self.seconds_per_day)**(2/3)
+                e1 = ecct[i]
+                e2 = ecct[i+1]
+                D[i] = 2*(a2*(1 - e2) - a1*(1 + e1))/(a2 + a1) * ((mast[i] + mast[i+1])*self.M_earth/(3*M_star*self.M_sun))**(-1/3)
+
+            accept, _, _ = self.run_stability_analysis(D, M_star, pert, None, mast, inct, ecct, None, None, None, GMfp213, limits)
+            itr += 1
+
+        if itr == 100:
+            for i in range(len(ecc_tup)):
+                if ecc_tup[i][0] != "?":
+                    ecc_tup[i] = (0, ecc_tup[i][1], ecc_tup[i][2])
 
         indq = False
 
@@ -503,25 +536,22 @@ class dynamite:
 
         print(datetime.now(), "Running Monte Carlo for", target_name)
 
-        #PPi, PRi, Ri, deltasi, stable, val, tim, _Pk, _Rk, _ek, _ik = self.ppr.create_processes("mc_test", (P, fP, PP, cdfP, per, deltas, R, PR, cdfR, inew, ib, il, cdfi, el, Pecc, em, cdfe, per_tup, rad_tup, mas_tup, inc_tup, ecc_tup, GMfp213, R_star, M_star, limits, indq), -int(self.interation_list[self.node_number - 1]), self.process_mc_data)
+        if sys.platform != "darwin" and os.cpu_count() > 16:
+            PPi, PRi, Ri, deltasi, stable, val, tim, _Pk, _Rk, _ek, _ik = self.ppr.create_processes("mc_test", -int(self.interation_list[self.node_number - 1]), (P, fP, PP, cdfP, per, deltas, R, PR, cdfR, inew, ib, il, cdfi, el, Pecc, em, cdfe, per_tup, rad_tup, mas_tup, inc_tup, ecc_tup, GMfp213, R_star, M_star, limits, indq), self.process_mc_data)
 
-        #if sys.platform == "darwin":
-        #    res = [self.mc_test(i, (P, fP, PP, cdfP, per, deltas, R, PR, cdfR, inew, ib, il, cdfi, el, Pecc, em, cdfe, per_tup, rad_tup, mas_tup, inc_tup, ecc_tup, GMfp213, R_star, M_star, limits, indq)) for i in np.arange(self.interations)]
+        else:
+            res = self.run_new_mp(self.mc_test, np.arange(self.interations), (P, fP, PP, cdfP, per, deltas, R, PR, cdfR, inew, ib, il, cdfi, el, Pecc, em, cdfe, per_tup, rad_tup, mas_tup, inc_tup, ecc_tup, GMfp213, R_star, M_star, limits, indq))
+            results = []
 
-        #else:
-        res = self.run_new_mp(self.mc_test, np.arange(self.interations), (P, fP, PP, cdfP, per, deltas, R, PR, cdfR, inew, ib, il, cdfi, el, Pecc, em, cdfe, per_tup, rad_tup, mas_tup, inc_tup, ecc_tup, GMfp213, R_star, M_star, limits, indq))
+            for j in range(len(res[0])):
+                res1 = []
 
-        results = []
+                for i in range(len(res)):
+                    res1.append(res[i][j])
 
-        for j in range(len(res[0])):
-            res1 = []
+                results.append(res1)
 
-            for i in range(len(res)):
-                res1.append(res[i][j])
-
-            results.append(res1)
-
-        PPi, PRi, Ri, deltasi, stable, val, tim, _Pk, _Rk, _ek, _ik = results
+            PPi, PRi, Ri, deltasi, stable, val, tim, _Pk, _Rk, _ek, _ik = results
 
         R = Ri[0]
         PP = np.mean(PPi, axis=0)
@@ -831,7 +861,7 @@ class dynamite:
     def run_new_mp(self, func, arr, mp_args):
         """Runs new multiprocessing code needed for iOS users."""
 
-        with mp.Pool(processes=mp.cpu_count() - 1) as pool:
+        with mp.Pool(processes=mp.cpu_count()) as pool:
             args = [(i, mp_args) for i in arr]
             results = pool.starmap(func, args)
 
@@ -848,74 +878,85 @@ class dynamite:
 
         P, fP, PP, cdfP, per, deltas, R, PR, cdfR, inew, ib, il, cdfi, el, Pecc, em, cdfe, per_tup, rad_tup, mas_tup, inc_tup, ecc_tup, GMfp213, R_star, M_star, limits, indq = args
         np.random.seed(self.seed_start + k + np.random.randint(100000))
+        accept = "NO"
+        itr = 0
 
-        inc = []
-        ecc = []
+        while accept != "YES" and itr < 100:
+            inc = []
+            ecc = []
 
-        for i in range(len(inc_tup)):
-            inc.append(self.random_val_from_tup(inc_tup[i]) if inc_tup[i][0] != "?" else "?")
-            ecc.append(self.random_val_from_tup(ecc_tup[i]) if ecc_tup[i][0] != "?" else "?")
+            for i in range(len(inc_tup)):
+                inc.append(self.random_val_from_tup(inc_tup[i]) if inc_tup[i][0] != "?" else "?")
+                ecc.append(self.random_val_from_tup(ecc_tup[i]) if ecc_tup[i][0] != "?" else "?")
 
-        emc = self.cdf_draw(el, np.random.rand(), cdfe)
+            emc = self.cdf_draw(el, np.random.rand(), cdfe)
 
-        for j in range(len(ecc)):
-            if ecc[j] == "?":
-                ecc[j] = self.cdf_draw(el, np.random.rand(), cdfe)
+            for j in range(len(ecc)):
+                if ecc[j] == "?":
+                    ecc[j] = self.cdf_draw(el, np.random.rand(), cdfe)
 
-        if len(cdfi) == 0:
-            fiq = [np.sin(il[j]*math.pi/180) for j in range(len(il))]
-            cdfiq = np.cumsum(fiq)*(il[1]-il[0])
-            ib = self.cdf_draw(il, np.random.rand(), cdfiq)
+            if len(cdfi) == 0:
+                fiq = [np.sin(il[j]*math.pi/180) for j in range(len(il))]
+                cdfiq = np.cumsum(fiq)*(il[1]-il[0])
+                ib = self.cdf_draw(il, np.random.rand(), cdfiq)
 
-            if ib > 90:
-                it = round(180 - ib, 1)
+                if ib > 90:
+                    it = round(180 - ib, 1)
 
-            else:
-                it = round(ib, 1)
+                else:
+                    it = round(ib, 1)
 
-            if np.array(inc).any() == "?":
-                while it + 4 > np.arccos(R_star*self.R_sun/(GMfp213*(per[inc.index("?")]*self.seconds_per_day)**(2/3))*180/math.pi):
-                    ib = self.cdf_draw(il, np.random.rand(), cdfiq)
+                if np.array(inc).any() == "?":
+                    while it + 4 > np.arccos(R_star*self.R_sun/(GMfp213*(per[inc.index("?")]*self.seconds_per_day)**(2/3))*180/math.pi):
+                        ib = self.cdf_draw(il, np.random.rand(), cdfiq)
 
-                    if ib > 90:
-                        it = round(180 - ib, 1)
+                        if ib > 90:
+                            it = round(180 - ib, 1)
 
-                    else:
-                        it = round(ib, 1)
+                        else:
+                            it = round(ib, 1)
 
-        if self.config_parameters["inclination"] == "rayleigh_iso":
-            for j in range(len(inc)):
-                if inc[j] == "?":
-                    inc[j] = self.inc_draw(inc, cdfi, inew, ib, il)
+            if self.config_parameters["inclination"] == "rayleigh_iso":
+                for j in range(len(inc)):
+                    if inc[j] == "?":
+                        inc[j] = self.inc_draw(inc, cdfi, inew, ib, il)
 
-                if inc[j] < 0:
-                    inc[j] = -inc[j]
+                    if inc[j] < 0:
+                        inc[j] = -inc[j]
 
-            imc = self.inc_draw(inc, cdfi, inew, ib, il)
+                imc = self.inc_draw(inc, cdfi, inew, ib, il)
 
-            if imc < 0:
-                imc = -imc
+                if imc < 0:
+                    imc = -imc
 
-        elif self.config_parameters["inclination"] == "syssim":
-            for j in range(len(inc)):
-                if inc[j] == "?":
-                    inc[j] = self.cdf_draw(il, np.random.rand(), cdfi)
+            elif self.config_parameters["inclination"] == "syssim":
+                for j in range(len(inc)):
+                    if inc[j] == "?":
+                        inc[j] = self.cdf_draw(il, np.random.rand(), cdfi)
 
-                if inc[j] < 0:
-                    inc[j] = -inc[j]
+                    if inc[j] < 0:
+                        inc[j] = -inc[j]
 
-            imc = self.cdf_draw(il, np.random.rand(), cdfi)
+                imc = self.cdf_draw(il, np.random.rand(), cdfi)
 
-            if imc < 0:
-                imc = -imc
+                if imc < 0:
+                    imc = -imc
 
-        per = [self.random_val_from_tup(i) for i in per_tup]
-        mas = [self.random_val_from_tup(mas_tup[i]) if mas_tup[i][3] != "Msini" else (self.random_val_from_tup(mas_tup[i])/np.sin(inc[i]*math.pi/180) if inc[i] != 0 else M_star*self.M_sun/self.M_earth) for i in range(len(mas_tup))]
-        rad = [self.random_val_from_tup(rad_tup[i]) if mas_tup[i][3] != "Msini" else self.mr_convert(mas[i], "radius") for i in range(len(rad_tup))]
+            per = [self.random_val_from_tup(i) for i in per_tup]
+            mas = [self.random_val_from_tup(mas_tup[i]) if mas_tup[i][3] != "Msini" else (self.random_val_from_tup(mas_tup[i])/np.sin(inc[i]*math.pi/180) if inc[i] != 0 else M_star*self.M_sun/self.M_earth) for i in range(len(mas_tup))]
+            rad = [self.random_val_from_tup(rad_tup[i]) if mas_tup[i][3] != "Msini" else self.mr_convert(mas[i], "radius") for i in range(len(rad_tup))]
+            D = np.zeros(len(per) - 1)
 
-        accept = "YES"
-        val = 0
-        tim = 0
+            for i in range(len(D)):
+                a1 = GMfp213*(per[i]*self.seconds_per_day)**(2/3)
+                a2 = GMfp213*(per[i+1]*self.seconds_per_day)**(2/3)
+                e1 = ecc[i]
+                e2 = ecc[i+1]
+                D[i] = 2*(a2*(1 - e2) - a1*(1 + e1))/(a2 + a1) * ((mas[i] + mas[i+1])*self.M_earth/(3*M_star*self.M_sun))**(-1/3)
+
+            accept, _, _ = self.run_stability_analysis(D, M_star, per, None, mas, inc, ecc, None, None, None, GMfp213, limits)
+            itr += 1
+
         Pmc = self.cdf_draw(P, np.random.rand(), cdfP)
         Rmc = self.cdf_draw(R, np.random.rand(), cdfR)
         Mmc = self.mr_convert(Rmc, "mass")
@@ -936,20 +977,31 @@ class dynamite:
             rns = [rad[pind], rad[pind+1]]
             ens = [ecc[pind], ecc[pind+1]]
 
-        D = np.zeros(len(pns))
+        Dn = np.zeros(len(pns))
 
-        for i in range(len(D)):
+        for i in range(len(Dn)):
             permc = pns[i]
             radmc = rns[i]
             eccmc = ens[i]
             masmc = self.mr_convert(radmc, "mass")
-            a1 = GMfp213*(Pmc*self.seconds_per_day if Pmc < permc else permc*self.seconds_per_day)**(2/3)
-            a2 = GMfp213*(permc*self.seconds_per_day if Pmc < permc else Pmc*self.seconds_per_day)**(2/3)
+            a1 = GMfp213*((Pmc if Pmc < permc else permc)*self.seconds_per_day)**(2/3)
+            a2 = GMfp213*((permc if Pmc < permc else Pmc)*self.seconds_per_day)**(2/3)
             e1 = emc if Pmc < permc else eccmc
             e2 = eccmc if Pmc < permc else emc
-            D[i] = 2*(a2*(1 - e2) - a1*(1 + e1))/(a2 + a1) * ((Mmc + masmc)*self.M_earth/(3*M_star*self.M_sun))**(-1/3)
+            Dn[i] = 2*(a2*(1 - e2) - a1*(1 + e1))/(a2 + a1) * ((Mmc + masmc)*self.M_earth/(3*M_star*self.M_sun))**(-1/3)
         
+        accept, val, tim = self.run_stability_analysis(Dn, M_star, per, Pmc, mas, inc, ecc, Mmc, imc, emc, GMfp213, limits)
+        return PP, PR, R, deltas, accept, val, tim, Pmc, Rmc, emc, imc
+
+
+
+    def run_stability_analysis(self, D, M_star, per, Pmc, mas, inc, ecc, Mmc, imc, emc, GMfp213, limits):
+        """Runs through the stability analysis based on the criterion utilized (Mutual Hill Radius, SPOCK, or spectral fraction)"""
+
         stability = self.config_parameters["stability"]
+        accept = "YES"
+        val = 0
+        tim = 0
 
         if stability == "hill":
             dlim = spst.lognorm.rvs(spst.norm.rvs(0.40, 0.02, 1), loc=0, scale=np.exp(spst.norm.rvs(1.97, 0.03, 1)), size=1)
@@ -963,8 +1015,7 @@ class dynamite:
 
             except:
                 stability = "hill"
-                if k == 0:
-                    print("WARNING: REBOUND not installed on this machine - not performing N body integration dynamical stability analysis")
+                print("WARNING: REBOUND not installed on this machine - not performing N body integration dynamical stability analysis")
 
             if stability == "spock":
                 try:
@@ -972,8 +1023,7 @@ class dynamite:
 
                 except:
                     stability = "hill"
-                    if k == 0:
-                        print("WARNING: SPOCK not installed on this machine - not performing N body integration dynamical stability analysis")
+                    print("WARNING: SPOCK not installed on this machine - not performing N body integration dynamical stability analysis")
 
         if stability == "spock" or stability == "specfrac" and np.any(D) < 100:
             sim, pf, mf, incf, eccf, mind = self.create_sim_system(M_star, per, Pmc, mas, inc, ecc, Mmc, imc, emc, GMfp213)
@@ -1057,15 +1107,15 @@ class dynamite:
 
                         print("SYSTEM ITERATION " + str(k) + ":", ps, "UNSTABLE VIA SPECTRAL FRACTION")
 
-        if accept == "YES" and len(limits) != 0:
+        if accept == "YES" and Pmc != None and len(limits) != 0:
             ttv_lim = []
 
             for l in limits:
                 if l[1] == "rv" and Pmc > l[2] and Pmc < l[3] and 0.6395*Pmc**(-1/3)*Mmc*math.sin(imc*math.pi/180)*(M_star+Mmc*self.MES)**(-2/3)*(1-emc**2)**-0.5 > l[4]:
-                        accept = "RV LIMIT"
+                    accept = "RV LIMIT"
 
                 elif l[1] == "transit" and Pmc > l[2] and Pmc < l[3] and Rmc > l[4] and imc*math.pi/180 < (math.pi/2 - math.atan((R_star*self.R_sun + Rmc*self.R_earth)/(GMfp213*(Pmc*self.seconds_per_day)**(2/3)))):
-                        accept = "TRANSIT LIMIT"
+                    accept = "TRANSIT LIMIT"
                 
                 elif l[1] == "ttv":
                     ttv_lim.append([l[2], l[4]])
@@ -1082,7 +1132,7 @@ class dynamite:
                             good_mode = True
 
                         except:
-                            print("REBOUND is not installed on this machine - trying TTVFaster or not running TTV analysis")
+                            print("REBOUND is not installed on this machine - trying TTVFaster")
                             es += 1
                             ttvmode == "ttvfaster"
 
@@ -1092,11 +1142,12 @@ class dynamite:
                             good_mode = True
 
                         except:
-                            print("TTVFaster is not installed on this machine - trying REBOUND or not running TTV analysis")
+                            print("TTVFaster is not installed on this machine - trying REBOUND")
                             es += 1
                             ttvmode == "rebound"
 
                     if es == 2:
+                        print("Neither TTVFaster or REBOUND is installed on this machine - not running TTV analysis")
                         break
 
                 if good_mode and ttvmode == "rebound":
@@ -1184,7 +1235,7 @@ class dynamite:
                         if fb:
                             break
 
-        return PP, PR, R, deltas, accept, val, tim, Pmc, Rmc, emc, imc
+        return accept, val, tim
 
 
 
@@ -1519,30 +1570,21 @@ class dynamite:
             for case in [[False] + list(t) for t in list(itertools.product([False,True], repeat=len(incq)-1))]:
                 incn.append([180-incq[i] if case[i] else incq[i] for i in range(0, len(incq))])
 
-            #if sys.platform == "darwin":
-            #    fib = [self.inc_test(i, (inc, incn, sigmas)) for i in il]
-
-            #else:
             fib = self.run_new_mp(self.inc_test, il, (inc, incn, sigmas))
 
             mv = 0
             ib = 0
 
             for i in range(len(fib)):
-                if max(fib[i]) > mv:
-                    ib = il[i]
-                    mv = max(fib[i])
-            """
-            ibs, fib = self.ppr.create_processes("inc_test_old", (inc, il, incn, sigmas), -len(il), self.process_inc_data)
-            ib = ibs[np.where(fib == max(fib))[0][0]]
+                cmax = max(fib[i])
 
-            if len(incq) < len(inc):
-                while ib + 4 > np.arccos(R_star*self.R_sun/(GMfp213*(per[inc.index("?")]*self.seconds_per_day)**(2/3)))*180/math.pi:
-                    ibs = np.delete(ibs, x)
-                    fib = np.delete(fib, x)
-                    x = np.where(fib == max(fib))[0][0]
-                    ib = ibs[x]
-            """
+                if cmax > mv:
+                    ib = il[i]
+                    mv = cmax
+            
+            #ibs, fib = self.ppr.create_processes("inc_test_old", (inc, il, incn, sigmas), -len(il), self.process_inc_data_old)
+            #ib = ibs[np.where(fib == max(fib))[0][0]]
+
         if ib > 90:
             ilb = round(ib, 1)
             ib = round(180 - ib, 1)
@@ -1661,21 +1703,19 @@ class dynamite:
             for case in [[False] + list(t) for t in list(itertools.product([False,True], repeat=len(incq)-1))]:
                 incn.append([180-incq[i] if case[i] else incq[i] for i in range(0, len(incq))])
             
-            #if sys.platform == "darwin":
-            #    fib = [self.inc_test(i, (inc, incn, sigmas)) for i in il]
-
-            #else:
             fib = self.run_new_mp(self.inc_test, il, (inc, incn, sigmas))
 
             mv = 0
             ib = 0
 
             for i in range(len(fib)):
-                if max(fib[i]) > mv:
+                cmax = max(fib[i])
+
+                if cmax > mv:
                     ib = il[i]
-                    mv = max(fib[i])
+                    mv = cmax
             
-            #ibs, fib = self.ppr.create_processes("inc_test_old", (inc, il, incn, sigmas), -len(il), self.process_inc_data)
+            #ibs, fib = self.ppr.create_processes("inc_test_old", (inc, il, incn, sigmas), -len(il), self.process_inc_data_old)
             #ib = ibs[np.where(fib == max(fib))[0][0]]
 
         if ib > 90:
@@ -1774,33 +1814,41 @@ class dynamite:
     def create_sim_arrays(self, per, Pmc, mas, inc, ecc, Mmc, imc, emc):
         """Creates the simulated planetary parameter arrays for REBOUND or TTVFaster analysis."""
 
-        pf = np.zeros(len(per) + 1)
-        mf = np.zeros(len(per) + 1)
-        incf = np.zeros(len(per) + 1)
-        eccf = np.zeros(len(per) + 1)
-        mind = 0
-        mc_add = False
-    
-        for p in range(len(per)):
-            if Pmc > per[p]:
-                mind = p + 1
-                pf[p] = per[p]
-                mf[p] = mas[p]
-                incf[p] = inc[p]*math.pi/180
-                eccf[p] = ecc[p]
+        if Pmc != None:
+            pf = np.zeros(len(per) + 1)
+            mf = np.zeros(len(per) + 1)
+            incf = np.zeros(len(per) + 1)
+            eccf = np.zeros(len(per) + 1)
+            mind = 0
+            mc_add = False
+        
+            for p in range(len(per)):
+                if Pmc > per[p]:
+                    mind = p + 1
+                    pf[p] = per[p]
+                    mf[p] = mas[p]
+                    incf[p] = inc[p]*math.pi/180
+                    eccf[p] = ecc[p]
 
-            else:
-                if not mc_add:
-                    pf[p] = Pmc
-                    mf[p] = Mmc
-                    incf[p] = imc*math.pi/180
-                    eccf[p] = emc
-                    mc_add = True
+                else:
+                    if not mc_add:
+                        pf[p] = Pmc
+                        mf[p] = Mmc
+                        incf[p] = imc*math.pi/180
+                        eccf[p] = emc
+                        mc_add = True
 
-                pf[p+1] = per[p]
-                mf[p+1] = mas[p]
-                incf[p+1] = inc[p]*math.pi/180
-                eccf[p+1] = ecc[p]
+                    pf[p+1] = per[p]
+                    mf[p+1] = mas[p]
+                    incf[p+1] = inc[p]*math.pi/180
+                    eccf[p+1] = ecc[p]
+
+        else:
+            pf = per
+            mf = mas
+            incf = inc
+            eccf = ecc
+            mind = 0
 
         return pf, mf, incf, eccf, mind
 
