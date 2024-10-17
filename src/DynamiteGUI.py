@@ -1,6 +1,6 @@
 ### DYNAmical Multi-planet Injection TEster (DYNAMITE) ###
 ### GUI ###
-### Jeremy Dietrich ###
+### Jamie Dietrich ###
 ### jdietrich@asu.edu ###
 ### 2024 July 1 ###
 ### Version 3.0 ###
@@ -98,12 +98,12 @@ class DynamiteGUI:
         self.removed_values = "[]" 
         self.mode_values = ["single", "tess", "kepler", "k2", "all", "test"]
         self.period_values = ["epos", "syssim"]
-        self.radius_values = ["epos", "syssim"]
-        self.radtype_values = ["powerlaw", "clustered"]
-        self.mass_radius_values = ["mrexo", "otegi"]
-        self.otegi_rho_values = ["rocky", "volatile"]
-        self.inclination_values =["rayleigh_iso", "syssim"]
-        self.eccentricity_values =["rayleigh", "syssim"]
+        self.radius_values = ["syssim", "epos"]
+        self.radtype_values = ["clustered", "powerlaw"]
+        self.mass_radius_values = ["otegi", "mrexo"]
+        self.otegi_rho_values = ["volatile", "rocky"]
+        self.inclination_values =["syssim", "rayleigh_iso"]
+        self.eccentricity_values =["syssim", "rayleigh"]
         self.stability_values = ["hill", "spock", "specfrac"]
         self.plot_values = [True, False]
         self.show_plots_values = [True, False]
@@ -247,7 +247,7 @@ class DynamiteGUI:
         self.plot_p_r_box.current(1)
         self.config_entries["plt_P_R"] = self.plot_p_r_box
         self.plot_p_r_box.bind('<<ComboboxSelected>>')
-        self.plot_p_r_box.configure(state = 'readonly')
+        self.plot_p_r_box.configure(state = ('readonly' if self.mode_box.get() != "single" else 'disabled'))
         
         self.plot_p_scale_box = ttk.Combobox(self.root, width = 10, justify = Tkconstants.RIGHT)
         self.plot_p_scale_box["values"] = self.plot_p_scale_values
@@ -261,42 +261,42 @@ class DynamiteGUI:
         self.plot_tdtp_box.current(1)
         self.config_entries["plt_tdtp"] = self.plot_tdtp_box
         self.plot_tdtp_box.bind('<<ComboboxSelected>>')
-        self.plot_tdtp_box.configure(state = 'readonly')
+        self.plot_tdtp_box.configure(state = ('readonly' if self.mode_box.get() != "single" else 'disabled'))
         
         self.plot_deltas_box = ttk.Combobox(self.root, width = 10, justify = Tkconstants.RIGHT)
         self.plot_deltas_box["values"] = self.plot_deltas_values
         self.plot_deltas_box.current(1)
         self.config_entries["plt_deltas"] = self.plot_deltas_box
         self.plot_deltas_box.bind('<<ComboboxSelected>>')
-        self.plot_deltas_box.configure(state = 'readonly')
+        self.plot_deltas_box.configure(state = ('readonly' if self.mode_box.get() != "single" else 'disabled'))
         
         self.plot_ratios_box = ttk.Combobox(self.root, width = 10, justify = Tkconstants.RIGHT)
         self.plot_ratios_box["values"] = self.plot_ratios_values
         self.plot_ratios_box.current(1)
         self.config_entries["plt_ratios"] = self.plot_ratios_box
         self.plot_ratios_box.bind('<<ComboboxSelected>>')
-        self.plot_ratios_box.configure(state = 'readonly')
+        self.plot_ratios_box.configure(state = ('readonly' if self.mode_box.get() != "single" else 'disabled'))
         
         self.plot_hist_box = ttk.Combobox(self.root, width = 10, justify = Tkconstants.RIGHT)
         self.plot_hist_box["values"] = self.plot_hist_values
         self.plot_hist_box.current(0)
         self.config_entries["plt_indpars"] = self.plot_hist_box
         self.plot_hist_box.bind('<<ComboboxSelected>>')
-        self.plot_hist_box.configure(state = 'readonly')
+        self.plot_hist_box.configure(state = ('readonly' if self.mode_box.get() == "single" else 'disabled'))
         
         self.plot_pdf_box = ttk.Combobox(self.root, width = 10, justify = Tkconstants.RIGHT)
         self.plot_pdf_box["values"] = self.plot_pdf_values
         self.plot_pdf_box.current(0)
         self.config_entries["plt_PDFs"] = self.plot_pdf_box
         self.plot_pdf_box.bind('<<ComboboxSelected>>')
-        self.plot_pdf_box.configure(state = 'readonly')
+        self.plot_pdf_box.configure(state = ('readonly' if self.mode_box.get() == "single" else 'disabled'))
         
         self.show_rearth_box = ttk.Combobox(self.root, width = 10, justify = Tkconstants.RIGHT)
         self.show_rearth_box["values"] = self.show_rearth_values
         self.show_rearth_box.current(1)
         self.config_entries["show_Rearth"] = self.show_rearth_box
         self.show_rearth_box.bind('<<ComboboxSelected>>')
-        self.show_rearth_box.configure(state = 'readonly')
+        self.show_rearth_box.configure(state = ('readonly' if self.mode_box.get() == "single" else 'disabled'))
         
         self.use_mass_box = ttk.Combobox(self.root, width = 10, justify = Tkconstants.RIGHT)
         self.use_mass_box["values"] = self.use_mass_values
@@ -310,21 +310,21 @@ class DynamiteGUI:
         self.ind_p_box.current(2)
         self.config_entries["ind_P"] = self.ind_p_box
         self.ind_p_box.bind('<<ComboboxSelected>>')
-        self.ind_p_box.configure(state = 'readonly')
+        self.ind_p_box.configure(state = ('readonly' if self.mode_box.get() == "single" else 'disabled'))
         
         self.ind_r_box = ttk.Combobox(self.root, width = 12, justify = Tkconstants.RIGHT)
         self.ind_r_box["values"] = self.ind_r_values
         self.ind_r_box.current(1)
         self.config_entries["ind_R"] = self.ind_r_box
         self.ind_r_box.bind('<<ComboboxSelected>>')
-        self.ind_r_box.configure(state = 'readonly')
+        self.ind_r_box.configure(state = ('readonly' if self.mode_box.get() == "single" else 'disabled'))
         
         self.ind_i_box = ttk.Combobox(self.root, width = 12, justify = Tkconstants.RIGHT)
         self.ind_i_box["values"] = self.ind_i_values
         self.ind_i_box.current(0)
         self.config_entries["ind_i"] = self.ind_i_box
         self.ind_i_box.bind('<<ComboboxSelected>>')
-        self.ind_i_box.configure(state = 'readonly')
+        self.ind_i_box.configure(state = ('readonly' if self.mode_box.get() == "single" else 'disabled'))
         
         self.add_unconfirmed_box = ttk.Combobox(self.root, width = 6, justify = Tkconstants.RIGHT)
         self.add_unconfirmed_box["values"] = self.add_unconfirmed_values
@@ -505,11 +505,33 @@ class DynamiteGUI:
             self.plot_deltas_box.current(1)
             self.plot_ratios_box.current(1)
             self.plot_tdtp_box.current(1)
+
+            self.plot_hist_box.configure(state="readonly")
+            self.plot_pdf_box.configure(state="readonly")
+            self.show_rearth_box.configure(state="readonly")
+            self.ind_p_box.configure(state="readonly")
+            self.ind_r_box.configure(state="readonly")
+            self.ind_i_box.configure(state="readonly")
+            self.plot_p_r_box.configure(state="disabled")
+            self.plot_deltas_box.configure(state="disabled")
+            self.plot_ratios_box.configure(state="disabled")
+            self.plot_tdtp_box.configure(state="disabled")
+
         else:
             self.plot_hist_box.current(1)
             self.plot_pdf_box.current(1)
-            self.show_rearth_box.current(1)
-            
+
+            self.plot_hist_box.configure(state="disabled")
+            self.plot_pdf_box.configure(state="disabled")
+            self.show_rearth_box.configure(state="disabled")
+            self.ind_p_box.configure(state="disabled")
+            self.ind_r_box.configure(state="disabled")
+            self.ind_i_box.configure(state="disabled")
+            self.plot_p_r_box.configure(state="readonly")
+            self.plot_deltas_box.configure(state="readonly")
+            self.plot_ratios_box.configure(state="readonly")
+            self.plot_tdtp_box.configure(state="readonly")
+
     def check_valid_entries(self):
         """check that entries are valid lists"""
         for l in self.check_valid_entries_list:
