@@ -497,8 +497,8 @@ class dynamite_plots:
         target = target[:-1] if len(self.config_parameters["removed"]) > 0 else target
 
         for i in target:
-            if i[2][3] == "Msini" and i[3] != "?":
-                i[2] = i[2]/np.sin(i[3]*np.pi/180)
+            if i[3] == "Msini" and i[4] != "?":
+                i[2] = i[2]/np.sin(i[4]*np.pi/180)
                 i[1] = self.mr_appends("radius", i[2])
 
         p1, p11, p12, p2, p3, r1, r11, r12, r2, r3, m1, m11, m12, m2, m3, i1, i11, i12, i2, i3, e1, e11, e12, e2, e3, l1, l11, l12, l2, l3 = [],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]
@@ -509,16 +509,16 @@ class dynamite_plots:
                     p1.append(target[i][0])
                     r1.append(target[i][1] if target[i][1] != "?" else self.mr_appends("radius", float(target[i][2])))
                     m1.append(target[i][2] if target[i][2] != "?" else self.mr_appends("mass", float(target[i][1])))
-                    i1.append(target[i][3])
-                    e1.append(target[i][4])
+                    i1.append(target[i][4])
+                    e1.append(target[i][5])
                     l1.append(names[i])
 
                 else:
                     p12.append(target[i][0])
                     r12.append(target[i][1] if target[i][1] != "?" else self.mr_appends("radius", float(target[i][2])))
                     m12.append(target[i][2] if target[i][2] != "?" else self.mr_appends("mass", float(target[i][1])))
-                    i12.append(target[i][3])
-                    e12.append(target[i][4])
+                    i12.append(target[i][4])
+                    e12.append(target[i][5])
                     l12.append(names[i])
 
         if len(self.config_parameters["additional"][0]) > 0:
@@ -552,8 +552,8 @@ class dynamite_plots:
         if len(self.config_parameters["removed"]) > 0:
             for i in range(len(self.config_parameters["removed"])):
                 p2.append([target[j][0] for j in range(len(target)) if target[j][0] == self.config_parameters["removed"][i]][0])
-                i2.append([target[j][3] for j in range(len(target)) if target[j][0] == self.config_parameters["removed"][i]][0])
-                e2.append([target[j][4] for j in range(len(target)) if target[j][0] == self.config_parameters["removed"][i]][0])
+                i2.append([target[j][4] for j in range(len(target)) if target[j][0] == self.config_parameters["removed"][i]][0])
+                e2.append([target[j][5] for j in range(len(target)) if target[j][0] == self.config_parameters["removed"][i]][0])
                 l2.append([names[j] for j in range(len(target)) if target[j][0] == self.config_parameters["removed"][i]][0])
 
                 for j in target:
@@ -731,7 +731,7 @@ class dynamite_plots:
         ax1.set_ylabel("Time (Gyr)", fontsize=24)
         lgnd = ax.legend(hands, labs, loc=9, fontsize=14, ncol=2, markerscale=0.75)
 
-        for i in lgnd.legendHandles:
+        for i in lgnd.legend_handles:
             i._sizes = [200]
 
         ax.tick_params(labelsize=18)
