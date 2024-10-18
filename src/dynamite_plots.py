@@ -42,8 +42,8 @@ class dynamite_plots:
         self.L_sun = const.L_sun.cgs.value
         self.M_earth = const.M_earth.cgs.value
         self.R_earth = const.R_earth.cgs.value
-
         self.config_parameters = {}
+        self.sdir = ""
         new_PPR = False
 
         try:
@@ -60,6 +60,11 @@ class dynamite_plots:
             Pk, P, PP, Rk, R, PR, ik, inc, Pi, ek, ecc, Pe, deltas, tdm, tdle, tdue, tpm, tple, tpue, targets, _starvs, pers, rads, _mass, _eccs = self.read_saved_data()
 
         if self.config_parameters["mode"] != "single":
+            self.sdir = mode + "/"
+
+            if self.sdir != "" and not os.path.exists(self.sdir):
+                os.makedirs(self.sdir)
+                
             P = P[0]
             R = R[0]
             inc = inc[0]
@@ -87,6 +92,11 @@ class dynamite_plots:
             ppr.create_processes(functions, args)
 
         if self.config_parameters["plt_indpars"] == "True" and self.config_parameters["mode"] == "single":
+            self.sdir = self.config_parameters["system"].replace("\"", "") + "/"
+
+            if self.sdir != "" and not os.path.exists(self.sdir):
+                os.makedirs(self.sdir)
+                
             self.plot_ind_params(Pk, P, PP, Rk, R, PR, ik, inc, Pi, ek, ecc, Pe, system.replace("\"", ""))
 
         print(datetime.now(), "Finishing Plots")
@@ -263,7 +273,7 @@ class dynamite_plots:
             elif self.config_parameters["period"] == "syssim":
                 plt.xlim(40, 11000)
 
-            plt.savefig("PRfig_" + self.config_parameters["mode"] + "_" + self.config_parameters["period"] + "_ell.png", bbox_inches='tight')
+            plt.savefig(self.sdir + self.sdir + "PRfig_" + self.config_parameters["mode"] + "_" + self.config_parameters["period"] + "_ell.png", bbox_inches='tight')
 
             if self.config_parameters["show_plots"] == "True":
                 plt.show()
@@ -306,7 +316,7 @@ class dynamite_plots:
 
                 pc += 200
 
-            plt.savefig("logPfig_" + self.config_parameters["mode"] + "_" + self.config_parameters["period"] + ".png", bbox_inches='tight')
+            plt.savefig(self.sdir + "logPfig_" + self.config_parameters["mode"] + "_" + self.config_parameters["period"] + ".png", bbox_inches='tight')
 
             if self.config_parameters["show_plots"] == "True":
                 plt.show()
@@ -338,7 +348,7 @@ class dynamite_plots:
 
                 rc += 200
 
-            plt.savefig("Rfig_" + self.config_parameters["mode"] + ".png", bbox_inches='tight')
+            plt.savefig(self.sdir + "Rfig_" + self.config_parameters["mode"] + ".png", bbox_inches='tight')
 
             if self.config_parameters["show_plots"] == "True":
                 plt.show()
@@ -373,7 +383,7 @@ class dynamite_plots:
         plt.xlabel(r"$\Delta$ (Mutual Hill Radii)")
         plt.ylabel("Frequency")
         plt.title("Planet Pair Separation", fontsize=30)
-        plt.savefig("Deltas_" + self.config_parameters["mode"] + "_" + self.config_parameters["period"] + ".png")
+        plt.savefig(self.sdir + "Deltas_" + self.config_parameters["mode"] + "_" + self.config_parameters["period"] + ".png")
 
         if self.config_parameters["show_plots"] == "True":
             plt.show()
@@ -412,7 +422,7 @@ class dynamite_plots:
         ax.set_yticks([0, 5, 10, 15, 20])
         fig.suptitle(r"Subsample vs $Kepler$ Period Ratios", fontsize=30)
         plt.xlim(1, 10**1.4)
-        plt.savefig(self.config_parameters["mode"] + "_Kepler_period_ratios.png")
+        plt.savefig(self.sdir + self.config_parameters["mode"] + "_Kepler_period_ratios.png")
 
         if self.config_parameters["show_plots"] == "True":
             plt.show()
@@ -476,7 +486,7 @@ class dynamite_plots:
         plt.xlabel("Transit Depth (ppm)", fontsize=20)
         plt.ylabel("Transit Probability", fontsize=20)
         fig.suptitle("Transit Probability vs Transit Depth", fontsize=30)
-        plt.savefig(self.config_parameters["mode"] + "_td_tp.png")
+        plt.savefig(self.sdir + self.config_parameters["mode"] + "_td_tp.png")
 
         if self.config_parameters["show_plots"] == "True":
             plt.show()
@@ -745,7 +755,7 @@ class dynamite_plots:
         tx.set_position((-0.1,1.05))
         ax.xaxis.set_major_formatter(mticker.ScalarFormatter())
         fig.suptitle((r"$\tau$ Ceti" if system == "tau Cet" else (system[:system.index("test") - 1] if system.find("test") != -1 else system)) + " Period Relative Likelihood", fontsize=30)
-        plt.savefig(plt_savename)
+        plt.savefig(self.sdir + plt_savename)
 
         if self.config_parameters["show_plots"] == "True":
             plt.show()
@@ -896,7 +906,7 @@ class dynamite_plots:
         plt.legend(hands, labs, loc=9, fontsize=14, ncol=2)
         ax.tick_params(labelsize=24)
         fig.suptitle((r"$\tau$ Ceti" if system == "tau Cet" else system) + " Planet " + ("Radius " if self.config_parameters["use_mass"] == "False" else "Mass ") + "Relative Likelihood", fontsize=30)
-        plt.savefig(plt_savename)
+        plt.savefig(self.sdir + plt_savename)
 
         if self.config_parameters["show_plots"] == "True":
             plt.show()
@@ -997,7 +1007,7 @@ class dynamite_plots:
         ax.tick_params(labelsize=18)
         plt.legend(hands, labs, loc=9, fontsize=14, ncol=2)
         fig.suptitle((r"$\tau$ Ceti" if system == "tau Cet" else system) + " Inclination Relative Likelihood", fontsize=30)
-        plt.savefig(plt_savename)
+        plt.savefig(self.sdir + plt_savename)
 
         if self.config_parameters["show_plots"] == "True":
             plt.show()
@@ -1069,7 +1079,7 @@ class dynamite_plots:
         ax.tick_params(labelsize=18)
         plt.legend(hands, labs, loc=9, fontsize=14, ncol=2)
         fig.suptitle((r"$\tau$ Ceti" if system == "tau Cet" else system) + " Eccentricity Relative Likelihood", fontsize=30)
-        plt.savefig(plt_savename)
+        plt.savefig(self.sdir + plt_savename)
 
         if self.config_parameters["show_plots"] == "True":
             plt.show()

@@ -53,6 +53,7 @@ class dynamite:
         self.R_earth = const.R_earth.cgs.value
         self.MES = self.M_earth/self.M_sun
         self.config_parameters = {}
+        self.sdir = ""
 
         try:
             config_data = np.loadtxt(self.cfname, dtype=str, delimiter=':')
@@ -100,7 +101,7 @@ class dynamite:
             except:
                 self.write_bf_pred_file((self.G*merged_data[-4][2]*self.M_sun/(4*math.pi**2))**(1/3), merged_data[0], merged_data[3], merged_data[6], merged_data[9], merged_data[-3], merged_data[-2], merged_data[-1], merged_data[11], merged_data[-5][0], merged_data[-4], True)
 
-            with np.load("saved_data_" + self.config_parameters["system"].replace(" ", "_") if self.config_parameters["mode"] == "single" else self.config_parameters["mode"] + ".npz", allow_pickle=True) as data:
+            with np.load(self.sdir + "saved_data_" + self.config_parameters["system"].replace(" ", "_") if self.config_parameters["mode"] == "single" else self.config_parameters["mode"] + ".npz", allow_pickle=True) as data:
                 Pk, P, PP, Rk, R, PR, ik, il, Pinc, ek, el, Pecc, deltas, tdm, tdle, tdue, tpm, tple, tpue, targets, starvs, pers, rads, mass, eccs = [data["arr_" + str(i)] for i in range(len(data))]
 
             if self.config_parameters["plot"] == "True":
@@ -111,18 +112,28 @@ class dynamite:
         if self.config_parameters["saved"] == "False":
             if self.config_parameters["mode"] == "single":
                 if isinstance(self.config_parameters["system"], str):
+                    self.sdir = self.config_parameters["system"].replace("\"", "") + "/"
+                    
+                    if self.sdir != "" and not os.path.exists(self.sdir):
+                        os.makedirs(self.sdir)
+                        
                     data = self.run_single(self.config_parameters["system"].replace("\"", ""))
 
                     if self.config_parameters["plot"] == "True":
                         self.run_plots(data, self.config_parameters["system"].replace("\"", ""))
 
                 elif isinstance(self.config_parameters["system"], list):
-                    with open("table_" + self.config_parameters["mode"] + "_" + self.config_parameters["period"] + "_run_" + self.startdatetime + ".txt", "w") as f:
+                    with open(self.sdir + "table_" + self.config_parameters["mode"] + "_" + self.config_parameters["period"] + "_run_" + self.startdatetime + ".txt", "w") as f:
                         f.write("Name --- Period --- Radius")
                         f.write(" --- Transit probability --- RV Limit")
                         f.write("\n")
 
                     for i in self.config_parameters["system"]:
+                        self.sdir = self.config_parameters["system"][i].replace("\"", "") + "/"
+                        
+                        if self.sdir != "" and not os.path.exists(self.sdir):
+                            os.makedirs(self.sdir)
+                        
                         data = self.run_single(i)
 
                         if self.config_parameters["plot"] == "True":
@@ -144,10 +155,10 @@ class dynamite:
                     Pk, P, PP, Rk, R, PR, ik, il, Pinc, ek, el, Pecc, deltas, tdm, tdle, tdue, tpm, tple, tpue, targets, starvs, pers, rads, mass, eccs = datavars = self.run_new_mp(self.mt_mc, np.arange(len(targlist)), (targets_dict, limits_dict, targlist))
 
                 if self.num_of_nodes == 1:
-                    np.savez_compressed("saved_data_" + self.config_parameters["mode"] + ".npz", *datavars)
+                    np.savez_compressed(self.sdir + "saved_data_" + self.config_parameters["mode"] + ".npz", *datavars)
 
                 else:
-                    np.savez_compressed("saved_data_" + self.config_parameters["mode"] + "_" + str(self.node_number) + ".npz", *datavars)
+                    np.savez_compressed(self.sdir + "saved_data_" + self.config_parameters["mode"] + "_" + str(self.node_number) + ".npz", *datavars)
 
                 if self.config_parameters["plot"] == "True":
                     self.run_plots(datavars)
@@ -155,9 +166,14 @@ class dynamite:
         elif self.config_parameters["saved"] == "True":
             if self.config_parameters["mode"] == "single":
                 if isinstance(self.config_parameters["system"], str):
+                    self.sdir = self.config_parameters["system"].replace("\"", "") + "/"
+
+                    if self.sdir != "" and not os.path.exists(self.sdir):
+                        os.makedirs(self.sdir)
+                        
                     datavars = []
 
-                    with np.load("saved_data_" + self.config_parameters["system"].replace(" ", "_").replace("\"", "") + ".npz", allow_pickle=True) as data:
+                    with np.load(self.sdir + "saved_data_" + self.config_parameters["system"].replace(" ", "_").replace("\"", "") + ".npz", allow_pickle=True) as data:
                         for i in range(len(data)):
                             datavars.append(data["arr_" + str(i)])
 
@@ -167,15 +183,20 @@ class dynamite:
                         self.ppr.terminate_PPR()
 
                 elif isinstance(self.config_parameters["system"], list):
-                    with open("table_" + self.config_parameters["mode"] + "_" + self.config_parameters["period"] + "_run_" + self.startdatetime + ".txt", "w") as f:
+                    with open(self.sdir + "table_" + self.config_parameters["mode"] + "_" + self.config_parameters["period"] + "_run_" + self.startdatetime + ".txt", "w") as f:
                         f.write("Name --- Period --- Radius")
                         f.write(" --- Transit probability --- RV Limit")
                         f.write("\n")
 
                     for i in self.config_parameters["system"]:
+                        self.sdir = self.config_parameters["system"][i].replace("\"", "") + "/"
+
+                        if self.sdir != "" and not os.path.exists(self.sdir):
+                            os.makedirs(self.sdir)
+                            
                         datavars = []
 
-                        with np.load("saved_data_" + i.replace(" ", "_") + ".npz", allow_pickle=True) as data:
+                        with np.load(self.sdir + "saved_data_" + i.replace(" ", "_") + ".npz", allow_pickle=True) as data:
                             for i in range(len(data)):
                                 datavars.append(data["arr_" + str(i)])
 
@@ -269,10 +290,10 @@ class dynamite:
         data = self.run_monte_carlo(R_star, Rse, M_star, Mse, target, target_name, limits) + ([target[i][0] for i in range(len(target))], [target[i][1] for i in range(len(target))], [target[i][2] for i in range(len(target))], [target[i][4] for i in range(len(target))])
 
         if self.num_of_nodes == 1:
-            np.savez_compressed("saved_data_" + target_name.replace(" ", "_") + ".npz", *data)
+            np.savez_compressed(self.sdir + "saved_data_" + target_name.replace(" ", "_") + ".npz", *data)
 
         else:
-            np.savez_compressed("saved_data_" + target_name.replace(" ", "_") + "_" + str(self.node_number) + ".npz", *data)
+            np.savez_compressed(self.sdir + "saved_data_" + target_name.replace(" ", "_") + "_" + str(self.node_number) + ".npz", *data)
 
         return data
 
@@ -578,9 +599,9 @@ class dynamite:
             print("STABILITY THRESHOLD VALUE:", np.mean(val), "+/-", np.std(val), "TIME TO INSTABILITY", np.mean(tim)/per[0], "+/-", np.std(tim)/per[0])
 
         elif self.config_parameters["stability"] == "specfrac":
-            np.savetxt("unstable_times.txt", tim)
+            np.savetxt(self.sdir + "unstable_times.txt", tim)
 
-        with open("rejected_values_" + str(self.node_number) + ".txt", "w") as f:
+        with open(self.sdir + "rejected_values_" + str(self.node_number) + ".txt", "w") as f:
             for a in range(len(Pk_r)):
                 f.write(r_reason[a] + "\t" + str(round(Pk_r[a], 1)) + "\t" + str(round(Rk_r[a], 2)) + "\t" + str(round(ek_r[a], 3)) + "\t" + str(round(ik_r[a], 1)) + "\n")
 
@@ -784,13 +805,13 @@ class dynamite:
         target_values = [target_name, Pmmax, Plemax, Puemax, Rm, Rle, Rue]
 
         if write:
-            with open("table_" + self.config_parameters["mode"] + "_" + self.config_parameters["period"] + "_" + target_name + ".txt", "w") as f:
+            with open(self.sdir + "table_" + self.config_parameters["mode"] + "_" + self.config_parameters["period"] + "_" + target_name + ".txt", "w") as f:
                 f.write("Name & Period (d) & Planet Radius (R_Earth) & Mass (M_Earth) & Inclination (deg) & Eccentricity & Stellar Radius (R_Sun) & Transit Depth (ppm) & Transit Probability & RV Semi-amplitude (m/s)\\\\\n" + target_name + " & ($")
 
                 for pm in range(len(Pms)):
                     f.write(str(Pms[pm]) + "(" + str(Pmes[pm]) + ")^{" + str(Pues[pm]) + "}_{" + str(Ples[pm]) + ("}$, $" if pm != len(Pms) - 1 else "}$) & $"))
 
-                f.write(str(Rm) + "^{" + str(Rue) + "}_{" + str(Rle) + "}$ & $" + str(Mm) + "^{" + str(Mue) + "}_{" + str(Mle) + "}$ & $" + str(im) + "^{" + str(iue) + "}_{" + str(ile) + "}$ & $" + str(em) + "^{" + str(eue) + "}_{" + str(ele) + "}$ & $" + str(R_star) + "\pm" + str(Rse) + "$ & $" + str(tdm) + "^{" + str(tdue) + "}_{" + str(tdle) + "}$ & ($")
+                f.write(str(Rm) + "^{" + str(Rue) + "}_{" + str(Rle) + "}$ & $" + str(Mm) + "^{" + str(Mue) + "}_{" + str(Mle) + "}$ & $" + str(im) + "^{" + str(iue) + "}_{" + str(ile) + "}$ & $" + str(em) + "^{" + str(eue) + "}_{" + str(ele) + "}$ & $" + str(R_star) + "\\pm" + str(Rse) + "$ & $" + str(tdm) + "^{" + str(tdue) + "}_{" + str(tdle) + "}$ & ($")
 
                 for pm in range(len(tpm)):
                     f.write(str(tpm[pm]) + "^{" + str(tpue[pm]) + "}_{" + str(tple[pm]) + ("}$, $" if pm != len(tpm) - 1 else "}$) & ($"))
@@ -812,7 +833,7 @@ class dynamite:
                     f.write(str(rvsa[pm]) + " (+" + str(rvue[pm]) + "/-" + str(rvle[pm]) + ("), " if pm != len(rvsa) - 1 else ")\n"))
 
             if isinstance(self.config_parameters["system"], list):
-                with open("table_" + self.config_parameters["mode"] + "_" + self.config_parameters["period"] + "_run_" + self.startdatetime + ".txt", "a") as f:
+                with open(self.sdir + "table_" + self.config_parameters["mode"] + "_" + self.config_parameters["period"] + "_run_" + self.startdatetime + ".txt", "a") as f:
                     f.write(target_name + " --- ")
 
                     for pm in range(len(Pms)):
