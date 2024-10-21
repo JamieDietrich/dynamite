@@ -2,7 +2,7 @@
 ### GUI ###
 ### Jamie Dietrich ###
 ### jdietrich@asu.edu ###
-### 2024 July 1 ###
+### 2024 October 21 ###
 ### Version 3.0 ###
 ### Dietrich & Apai (2020), AJ, 160, 107D ###
 ### https://iopscience.iop.org/article/10.3847/1538-3881/aba61d ###
@@ -10,6 +10,7 @@
 ### Dietrich, Apai, & Malhotra (2022), AJ, 163, 88D ###
 ### Basant, Dietrich, & Apai (2022), AJ, 164, 12B ###
 ### Basant, Dietrich, & Apai (2022), RNAAS, 6, 213 ###
+### Dietrich (2024), AJ, 168, 119 ###
 
 import os
 import sys
