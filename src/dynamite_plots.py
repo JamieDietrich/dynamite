@@ -1,9 +1,10 @@
 ### DYNAmical Multi-planet Injection TEster (DYNAMITE) ###
 ### Plotting File ###
-### Jamie Dietrich ###
-### jdietrich@asu.edu ###
-### 2024 October 21 ###
-### Version 3.0 ###
+### Main Author: Jamie Dietrich ###
+### Contact: jdietrich@asu.edu ###
+### Contributing Authors: Ritvik Basant, Katelyn Ruppert ###
+### 2025 July 9 ###
+### Version 3.1 ###
 ### Dietrich & Apai (2020), AJ, 160, 107D ###
 ### https://iopscience.iop.org/article/10.3847/1538-3881/aba61d ###
 ### Dietrich & Apai (2021), AJ, 161, 17D ###
@@ -516,7 +517,8 @@ class dynamite_plots:
         
         for i in range(len(target)):
             if target[i][0] not in self.config_parameters["removed"]:
-                if (system != "Inner Solar System" and target[i][4] != "?" and abs(math.cos(target[i][4]*math.pi/180)) * self.K3(target[i][0], Ms) / (Rs*self.R_sun) <= 1) or (system == "Inner Solar System" or system == "eps Eri" and target[i][1] < 1.5):
+                if target[i][6] == 1 or (system != "Inner Solar System" and target[i][4] != "?" and abs(math.cos(target[i][4]*math.pi/180)) * self.K3(target[i][0], Ms) / (Rs*self.R_sun) <= 1) or system.find("TOI") != -1 or (system.find("Kepler") != -1 and target[i][4] != "?" and abs(math.cos(target[i][4]*math.pi/180)) *
+                            self.K3(target[i][0], Ms) / (Rs*self.R_sun) <= 1) or (system == "Inner Solar System" or system == "eps Eri" and target[i][1] < 1.5):
                     p1.append(target[i][0])
                     r1.append(target[i][1] if target[i][1] != "?" else self.mr_appends("radius", float(target[i][2])))
                     m1.append(target[i][2] if target[i][2] != "?" else self.mr_appends("mass", float(target[i][1])))
@@ -598,12 +600,14 @@ class dynamite_plots:
 
         pi = [(x**1.5/Ms**0.5)*365 for x in ie]
         po = [(x**1.5/Ms**0.5)*365 for x in oe]
-        ax1.plot(pi, t, color=color_scheme[6])
-        ax1.plot(po, t, color=color_scheme[6])
-        ax1.fill_betweenx(t, pi, po, color=color_scheme[6], alpha=0.5)
+        ax1.plot(pi, t, color=color_scheme[6], alpha=0.5)
+        ax1.plot(po, t, color=color_scheme[6], alpha=0.5)
+        ax1.fill_betweenx(t, pi, po, color=color_scheme[6], alpha=0.25)
         ax1.set_yscale("log")
-        ax.set_zorder(ax1.get_zorder()+1)
+        ax1.invert_yaxis()
+        ax.set_zorder(ax1.get_zorder()-1)
         ax.patch.set_visible(False)
+        xlim = (0.5, 1e5 if max(per) > 5e4 else 2*max(per) if max(per) > max(po) else 2*max(po))
 
         if self.config_parameters["ind_P"] == "linear_zoom":
             n, _, h1 = ax.hist(Pk, bins=np.arange(0.5, round(5*max(per)) + 1, 0.5), weights=np.ones(len(Pk))*2 / (len(Pk)), color=color_scheme[0] if self.config_parameters["stability"] == "hill" else color_scheme[2])
@@ -615,7 +619,6 @@ class dynamite_plots:
                 labs.append("Probability Density Function")
 
             ul = np.amax(n)*1.5
-            xlim = (0.5, 5*max(per) if 5*max(per) < 2*max(po) else 2*max(po))
             plt_savename = system.replace(" ", "") + "_P_linear_zoom_" + self.config_parameters["period"] + "_" + self.config_parameters["mass_radius"] + ("_" + self.config_parameters["otegi_rho"] if self.config_parameters["mass_radius"] == "otegi" else "") + "_" + self.config_parameters["inclination"] + "_" + self.config_parameters["eccentricity"] + "_" + self.config_parameters["stability"] + " .png"
 
         elif self.config_parameters["ind_P"] == "linear":
@@ -630,11 +633,6 @@ class dynamite_plots:
                 labs.append("Probability Density Function")
 
             ul = np.amax(n)*1.5
-            xlim = [0.5 if min(per) > 0.5 else min(per) - 0.1, 7300 if system == "Inner Solar System" else 730 if 2*max(po) < 730 else 2*max(po)]
-
-            if system == "eps Eri":
-                xlim = [100, 7300]
-
             plt_savename = system.replace(" ", "") + "_P_linear_" + self.config_parameters["period"] + "_" + self.config_parameters["mass_radius"] + ("_" + self.config_parameters["otegi_rho"] if self.config_parameters["mass_radius"] == "otegi" else "") + "_" + self.config_parameters["inclination"] + "_" + self.config_parameters["eccentricity"] + "_" + self.config_parameters["stability"] + ".png"
 
         elif self.config_parameters["ind_P"] == "log":
@@ -684,11 +682,6 @@ class dynamite_plots:
 
             ul = np.amax(hist_norm)*1.5/len(Pk)
             ax.set_xscale("log")
-            xlim = [0.5 if min(per) > 0.5 else min(per) - 0.1, 7300 if (system == "Inner Solar System" or system == "Proxima Centauri") else 730 if 2*max(po) < 730 else 2*max(po)]
-
-            if system == "eps Eri":
-                xlim = [100, 7300]
-
             plt_savename = system.replace(" ", "") + "_P_log_" + self.config_parameters["period"] + "_" + self.config_parameters["mass_radius"] + ("_" + self.config_parameters["otegi_rho"] if self.config_parameters["mass_radius"] == "otegi" else "") + "_" + self.config_parameters["inclination"] + "_" + self.config_parameters["eccentricity"] + "_" + self.config_parameters["stability"] + ".png"
 
         annots = []
@@ -735,11 +728,11 @@ class dynamite_plots:
             labs.append("Unconfirmed planet candidates" if len(p3) > 1 else "Unconfirmed planet candidate")
             annots = self.plot_annots(annots, p3, ul, l3, xlim, ("log" if self.config_parameters["ind_P"] == "log" else "linear"), ax)
 
-        hztl = [np.interp(1.5, t, pi), np.interp(1.5, t, po)]
+        hztl = [np.interp(0.003, t, pi), np.interp(0.003, t, po)]
         ax.annotate("Habitable\nZone", (hztl[0]*math.sqrt(hztl[1]/hztl[0]), ul*0.75), textcoords="offset points", xytext=(0, 0), ha="center", weight='bold', fontsize=11)
         ax.set_xlabel("Period (days)", fontsize=24)
         ax.set_ylabel("Relative Likelihood", fontsize=24)
-        ax1.set_ylabel("Time (Gyr)", fontsize=24)
+        ax1.set_ylabel("Age (Gyr)", fontsize=24, rotation='vertical')
         lgnd = ax.legend(hands, labs, loc=9, fontsize=14, ncol=2, markerscale=0.75)
 
         for i in lgnd.legend_handles:
@@ -930,11 +923,12 @@ class dynamite_plots:
         labs = [(r"$\tau$ Ceti" if system == "tau Cet" else system) + " DYNAMITE Predictions"]
         ul = 1.5*np.amax(n)
         annots = []
+        j1 = [j for j in i1 if j != "?"]
         j11 = [j for j in i11 if j != "?"]
         j12 = [j for j in i12 if j != "?"]
         j2 = [j for j in i2 if j != "?"]
         j3 = [j for j in i3 if j != "?"]
-        xval = [i1]
+        xval = [j1]
 
         if len(j11) > 0:
             xval.append(j11)
@@ -1132,7 +1126,7 @@ class dynamite_plots:
 
         for x in range(len(t)):
             for y in range(len(t[x])):
-                if x > 0 and not isinstance(t[x][y], str) and y != len(t[x]) - 1:
+                if x > 0 and not isinstance(t[x][y], str) and y < len(t[x]) - 2:
                     t[x][y] = float(t[x][y])
 
                 elif y == 1 and t[x][y] == "?":
@@ -1140,6 +1134,9 @@ class dynamite_plots:
 
                 elif y == 2 and t[x][y] == "?":
                     t[x][y] = float(self.mr_convert(t[x][y-1], "mass"))
+
+                elif y == len(t[x]) - 2 and t[x][y] != "?":
+                    t[x][y] = int(t[x][y])
 
         return t[0][0], t[0][1], t[0][3], t[0][5], [t[i][:-1] for i in range(1, len(t))], np.array([t[i][-1] for i in range(1, len(t))]), t[0][5]
 

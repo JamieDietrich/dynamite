@@ -1,9 +1,10 @@
 ### DYNAmical Multi-planet Injection TEster (DYNAMITE) ###
 ### Targets List w/ SQLite DB ###
-### Jamie Dietrich ###
-### jdietrich@asu.edu ###
-### 2024 October 21 ###
-### Version 3.0 ###
+### Main Author: Jamie Dietrich ###
+### Contact: jdietrich@asu.edu ###
+### Contributing Authors: Ritvik Basant, Katelyn Ruppert ###
+### 2025 July 9 ###
+### Version 3.1 ###
 ### Dietrich & Apai (2020), AJ, 160, 107D ###
 ### https://iopscience.iop.org/article/10.3847/1538-3881/aba61d ###
 ### Dietrich & Apai (2021), AJ, 161, 17D ###
@@ -74,12 +75,12 @@ class dynamite_targets_db:
                 planets = dbcursor.fetchall()
 
                 for p in planets:
-                    _tname, pname, _altname, period, pul, pll, radius, rul, rll, mass, mul, mll, mt, inc, iul, ill, ecc, eul, ell, t0, t0u, t0l = p
+                    _tname, pname, _altname, period, pul, pll, radius, rul, rll, mass, mul, mll, mt, inc, iul, ill, ecc, eul, ell, tr, t0, t0u, t0l = p
 
                     if isinstance(pll, str) or isinstance(rll, str) or isinstance(mll, str) or isinstance(ill, str) or isinstance(ell, str):
                         print(p)
 
-                    target_params.append([create_tuple(period,pul,pll), create_tuple(radius,rul,rll), create_tuple(mass,mul,mll,mt), create_tuple(inc,iul,ill), create_tuple(ecc,eul,ell), create_tuple(t0,t0u,t0l), pname])
+                    target_params.append([create_tuple(period,pul,pll), create_tuple(radius,rul,rll), create_tuple(mass,mul,mll,mt), create_tuple(inc,iul,ill), create_tuple(ecc,eul,ell), tr, create_tuple(t0,t0u,t0l), pname])
 
                 targets[n] = tuple(target_params)
 

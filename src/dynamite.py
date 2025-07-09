@@ -1,9 +1,10 @@
 ### DYNAmical Multi-planet Injection TEster (DYNAMITE) ###
 ### Main File ###
-### Jamie Dietrich ###
-### jdietrich@asu.edu ###
-### 2024 October 21 ###
-### Version 3.0 ###
+### Main Author: Jamie Dietrich ###
+### Contact: jdietrich@asu.edu ###
+### Contributing Authors: Ritvik Basant, Katelyn Ruppert ###
+### 2025 July 9 ###
+### Version 3.1 ###
 ### Dietrich & Apai (2020), AJ, 160, 107D ###
 ### https://iopscience.iop.org/article/10.3847/1538-3881/aba61d ###
 ### Dietrich & Apai (2021), AJ, 161, 17D ###
@@ -508,8 +509,7 @@ class dynamite:
             print(datetime.now(), "Creating Period Prior Distribution for", target_name)
 
             if self.config_parameters["period"] == "epos":
-                fP = self.create_fP(P, per)
-                PP, deltas, cdfP = self.epos_pers(fP, per, mas, [], ecc, P, R, cdfR, il, Pinc, Pecc, em, cdfe, M_star, GMfp213)
+                PP, deltas, cdfP = self.create_pers(self.create_epos_fP(P, per), per, mas, [], ecc, P, R, cdfR, il, Pinc, Pecc, em, cdfe, M_star, GMfp213)
 
             elif self.config_parameters["period"] == "syssim":
                 PP, deltas, cdfP = self.syssim_pers(per, mas, [], ecc, P, R, cdfR, il, Pinc, Pecc, em, cdfe, M_star, GMfp213)
@@ -550,8 +550,7 @@ class dynamite:
             print(datetime.now(), "Creating Period Prior Distribution for", target_name)
 
             if self.config_parameters["period"] == "epos":
-                fP = self.create_fP(P, per)
-                PP, deltas, cdfP = self.epos_pers(fP, per, mas, Ms, ecc, P, R, cdfR, il, Pinc, Pecc, em, cdfe, M_star, GMfp213)
+                PP, deltas, cdfP = self.create_pers(self.create_epos_fP(P, per), per, mas, Ms, ecc, P, R, cdfR, il, Pinc, Pecc, em, cdfe, M_star, GMfp213)
 
             elif self.config_parameters["period"] == "syssim":
                 PP, deltas, cdfP = self.syssim_pers(per, mas, Ms, ecc, P, R, cdfR, il, Pinc, Pecc, em, cdfe, M_star, GMfp213)
@@ -641,7 +640,8 @@ class dynamite:
             if zl[i-1] != zl[i] - 1:
                 peaks.append([zl[i-1]+1, zl[i]])
 
-        like_sums = [np.sum(PPi[peaks[s][0]:peaks[s][1]]) for s in range(len(peaks))]
+        like_sums = np.array([np.sum(PPi[peaks[s][0]:peaks[s][1]]) for s in range(len(peaks))])
+        like_bins = np.array([Pis[peaks[s][1]] - Pis[peaks[s][0]] for s in range(len(peaks))])
         pvs = [max(PPi[i[0]:i[1]]) for i in peaks]
         Pfs = [Pis[peaks[i][0]:peaks[i][1]][np.where(PPi[peaks[i][0]:peaks[i][1]] == pvs[i])[0][0]] for i in range(len(peaks))]
         Pms = []
@@ -649,7 +649,7 @@ class dynamite:
         for s in range(len(Pfs)):
             ind = np.where(Pis == Pfs[s])[0][0]
 
-            if PPi[ind] > 0.5*np.amax(PPi) and (like_sums[s] > 0.1*sum(like_sums) or like_sums[s] > 0.25*max(like_sums)):
+            if PPi[ind] > 0.5*np.amax(PPi) and (like_sums[s] > 0.1*sum(like_sums) or like_sums[s] > 0.25*max(like_sums) or like_sums[s]/like_bins[s] > 0.25*sum(like_sums/like_bins)):
                 Pms.append(Pfs[s])
         
         if len(Pms) == 0:
@@ -1299,8 +1299,8 @@ class dynamite:
 
 
 
-    def create_fP(self, P, per):
-        """Creates the initial fP distribution for the EPOS period ratio distribution."""
+    def create_epos_fP(self, P, per):
+        """Creates the initial fP distribution for the EPOS period ratio distributions from Mulders et al. (2018)."""
 
         fP = np.zeros(len(P))
         ind = 0
@@ -1334,17 +1334,23 @@ class dynamite:
 
 
 
-    def epos_pers(self, fP, per, mas, Ms, ecc, P, R, cdfR, il, Pinc, Pecc, em, cdfe, M_star, GMfp213):
-        """Generates probability of periods using dimensionless spacing in period ratios from EPOS (Mulders et al. 2018)"""
+    def get_lognorm_cdf(self, val):
+        """Gets the lognorm CDF value of the input given the likelihood for the minimum stable location."""
+
+        return spst.lognorm.cdf(val, spst.norm.rvs(0.4, 0.02, 1), loc=0, scale=np.exp(spst.norm.rvs(1.97, 0.03, 1)))[0]
+
+
+
+    def create_pers(self, fP, per, mas, Ms, ecc, P, R, cdfR, il, Pinc, Pecc, em, cdfe, M_star, GMfp213):
+        """Generates probability of periods using dimensionless spacing adjustment."""
 
         m2 = self.mr_convert(R[np.where(cdfR > 0.5)[0][0]], "mass")
-        #dc = 8
-        l = 0
-
         Dv = np.zeros(len(P))
         Ds = np.zeros(len(il))
         pdfP = np.zeros(len(il))
 
+        l = 0
+        
         for i in range(len(P)):
             if l < len(per) - 1 and P[i] > per[l]*math.sqrt(per[l+1]/per[l]) and P[i] < per[l+1]:
                 l += 1
@@ -1357,12 +1363,12 @@ class dynamite:
 
             if len(Ms) == 0:
                 Dv[i] = max(0, aet * ((mas[l] + m2)*(self.M_earth/(3*M_star*self.M_sun)))**(-1/3))
-                fP[i] *= spst.lognorm.cdf(Dv[i], spst.norm.rvs(0.4, 0.02, 1), loc=0, scale=np.exp(spst.norm.rvs(1.97, 0.03, 1)))
+                fP[i] *= self.get_lognorm_cdf(Dv[i])
     
             else:
                 for n in range(len(il)):
                     Ds[n] = max(0, aet * ((Ms[n, l] + m2)*(self.M_earth/(3*M_star*self.M_sun)))**(-1/3))
-                    pdfP[n] = spst.lognorm.cdf(Ds[n], spst.norm.rvs(0.4, 0.02, 1), loc=0, scale=np.exp(spst.norm.rvs(1.97, 0.03, 1)))
+                    pdfP[n] = self.get_lognorm_cdf(Ds[n])
 
                 fP[i] *= np.average(pdfP, weights=Pinc)
                 Dv[i] = np.average(Ds, weights=Pinc)
@@ -1375,8 +1381,9 @@ class dynamite:
             fDu[j] += fP[i]
 
         cdfP = np.cumsum(fP)
+        norm = cdfP[-1]
 
-        return fP/cdfP[-1], fDu/cdfP[-1], cdfP/cdfP[-1]
+        return fP/norm, fDu/norm, cdfP/norm
 
 
 
@@ -1437,45 +1444,9 @@ class dynamite:
             fPip.append(spst.lognorm.pdf(Pip, (len(per) if Nc == 1 else len(Np[i]))*sigmap))
 
         fP = np.array([max([np.interp(P[i], (Pcb if Nc == 1 else Pcb[j])*Pip, fPip[j]) for j in range(Nc)]) for i in range(len(P))])
-        m2 = self.mr_convert(R[np.where(cdfR > 0.5)[0][0]], "mass")
-        l = 0
 
-        Dv = np.zeros(len(P))
-        Ds = np.zeros(len(il))
-        pdfP = np.zeros(len(il))
-
-        for i in range(len(P)):
-            if l < len(per) - 1 and P[i] > per[l]*math.sqrt(per[l+1]/per[l]) and P[i] < per[l+1]:
-                l += 1
-
-            a1 = GMfp213*((P[i] if P[i] < per[l] else per[l])*self.seconds_per_day)**(2/3)
-            a2 = GMfp213*((per[l] if P[i] < per[l] else P[i])*self.seconds_per_day)**(2/3)
-            e1 = em if P[i] < per[l] else (ecc[l] if ecc[l] != "?" else em)
-            e2 = (ecc[l] if ecc[l] != "?" else em) if P[i] < per[l] else em
-            aet = 2*(a2*(1 - e2) - a1*(1 + e1))/(a2 + a1)
-
-            if len(Ms) == 0:
-                Dv[i] = max(0, aet * ((mas[l] + m2)*(self.M_earth/(3*M_star*self.M_sun)))**(-1/3))
-                fP[i] *= spst.lognorm.cdf(Dv[i], spst.norm.rvs(0.4, 0.02, 1), loc=0, scale=np.exp(spst.norm.rvs(1.97, 0.03, 1)))
-    
-            else:
-                for n in range(len(il)):
-                    Ds[n] = max(0, aet * ((Ms[n, l] + m2)*(self.M_earth/(3*M_star*self.M_sun)))**(-1/3))
-                    pdfP[n] = spst.lognorm.cdf(Ds[n], spst.norm.rvs(0.4, 0.02, 1), loc=0, scale=np.exp(spst.norm.rvs(1.97, 0.03, 1)))
-
-                fP[i] *= np.average(pdfP, weights=Pinc)
-                Dv[i] = np.average(Ds, weights=Pinc)
-
-        Du = np.arange(0, 1000)
-        fDu = np.zeros(len(Du))
-
-        for i in range(len(Dv)):
-            j = int(Dv[i])
-            fDu[j] += fP[i]
-
-        cdfP = np.cumsum(fP)
-
-        return fP/cdfP[-1], fDu/cdfP[-1], np.cumsum(fP)/cdfP[-1]
+        return self.create_pers(fP, per, mas, Ms, ecc, P, R, cdfR, il, Pinc, Pecc, em, cdfe, M_star, GMfp213)
+        
 
 
     def epos_rads(self, r1, r2):

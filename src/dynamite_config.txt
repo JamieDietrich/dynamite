@@ -1,9 +1,10 @@
 ### DYNAmical Multi-planet Injection TEster (DYNAMITE) ###
 ### Configuration File ###
-### Jamie Dietrich ###
-### jdietrich@asu.edu ###
-### 2024 October 21 ###
-### Version 3.0 ###
+### Main Author: Jamie Dietrich ###
+### Contact: jdietrich@asu.edu ###
+### Contributing Authors: Ritvik Basant, Katelyn Ruppert ###
+### 2025 July 9 ###
+### Version 3.1 ###
 ### Dietrich & Apai (2020), AJ, 160, 107D ###
 ### https://iopscience.iop.org/article/10.3847/1538-3881/aba61d ###
 ### Dietrich & Apai (2021), AJ, 161, 17D ###
@@ -31,7 +32,7 @@
 
 MC_chain:100000
 mode:single
-system:"HR 858"
+system:"Kepler-55"
 period:epos
 radius:syssim
 radtype:clustered
@@ -65,7 +66,7 @@ ttv_mode:ttvfaster
 
 plot:True
 show_plots:False
-saved:True
+saved:False
 plt_P_R:True
 plt_P_scale:log
 plt_tdtp:False
@@ -100,8 +101,8 @@ add_unconfirmed:False
 # toi_csv: the full pathname (if needed) to the Exoplanet Archive TOI Table CSV
 # exofop_csv: the full pathname (if needed) to the ExoFOP CSV
 
-targets_db:targets.db
-exoplanetarchive_csv:exoplanetarchive_10_18_2024_15_51_52.csv
-comppars_csv:exoplanetarchive_10_18_2024_15_51_52_2.csv
-toi_csv:exoplanetarchive_10_18_2024_15_51_52_3.csv
-exofop_csv:exofop_10_18_2024_15_51_52.csv
+targets_db:test_targets.db
+exoplanetarchive_csv:exoplanetarchive_07_07_2025_14_33_33.csv
+comppars_csv:exoplanetarchive_07_07_2025_14_33_33_2.csv
+toi_csv:exoplanetarchive_07_07_2025_14_33_33_3.csv
+exofop_csv:exofop_07_07_2025_14_33_33.csv
