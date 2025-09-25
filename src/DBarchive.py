@@ -131,11 +131,13 @@ class DBarchive:
         dbname = dbname if dbname != None else db if db != None else 'dynamite_targets_archive.db'
         
         if not input_exoPlanet_csv:
-            self.create_csv(self.exoPlanetArchiveURL, exoPlanetCSV)
-            self.create_csv(self.exoPlanetArchiveURL2, compparsCSV)
-            self.create_csv(self.exoPlanetArchiveURL3, toiCSV)
+            exoPlanetCSV = self.create_csv(self.exoPlanetArchiveURL, exoPlanetCSV)
+            compparsCSV = self.create_csv(self.exoPlanetArchiveURL2, compparsCSV)
+            toiCSV = self.create_csv(self.exoPlanetArchiveURL3, toiCSV)
+            self.csv_comppars = self.read_addl_csv(compparsCSV)
+            #self.csv_toi = self.read_addl_csv(toiCSV)
         if not input_exoFop_csv and not input_exoPlanet_csv:
-            self.create_csv(self.exofopArchiveURL, exoFopCSV) 
+            exoFopCSV = self.create_csv(self.exofopArchiveURL, exoFopCSV) 
         if not os.path.exists(exoPlanetCSV) and not os.path.exists(exoFopCSV):
             print("CSV files not found program terminated!!!!")
             exit(1)
@@ -189,6 +191,7 @@ class DBarchive:
             print("FATAL ERROR: Cannot access " + url)
             exit(1)
         open(csvfile, "wb").write(response.content)
+        return csvfile
     
     def create_database(self, dbname):
         print("New Database " + dbname + " being created!!")

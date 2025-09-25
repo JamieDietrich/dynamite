@@ -1174,27 +1174,35 @@ class dynamite_plots:
 
 
 
-    def otegi_mr(self, measurement, predict):
+
+    def otegi_mr(self, measurement, predict, force=None):
         """Uses a power-law MR to predict mass in Earth values from radius in Earth values or vice versa"""
 
         if predict == "radius":
             R_r = 1.03*measurement**0.29
             R_v = 0.7*measurement**0.63
+            R_j = 14.357*(measurement/131.61)**-0.04
             
-            if measurement > 25 or (measurement > 5 and self.config_parameters["otegi_rho"] == "volatile"):
+            if force == "rocky" or measurement < 5:
+                return R_r
+
+            if force == "volatile" or (measurement < 131.61 and (measurement > 25 or (measurement > 5 and self.config_parameters["otegi_rho"] == "volatile"))):
                 return R_v
 
-            return R_r
+            return R_j
 
         elif predict == "mass":
             M_r = 0.9*measurement**3.45
             M_v = 1.74*measurement**1.58
+            M_j = 131.61*(measurement/14.357)**(-25)
 
-            if M_r > 25 or (M_r > 5 and self.config_parameters["otegi_rho"] == "volatile"):
+            if force == "rocky" or M_r < 5:
+                return M_r
+
+            if force == "volatile" or (M_v < 131.61 and (M_r > 25 or (M_r > 5 and self.config_parameters["otegi_rho"] == "volatile"))):
                 return M_v
 
-            return M_r
-
+            return M_j
 
 
     # DEPRECATED: def mrexo_masses(self, Rk, i):

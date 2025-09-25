@@ -37,7 +37,7 @@ period:epos
 radius:syssim
 radtype:clustered
 radmin:0.1
-radmax:25
+radmax:15
 mass_radius:otegi
 otegi_rho:volatile
 inclination:syssim
@@ -101,8 +101,8 @@ add_unconfirmed:False
 # toi_csv: the full pathname (if needed) to the Exoplanet Archive TOI Table CSV
 # exofop_csv: the full pathname (if needed) to the ExoFOP CSV
 
-targets_db:test_targets.db
-exoplanetarchive_csv:exoplanetarchive_07_07_2025_14_33_33.csv
-comppars_csv:exoplanetarchive_07_07_2025_14_33_33_2.csv
-toi_csv:exoplanetarchive_07_07_2025_14_33_33_3.csv
-exofop_csv:exofop_07_07_2025_14_33_33.csv
+targets_db:targets.db
+exoplanetarchive_csv:exoplanetarchive_09_25_2025_13_27_51.csv
+comppars_csv:exoplanetarchive_09_25_2025_13_27_51_2.csv
+toi_csv:exoplanetarchive_09_25_2025_13_27_51_3.csv
+exofop_csv:exofop_09_25_2025_11_45_57.csv
