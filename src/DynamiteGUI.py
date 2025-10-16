@@ -31,7 +31,7 @@ from tkinter import filedialog as tkFD
 from tkinter import messagebox as tkMB
 from tkinter import constants as Tkconstants
 
-PYTHON_COMMAND = "C:\python38\python -u " if platform.system() == 'Windows' else "python -u "
+PYTHON_COMMAND = "C:\\python38\\python -u " if platform.system() == 'Windows' else "/usr/local/bin/python3 -u "
 
 class CreateToolTip(object):
     """Modified from https://stackoverflow.com/questions/3221956/how-do-i-display-tooltips-in-tkinter"""
@@ -654,6 +654,7 @@ class DynamiteGUI:
                
     def execute_program(self, title, command):
         """execute program"""
+        print(PYTHON_COMMAND + command)
         editor = Tkinter.Toplevel(self.root)
         editor.bind('<ButtonRelease-3>', self.clicker, add='')
         text_pad = ScrolledText.ScrolledText(editor, width=100, height=40)
@@ -868,7 +869,7 @@ class DynamiteGUI:
                         for entry in self.config_entries.keys():
                             if parts[0] == entry:
                                 found = True
-                                cfile.write(parts[0] + ":" + str(self.config_entries[entry].get()) + "\n")
+                                cfile.write(parts[0] + ":" + ("\"" if entry == "system" else "") + str(self.config_entries[entry].get()) + ("\"" if entry == "system" else "") + "\n")
                                 break
                         if not found:
                             cfile.write(l)
