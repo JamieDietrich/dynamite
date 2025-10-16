@@ -25,7 +25,6 @@ import scipy.stats as spst
 import multiprocessing as mp
 import matplotlib.pyplot as plt
 
-from PPR import PPR
 from datetime import datetime
 from astropy import constants as const
 from scipy.signal import argrelextrema
@@ -91,9 +90,6 @@ class dynamite:
         except:
             processes = None
 
-        if sys.platform != "darwin" and os.cpu_count() > 16:
-            self.ppr = PPR((self, None), processes)
-
         if merged_data != None:
             try:
                 if len(merged_data[-5][0]) > 1:
@@ -150,11 +146,7 @@ class dynamite:
                     exit()
                 targlist = [tn for tn in targets_dict.keys()]
 
-                if sys.platform != "darwin" and os.cpu_count() > 16:
-                    Pk, P, PP, Rk, R, PR, ik, il, Pinc, ek, el, Pecc, deltas, tdm, tdle, tdue, tpm, tple, tpue, targets, starvs, pers, rads, mass, eccs = datavars = self.ppr.create_processes("mt_mc", (targets_dict, limits_dict, targlist), -len(targlist), self.process_data)
-
-                else:
-                    Pk, P, PP, Rk, R, PR, ik, il, Pinc, ek, el, Pecc, deltas, tdm, tdle, tdue, tpm, tple, tpue, targets, starvs, pers, rads, mass, eccs = datavars = self.run_new_mp(self.mt_mc, np.arange(len(targlist)), (targets_dict, limits_dict, targlist))
+                Pk, P, PP, Rk, R, PR, ik, il, Pinc, ek, el, Pecc, deltas, tdm, tdle, tdue, tpm, tple, tpue, targets, starvs, pers, rads, mass, eccs = datavars = self.run_new_mp(self.mt_mc, np.arange(len(targlist)), (targets_dict, limits_dict, targlist))
 
                 if self.num_of_nodes == 1:
                     np.savez_compressed(self.sdir + "saved_data_" + self.config_parameters["mode"] + ".npz", *datavars)
@@ -181,9 +173,6 @@ class dynamite:
 
                     self.saved_writing(datavars, self.config_parameters["system"])
 
-                    if sys.platform != "darwin" and os.cpu_count() > 16:
-                        self.ppr.terminate_PPR()
-
                 elif isinstance(self.config_parameters["system"], list):
                     with open(self.sdir + "table_" + self.config_parameters["mode"] + "_" + self.config_parameters["period"] + "_run_" + self.startdatetime + ".txt", "w") as f:
                         f.write("Name --- Period --- Radius")
@@ -205,9 +194,6 @@ class dynamite:
                         self.saved_writing(datavars, i)
 
         print(datetime.now(), "Finishing DYNAMITE")
-
-        if sys.platform != "darwin" and os.cpu_count() > 16:
-            self.ppr.terminate_PPR()
 
 
 
@@ -306,7 +292,7 @@ class dynamite:
 
         Pk, P, PP, Rk, R, PR, ik, il, Pinc, ek, el, Pecc, deltas, tdm, tdle, tdue, tpm, tple, tpue, targets, starvs, pers, rads, mass, eccs = data
         print(datetime.now(), "Creating Plots")
-        dynamite_plots(Pk, P, PP, Rk, R, PR, ik, il, Pinc, ek, el, Pecc, deltas, tdm, tdle, tdue, tpm, tple, tpue, targets, starvs, pers, rads, mass, eccs, targsys, self.cfname, (self.ppr if (sys.platform != "darwin" and os.cpu_count() > 16) else None))
+        dynamite_plots(Pk, P, PP, Rk, R, PR, ik, il, Pinc, ek, el, Pecc, deltas, tdm, tdle, tdue, tpm, tple, tpue, targets, starvs, pers, rads, mass, eccs, targsys, self.cfname)
 
 
 
@@ -472,6 +458,7 @@ class dynamite:
             pert = [self.random_val_from_tup(i) for i in per_tup]
             mast = [self.random_val_from_tup(mas_tup[i]) if mas_tup[i][3] != "Msini" else (self.random_val_from_tup(mas_tup[i])/np.sin(inct[i]*math.pi/180) if inct[i] != 0 and inct[i] != "?" else self.random_val_from_tup(mas_tup[i])*self.M_sun/self.M_earth) for i in range(len(mas_tup))]
             radt = [self.random_val_from_tup(rad_tup[i]) if mas_tup[i][3] != "Msini" else self.mr_convert(mast[i], "radius") for i in range(len(rad_tup))]
+                
             D = np.zeros(len(pert) - 1)
 
             for i in range(len(D)):
@@ -557,23 +544,18 @@ class dynamite:
 
         print(datetime.now(), "Running Monte Carlo for", target_name)
 
-        if sys.platform != "darwin" and os.cpu_count() > 16:
-            PPi, PRi, Ri, deltasi, stable, val, tim, _Pk, _Rk, _ek, _ik = self.ppr.create_processes("mc_test", -int(self.interation_list[self.node_number - 1]), (P, fP, PP, cdfP, per, deltas, R, PR, cdfR, inew, ib, il, cdfi, el, Pecc, em, cdfe, per_tup, rad_tup, mas_tup, inc_tup, ecc_tup, GMfp213, R_star, M_star, limits, indq), self.process_mc_data)
+        res = self.run_new_mp(self.mc_test, np.arange(self.interations), (P, fP, PP, cdfP, per, deltas, R, PR, cdfR, inew, ib, il, cdfi, el, Pecc, em, cdfe, per_tup, rad_tup, mas_tup, inc_tup, ecc_tup, GMfp213, R_star, M_star, limits, indq))
+        results = []
 
-        else:
-            res = self.run_new_mp(self.mc_test, np.arange(self.interations), (P, fP, PP, cdfP, per, deltas, R, PR, cdfR, inew, ib, il, cdfi, el, Pecc, em, cdfe, per_tup, rad_tup, mas_tup, inc_tup, ecc_tup, GMfp213, R_star, M_star, limits, indq))
-            results = []
+        for j in range(len(res[0])):
+            res1 = []
 
-            for j in range(len(res[0])):
-                res1 = []
+            for i in range(len(res)):
+                res1.append(res[i][j])
 
-                for i in range(len(res)):
-                    res1.append(res[i][j])
+            results.append(res1)
 
-                results.append(res1)
-
-            PPi, PRi, Ri, deltasi, stable, val, tim, _Pk, _Rk, _ek, _ik = results
-
+        PPi, PRi, Ri, deltasi, stable, val, tim, _Pk, _Rk, _ek, _ik = results
         R = Ri[0]
         PP = np.mean(PPi, axis=0)
         PR = np.mean(PRi, axis=0)
@@ -860,23 +842,25 @@ class dynamite:
 
     def random_val_from_tup(self, tup):
         """Draws a random value from the given tuple (value, upper_unc, lower_unc)"""
-
+        
         if tup[1] == "?":
             return tup[0]
 
         if tup[1] == abs(tup[2]):
             return np.random.normal(tup[0], tup[1])
 
+        if tup[1] < 0:
+            tup = (tup[0], tup[2], tup[1])
+
+        chk = np.random.rand()
+
+        if chk < 0.5:
+            x = np.random.normal(tup[0], tup[1])
+            return (x if x > tup[0] else 2*tup[0]-x)
+
         else:
-            chk = np.random.rand()
-
-            if chk < 0.5:
-                x = np.random.normal(tup[0], tup[1])
-                return (x if x > tup[0] else 2*tup[0]-x)
-
-            else:
-                x = np.random.normal(tup[0], abs(tup[2]))
-                return (x if x < tup[0] else 2*tup[0]-x)
+            x = np.random.normal(tup[0], abs(tup[2]))
+            return (x if x < tup[0] else 2*tup[0]-x)
 
 
 
@@ -1575,9 +1559,6 @@ class dynamite:
                     ib = il[i]
                     mv = cmax
             
-            #ibs, fib = self.ppr.create_processes("inc_test_old", (inc, il, incn, sigmas), -len(il), self.process_inc_data_old)
-            #ib = ibs[np.where(fib == max(fib))[0][0]]
-
         if ib > 90:
             ilb = round(ib, 1)
             ib = round(180 - ib, 1)
@@ -1708,9 +1689,6 @@ class dynamite:
                     ib = il[i]
                     mv = cmax
             
-            #ibs, fib = self.ppr.create_processes("inc_test_old", (inc, il, incn, sigmas), -len(il), self.process_inc_data_old)
-            #ib = ibs[np.where(fib == max(fib))[0][0]]
-
         if ib > 90:
             ilb = ib
             ib = 180 - ib

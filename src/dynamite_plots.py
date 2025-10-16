@@ -24,7 +24,6 @@ import astropy.constants as const
 import matplotlib.ticker as mticker
 import matplotlib.patches as mpatch
 
-from PPR import PPR
 from datetime import datetime
 from dynamite_targets_db import dynamite_targets_db
 
@@ -32,7 +31,7 @@ from dynamite_targets_db import dynamite_targets_db
 
 class dynamite_plots:
 
-    def __init__(self, Pk=[], P=[], PP=[], Rk=[], R=[], PR=[], ik=[], inc=[], Pi=[], ek=[], ecc=[], Pe=[], deltas=[], tdm=[], tdle=[], tdue=[], tpm=[], tple=[], tpue=[], targets=[], starvs=[], pers=[], rads=[], mass=[], eccs=[], system="", cfname="dynamite_config.txt", ppr=None):
+    def __init__(self, Pk=[], P=[], PP=[], Rk=[], R=[], PR=[], ik=[], inc=[], Pi=[], ek=[], ecc=[], Pe=[], deltas=[], tdm=[], tdle=[], tdue=[], tpm=[], tple=[], tpue=[], targets=[], starvs=[], pers=[], rads=[], mass=[], eccs=[], system="", cfname="dynamite_config.txt"):
         """Sets up plotting routines"""
 
         self.seconds_per_day = 86400
@@ -46,7 +45,6 @@ class dynamite_plots:
         self.R_earth = const.R_earth.cgs.value
         self.config_parameters = {}
         self.sdir = ""
-        new_PPR = False
 
         try:
             config_data = np.loadtxt(cfname, dtype=str, delimiter=':')
@@ -86,13 +84,6 @@ class dynamite_plots:
         if self.config_parameters["plt_ratios"] == "True" and self.config_parameters["mode"] != "single":
             functions.append("plot_ratios"), args.append(([pers[i+1]/pers[i] for i in range(len(pers) - 1)],))
 
-        if ppr == None and sys.platform != "darwin" and os.cpu_count() > 16:
-            new_PPR = True
-            ppr = PPR((self, None), processes)
-
-        if len(functions) > 0 and sys.platform != "darwin" and os.cpu_count() > 16:
-            ppr.create_processes(functions, args)
-
         if self.config_parameters["plt_indpars"] == "True" and self.config_parameters["mode"] == "single":
             self.sdir = self.config_parameters["system"].replace("\"", "") + "/"
 
@@ -102,9 +93,6 @@ class dynamite_plots:
             self.plot_ind_params(Pk, P, PP, Rk, R, PR, ik, inc, Pi, ek, ecc, Pe, system.replace("\"", ""))
 
         print(datetime.now(), "Finishing Plots")
-
-        if new_PPR:
-            ppr.terminate_PPR()
 
 
 
@@ -762,13 +750,6 @@ class dynamite_plots:
         Rb = list(R)
 
         if self.config_parameters["use_mass"] == "True":
-            self.ppr = PPR((self, None))
-            """
-            if self.config_parameters["mass_radius"] == "mrexo":
-                Mk = self.ppr.create_processes("mrexo_masses", (Rk,), -len(Rk))
-                Mb1 = sorted(self.ppr.create_processes("mrexo_masses", (Rb,), -len(Rb)))
-                Mb = np.arange(Mb1[0], Mb1[-1], 0.25)
-            """
             if self.config_parameters["mass_radius"] == "otegi":
                 Mk = [self.otegi_mr(Rk[i], 'mass') for i in range(len(Rk))]
                 Mb1 = sorted([self.otegi_mr(Rb[i], 'mass') for i in range(len(Rb))])
