@@ -521,9 +521,10 @@ class dynamite:
                     elif mts[m] == "Mass":
                         Ms[n, m] = mas[m]
                         Rs[n, m] = self.mr_convert(mas[m], "radius")
-                
+
+            for n in range(len(il)):
                 if self.config_parameters["radius"] == "epos":
-                    R, fR, _ = self.epos_rads(Rs[n])
+                    R, fR, _ = self.epos_rads(np.amin(Rs), np.amax(Rs))
 
                 elif self.config_parameters["radius"] == "syssim":
                     R, fR, _ = self.syssim_rads(Rs[n])

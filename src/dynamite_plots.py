@@ -753,7 +753,7 @@ class dynamite_plots:
             if self.config_parameters["mass_radius"] == "otegi":
                 Mk = [self.otegi_mr(Rk[i], 'mass') for i in range(len(Rk))]
                 Mb1 = sorted([self.otegi_mr(Rb[i], 'mass') for i in range(len(Rb))])
-                Mb = np.arange(Mb1[0], Mb1[-1], 0.25)
+                Mb = np.arange(min(Mb1), max(Mb1), 0.25)
 
             n, _, h1 = plt.hist(Mk, bins=Mb, weights=np.ones(len(Mk))*10 / len(Mk), color=color_scheme[0] if self.config_parameters["stability"] == "hill" else color_scheme[2])
             plt.xlabel(r"Mass ($M_{\oplus}$)", fontsize=30)
