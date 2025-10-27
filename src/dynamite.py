@@ -1548,7 +1548,7 @@ class dynamite:
             for case in [[False] + list(t) for t in list(itertools.product([False,True], repeat=len(incq)-1))]:
                 incn.append([180-incq[i] if case[i] else incq[i] for i in range(0, len(incq))])
 
-            fib = self.run_new_mp(self.inc_test, il, (inc, incn, sigmas))
+            fib = self.run_new_mp(self.inc_test, il, (inc, incn, None))
 
             mv = 0
             ib = 0
