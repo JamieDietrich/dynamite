@@ -144,6 +144,7 @@ class dynamite:
                 if targets_dict == None or len(targets_dict) == 0:
                     print("Error: No targets selected!")
                     exit()
+                    
                 targlist = [tn for tn in targets_dict.keys()]
 
                 Pk, P, PP, Rk, R, PR, ik, il, Pinc, ek, el, Pecc, deltas, tdm, tdle, tdue, tpm, tple, tpue, targets, starvs, pers, rads, mass, eccs = datavars = self.run_new_mp(self.mt_mc, np.arange(len(targlist)), (targets_dict, limits_dict, targlist))
@@ -220,7 +221,7 @@ class dynamite:
 
         targets_dict = dynamite_targets_db(self.config_parameters["targets_db"]).get_targets(self.config_parameters["mode"], targsys, self.config_parameters["radmax"], self.config_parameters["removed"])
         limits_dict = dynamite_targets_db(self.config_parameters["targets_db"]).get_limits(self.config_parameters["mode"], targsys, self.config_parameters["radmax"])
-
+        
         if targets_dict == None or len(targets_dict) == 0:
             print("Error: No targets selected!")
             exit()
@@ -239,12 +240,12 @@ class dynamite:
 
                 for j in range(len(i) - 1):
                     if (j == 2 and self.config_parameters["use_mass"] == "True") or (j == 1 and i[1][0] == "?"):
-                        mv = self.mr_convert(i[2][0], "radius")
-                        x.append([mv, self.mr_convert(i[2][0]+i[2][1], "radius") - mv, mv - self.mr_convert(i[2][0]-i[2][2], "radius")])
+                        mv = self.otegi_mr(i[2][0], "radius")
+                        x.append([mv, self.otegi_mr(i[2][0]+i[2][1], "radius") - mv, mv - self.otegi_mr(i[2][0]-i[2][2], "radius")])
 
                     elif j == 2 and i[2][0] == "?":
-                        mv = self.mr_convert(i[1][0], "mass")
-                        x.append([mv, self.mr_convert(i[1][0]+i[1][1], "mass") - mv, mv - self.mr_convert(i[1][0]-i[1][2], "mass"), "Prediction"])
+                        mv = self.otegi_mr(i[1][0], "mass")
+                        x.append([mv, self.otegi_mr(i[1][0]+i[1][1], "mass") - mv, mv - self.otegi_mr(i[1][0]-i[1][2], "mass"), "Prediction"])
 
                     else:
                         x.append(i[j])
@@ -258,16 +259,16 @@ class dynamite:
                 for j in range(len(i) - 1):
                     #if isinstance(i[j], tuple):
                         #if self.config_parameters["use_mass"] == "True":
-                            #x.append(self.mr_convert(i[j][0], "radius"))
+                            #x.append(self.otegi_mr(i[j][0], "radius"))
 
                         #else:
                             #x.append(i[j][0])
 
                     if (j == 2 and self.config_parameters["use_mass"] == "True") or (j == 1 and i[j] == "?"):
-                        x.append(self.mr_convert(i[2], "radius"))
+                        x.append(self.otegi_mr(i[2], "radius"))
 
                     elif j == 2 and i[j] == "?":
-                        x.append(self.mr_convert(i[1], "mass"))
+                        x.append(self.otegi_mr(i[1], "mass"))
 
                     else:
                         x.append(i[j])
@@ -342,17 +343,17 @@ class dynamite:
                     low = (t[x][2][0] + t[x][2][2])/np.sin((t[x][3][0] + t[x][3][1])*np.pi/180) - val if t[x][2][1] != "?" else "?"
                     t[x][2] = (val, upp, low, "Msini/sin(i)")
 
-                val = self.mr_convert(t[x][2][0], "radius")
+                val = self.otegi_mr(t[x][2][0], "radius")
                 fupp, flow = self.get_mr_force(t[x][2][0])
-                upp = self.mr_convert(t[x][2][0] + t[x][2][1], "radius", fupp) - val if t[x][2][1] != "?" else "?"
-                low = self.mr_convert(t[x][2][0] + t[x][2][2], "radius", flow) - val if t[x][2][2] != "?" else "?"
+                upp = self.otegi_mr(t[x][2][0] + t[x][2][1], "radius", fupp) - val if t[x][2][1] != "?" else "?"
+                low = self.otegi_mr(t[x][2][0] + t[x][2][2], "radius", flow) - val if t[x][2][2] != "?" else "?"
                 t[x][1] = (val, upp, low)
 
             elif t[x][2][0] == "?":
-                val = self.mr_convert(t[x][1][0], "mass")
+                val = self.otegi_mr(t[x][1][0], "mass")
                 fupp, flow = self.get_mr_force(val)
-                upp = self.mr_convert(t[x][1][0] + t[x][1][1], "mass", fupp) - val if t[x][1][1] != "?" else "?"
-                low = self.mr_convert(t[x][1][0] + t[x][1][2], "mass", flow) - val if t[x][1][2] != "?" else "?"
+                upp = self.otegi_mr(t[x][1][0] + t[x][1][1], "mass", fupp) - val if t[x][1][1] != "?" else "?"
+                low = self.otegi_mr(t[x][1][0] + t[x][1][2], "mass", flow) - val if t[x][1][2] != "?" else "?"
                 t[x][2] = (val, upp, low, "Prediction")
 
         return t[0][0], t[0][1], t[0][2], t[0][3], t[0][4], list([t[i][:-1] for i in range(1, len(t))]), target, limits
@@ -381,14 +382,6 @@ class dynamite:
                     fupp = "rocky"
 
         return fupp, flow
-
-
-
-    def mr_convert(self, meas, pred, force=None):
-        """Runs conversion from mass to radius and vice versa"""
-
-        if self.config_parameters["mass_radius"] == "otegi":
-            return self.otegi_mr(meas, pred, force)
 
 
 
@@ -456,8 +449,10 @@ class dynamite:
             inct = [self.random_val_from_tup(i) if i[0] != "?" else 90 for i in inc_tup]
             ecct = [self.random_val_from_tup(i) if i[0] != "?" else 0 for i in ecc_tup]
             pert = [self.random_val_from_tup(i) for i in per_tup]
-            mast = [self.random_val_from_tup(mas_tup[i]) if mas_tup[i][3] != "Msini" else (self.random_val_from_tup(mas_tup[i])/np.sin(inct[i]*math.pi/180) if inct[i] != 0 and inct[i] != "?" else self.random_val_from_tup(mas_tup[i])*self.M_sun/self.M_earth) for i in range(len(mas_tup))]
-            radt = [self.random_val_from_tup(rad_tup[i]) if mas_tup[i][3] != "Msini" else self.mr_convert(mast[i], "radius") for i in range(len(rad_tup))]
+            masvt = [self.random_val_from_tup(mas_tup[i]) if mas_tup[i][3] != "Msini" else (self.random_val_from_tup(mas_tup[i])/np.sin(inct[i]*math.pi/180) if inct[i] != 0 and inct[i] != "?" else self.random_val_from_tup(mas_tup[i])*self.M_sun/self.M_earth) for i in range(len(mas_tup))]
+            mast = [i if i > 0.1 else 0.1 for i in masvt]
+            radvt = [self.random_val_from_tup(rad_tup[i]) if mas_tup[i][3] != "Msini" else self.otegi_mr(mast[i], "radius") for i in range(len(rad_tup))]
+            radt = [i if i > 0.1 else 0.1 for i in radvt]
                 
             D = np.zeros(len(pert) - 1)
 
@@ -512,15 +507,15 @@ class dynamite:
                 for m in range(len(mas)):
                     if rad[m] == "?" or (mts[m] == "Msini" and inc[m] == "?"):
                         Ms[n, m] = min(mas[m]/np.sin(il[n]*math.pi/180) if il[n] != 0 and il[n] != 180 else M_star*self.M_sun/self.M_earth, M_star*self.M_sun/self.M_earth)
-                        Rs[n, m] = self.mr_convert(Ms[n, m], "radius")
+                        Rs[n, m] = self.otegi_mr(Ms[n, m], "radius")
 
                     elif rad[m] != "?":
                         Rs[n, m] = rad[m]
-                        Ms[n, m] = self.mr_convert(rad[m], "mass")
+                        Ms[n, m] = self.otegi_mr(rad[m], "mass")
 
                     elif mts[m] == "Mass":
                         Ms[n, m] = mas[m]
-                        Rs[n, m] = self.mr_convert(mas[m], "radius")
+                        Rs[n, m] = self.otegi_mr(mas[m], "radius")
 
             for n in range(len(il)):
                 if self.config_parameters["radius"] == "epos":
@@ -713,10 +708,10 @@ class dynamite:
         Rm = np.percentile(Rk, 50)
         Rle = Rm - np.percentile(Rk, 16)
         Rue = np.percentile(Rk, 84) - Rm
-        Mm = self.mr_convert(Rm, "mass")
+        Mm = self.otegi_mr(Rm, "mass")
         fupp, flow = self.get_mr_force(Mm)
-        Mle = Mm - self.mr_convert(Rm - Rle, "mass", flow)
-        Mue = self.mr_convert(Rm + Rue, "mass", fupp) - Mm
+        Mle = Mm - self.otegi_mr(Rm - Rle, "mass", flow)
+        Mue = self.otegi_mr(Rm + Rue, "mass", fupp) - Mm
         im = np.percentile(ik, 50)
         ile = im - np.percentile(ik, 16)
         iue = np.percentile(ik, 84) - im
@@ -843,7 +838,7 @@ class dynamite:
 
     def random_val_from_tup(self, tup):
         """Draws a random value from the given tuple (value, upper_unc, lower_unc)"""
-        
+
         if tup[1] == "?":
             return tup[0]
 
@@ -950,8 +945,11 @@ class dynamite:
                     imc = -imc
 
             per = [self.random_val_from_tup(i) for i in per_tup]
-            mas = [self.random_val_from_tup(mas_tup[i]) if mas_tup[i][3] != "Msini" else (self.random_val_from_tup(mas_tup[i])/np.sin(inc[i]*math.pi/180) if inc[i] != 0 else M_star*self.M_sun/self.M_earth) for i in range(len(mas_tup))]
-            rad = [self.random_val_from_tup(rad_tup[i]) if mas_tup[i][3] != "Msini" else self.mr_convert(mas[i], "radius") for i in range(len(rad_tup))]
+            masv = [self.random_val_from_tup(mas_tup[i]) if mas_tup[i][3] != "Msini" else (self.random_val_from_tup(mas_tup[i])/np.sin(inc[i]*math.pi/180) if inc[i] != 0 else M_star*self.M_sun/self.M_earth) for i in range(len(mas_tup))]
+            mas = [i if i > 0.1 else 0.1 for i in masv]
+            radv = [self.random_val_from_tup(rad_tup[i]) if mas_tup[i][3] != "Msini" else self.otegi_mr(mas[i], "radius") for i in range(len(rad_tup))]
+            rad = [i if i > 0.1 else 0.1 for i in radv]
+            
             D = np.zeros(len(per) - 1)
 
             for i in range(len(D)):
@@ -966,7 +964,7 @@ class dynamite:
 
         Pmc = self.cdf_draw(P, np.random.rand(), cdfP)
         Rmc = self.cdf_draw(R, np.random.rand(), cdfR)
-        Mmc = self.mr_convert(Rmc, "mass")
+        Mmc = self.otegi_mr(Rmc, "mass")
 
         if Pmc < per[0]:
             pns = [per[0]]
@@ -990,7 +988,7 @@ class dynamite:
             permc = pns[i]
             radmc = rns[i]
             eccmc = ens[i]
-            masmc = self.mr_convert(radmc, "mass")
+            masmc = self.otegi_mr(radmc, "mass")
             a1 = GMfp213*((Pmc if Pmc < permc else permc)*self.seconds_per_day)**(2/3)
             a2 = GMfp213*((permc if Pmc < permc else Pmc)*self.seconds_per_day)**(2/3)
             e1 = emc if Pmc < permc else eccmc
@@ -1329,7 +1327,7 @@ class dynamite:
     def create_pers(self, fP, per, mas, Ms, ecc, P, R, cdfR, il, Pinc, Pecc, em, cdfe, M_star, GMfp213):
         """Generates probability of periods using dimensionless spacing adjustment."""
 
-        m2 = self.mr_convert(R[np.where(cdfR > 0.5)[0][0]], "mass")
+        m2 = self.otegi_mr(R[np.where(cdfR > 0.5)[0][0]], "mass")
         Dv = np.zeros(len(P))
         Ds = np.zeros(len(il))
         pdfP = np.zeros(len(il))
@@ -1738,7 +1736,7 @@ class dynamite:
             R_v = 0.7*measurement**0.63
             R_j = 14.357*(measurement/131.61)**-0.04
             
-            if force == "rocky" or measurement < 5:
+            if force == "rocky" or self.config_parameters["otegi_rho"] == "rocky" or measurement < 5:
                 return R_r
 
             if force == "volatile" or (measurement < 131.61 and (measurement > 25 or (measurement > 5 and self.config_parameters["otegi_rho"] == "volatile"))):
@@ -1751,7 +1749,7 @@ class dynamite:
             M_v = 1.74*measurement**1.58
             M_j = 131.61*(measurement/14.357)**(-25)
 
-            if force == "rocky" or M_r < 5:
+            if force == "rocky" or self.config_parameters["otegi_rho"] == "rocky" or M_r < 5:
                 return M_r
 
             if force == "volatile" or (M_v < 131.61 and (M_r > 25 or (M_r > 5 and self.config_parameters["otegi_rho"] == "volatile"))):

@@ -33,11 +33,11 @@ class dynamite_targets_db:
             if isinstance(low, str):
                 print(val, upp, low)
 
-            if upp != None and upp != 0 and val != None and val/upp < 10:
-                upp = val/10
+            #if upp != None and upp != 0 and val != None and val/upp < 10:
+            #    upp = val/10
 
-            if low != None and low != 0 and val != None and val/low > -10:
-                low = val/-10
+            #if low != None and low != 0 and val != None and val/low > -10:
+            #    low = val/-10
 
             if val != None and upp != None and low != None:
                 tup = [val, upp, low]
@@ -64,7 +64,7 @@ class dynamite_targets_db:
             dbcursor = dbconn.cursor()
 
             targets = {}
-            dbcursor.execute("select p1.tname, min(period) as minperiod from planet p1 where not exists (select * from planet p where p.tname = p1.tname and p.pradius > " + str(radmax) + ") group by p1.tname order by minperiod")
+            dbcursor.execute("select p1.tname, min(period) as minperiod from planet p1 where not exists (select * from planet p where p.tname = p1.tname and p.pname = p1.pname and p.pradius > " + str(radmax) + ") group by p1.tname order by minperiod")
             target_names = [i[0] for i in dbcursor.fetchall()]
 
             for n in target_names:
@@ -167,7 +167,7 @@ class dynamite_targets_db:
             dbcursor = dbconn.cursor()
 
             targets = {}
-            dbcursor.execute("select p1.tname, min(period) as minperiod from planet p1 where not exists (select * from planet p where p.tname = p1.tname and p.pradius > " + str(radmax) + ") group by p1.tname order by minperiod")
+            dbcursor.execute("select p1.tname, min(period) as minperiod from planet p1 where not exists (select * from planet p where p.tname = p1.tname and p.pname = p1.pname and p.pradius > " + str(radmax) + ") group by p1.tname order by minperiod")
             target_names = [i[0] for i in dbcursor.fetchall()]
 
             for n in target_names:
