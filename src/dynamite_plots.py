@@ -753,6 +753,7 @@ class dynamite_plots:
             if self.config_parameters["mass_radius"] == "otegi":
                 Mk = [self.otegi_mr(Rk[i], 'mass') for i in range(len(Rk))]
                 Mb1 = sorted([self.otegi_mr(Rb[i], 'mass') for i in range(len(Rb))])
+                print(min(Mb1), max(Mb1))
                 Mb = np.arange(min(Mb1), max(Mb1), 0.25)
 
             n, _, h1 = plt.hist(Mk, bins=Mb, weights=np.ones(len(Mk))*10 / len(Mk), color=color_scheme[0] if self.config_parameters["stability"] == "hill" else color_scheme[2])
@@ -1154,8 +1155,6 @@ class dynamite_plots:
         return annots
 
 
-
-
     def otegi_mr(self, measurement, predict, force=None):
         """Uses a power-law MR to predict mass in Earth values from radius in Earth values or vice versa"""
 
@@ -1164,7 +1163,7 @@ class dynamite_plots:
             R_v = 0.7*measurement**0.63
             R_j = 14.357*(measurement/131.61)**-0.04
             
-            if force == "rocky" or measurement < 5:
+            if force == "rocky" or self.config_parameters["otegi_rho"] == "rocky" or measurement < 5:
                 return R_r
 
             if force == "volatile" or (measurement < 131.61 and (measurement > 25 or (measurement > 5 and self.config_parameters["otegi_rho"] == "volatile"))):
@@ -1177,7 +1176,7 @@ class dynamite_plots:
             M_v = 1.74*measurement**1.58
             M_j = 131.61*(measurement/14.357)**(-25)
 
-            if force == "rocky" or M_r < 5:
+            if force == "rocky" or self.config_parameters["otegi_rho"] == "rocky" or M_r < 5:
                 return M_r
 
             if force == "volatile" or (M_v < 131.61 and (M_r > 25 or (M_r > 5 and self.config_parameters["otegi_rho"] == "volatile"))):
